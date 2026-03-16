@@ -21,8 +21,15 @@
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "Moves pipeline code into chunkers/, embedders/, strategies/, scorers/ packages. Deletes old src/pipeline/ and src/data/ after migration.",
     "depends_on": ["task-001"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-16T22:20:00"
+    "status": "done",
+    "nighttime_started": "2026-03-16T22:20:00",
+    "nighttime_completed": "2026-03-16T22:35:00",
+    "nighttime_comments": "Migrated SemanticChunker, OllamaEmbedder, ClaudeScorer, NaiveRAG, SelfRAG to new packages. Old pipeline/data files deleted. 15 tests pass.",
+    "branch": "night/task-002-migrate-components",
+    "commit_sha": "556202d883e4f557b7b224998ed00f58a9bf36ad",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["__pycache__ directories remain under old src/data/ and src/pipeline/ - harmless but should be cleaned up"]
   },
   {
     "task_id": "task-003",
@@ -30,7 +37,8 @@
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "MultiQueryRAG, CorrectiveRAG, AdaptiveRAG, FixedSizeChunker, RecursiveChunker, SentenceChunker, HuggingFaceEmbedder.",
     "depends_on": ["task-002"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-16T22:40:00"
   },
   {
     "task_id": "task-004",
