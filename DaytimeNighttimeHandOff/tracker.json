@@ -3,7 +3,7 @@
     "task_id": "task-001",
     "description": "Core framework: protocols, retriever, experiment runner",
     "daytime_created": "2026-03-16T18:00:00",
-    "daytime_comments": "Foundation for everything else. Creates src/protocols.py, src/retriever.py, src/experiment.py, moves features.py. Does NOT delete old files — task-002 handles cleanup.",
+    "daytime_comments": "Foundation for everything else.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-16T22:00:00",
@@ -19,10 +19,17 @@
     "task_id": "task-002",
     "description": "Migrate existing components to pluggable interfaces",
     "daytime_created": "2026-03-16T18:00:00",
-    "daytime_comments": "Moves pipeline code into chunkers/, embedders/, strategies/, scorers/ packages. Deletes old src/pipeline/ and src/data/ after migration.",
+    "daytime_comments": "Moves pipeline code into new packages.",
     "depends_on": ["task-001"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-16T22:20:00"
+    "status": "done",
+    "nighttime_started": "2026-03-16T22:20:00",
+    "nighttime_completed": "2026-03-16T22:35:00",
+    "nighttime_comments": "Migrated all components to new packages. 15 tests pass.",
+    "branch": "night/task-002-migrate-components",
+    "commit_sha": "556202d883e4f557b7b224998ed00f58a9bf36ad",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["__pycache__ directories remain under old src/data/ and src/pipeline/"]
   },
   {
     "task_id": "task-003",
@@ -30,21 +37,30 @@
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "MultiQueryRAG, CorrectiveRAG, AdaptiveRAG, FixedSizeChunker, RecursiveChunker, SentenceChunker, HuggingFaceEmbedder.",
     "depends_on": ["task-002"],
-    "status": "todo"
+    "status": "done",
+    "nighttime_started": "2026-03-16T22:40:00",
+    "nighttime_completed": "2026-03-16T23:00:00",
+    "nighttime_comments": "All 7 new components created. 29 tests pass.",
+    "branch": "night/task-003-remaining-components",
+    "commit_sha": "af1ad7d4f2762b82293211601d7047d246b30465",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["sentence-transformers adds ~2GB of deps (torch)"]
   },
   {
     "task_id": "task-004",
     "description": "ExperimentResult analysis and visualization methods",
     "daytime_created": "2026-03-16T18:00:00",
-    "daytime_comments": "Heatmaps, comparisons, per-query breakdowns, CSV/Parquet export, merge. Makes the tool useful for actual research.",
+    "daytime_comments": "Heatmaps, comparisons, per-query breakdowns, CSV/Parquet export, merge.",
     "depends_on": ["task-002"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-16T23:05:00"
   },
   {
     "task_id": "task-005",
     "description": "Wire meta-learner and FastAPI to new 4-axis architecture",
     "daytime_created": "2026-03-16T18:00:00",
-    "daytime_comments": "Config label becomes chunker__embedder__strategy__model. train.py accepts ExperimentResult. predict.py returns 4 axes. app.py updated.",
+    "daytime_comments": "Config label becomes chunker__embedder__strategy__model.",
     "depends_on": ["task-002", "task-004"],
     "status": "todo"
   }

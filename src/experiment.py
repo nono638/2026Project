@@ -232,3 +232,165 @@ class ExperimentResult:
         return self.df.groupby(
             ["chunker", "embedder", "strategy", "model"]
         )[metric].mean().idxmax()
+
+    def summary(self) -> pd.DataFrame:
+        """Group by all four axes and compute aggregate statistics.
+
+        Returns:
+            Summary DataFrame with mean, std, min, max, count for score columns.
+        """
+        if self.df.empty:
+            print("No data.")
+            return self.df
+        score_cols = [c for c in ["faithfulness", "relevance", "conciseness", "quality"]
+                      if c in self.df.columns]
+        summary = self.df.groupby(
+            ["chunker", "embedder", "strategy", "model"]
+        )[score_cols].agg(["mean", "std", "min", "max", "count"]).round(3)
+        print(summary.to_string())
+        return summary
+
+    def compare_strategies(self, metric: str = "quality") -> pd.DataFrame:
+        """Group by strategy only, aggregate metric. Print ranked table.
+
+        Args:
+            metric: The metric to compare (default: 'quality').
+
+        Returns:
+            DataFrame ranked by mean metric score descending.
+        """
+        if self.df.empty or metric not in self.df.columns:
+            print("No data for comparison.")
+            return self.df
+        result = self.df.groupby("strategy")[metric].agg(
+            ["mean", "std", "count"]
+        ).round(3).sort_values("mean", ascending=False)
+        print(result.to_string())
+        return result
+
+    def compare_models(self, metric: str = "quality") -> pd.DataFrame:
+        """Group by model only, aggregate metric. Print ranked table.
+
+        Args:
+            metric: The metric to compare (default: 'quality').
+
+        Returns:
+            DataFrame ranked by mean metric score descending.
+        """
+        if self.df.empty or metric not in self.df.columns:
+            print("No data for comparison.")
+            return self.df
+        result = self.df.groupby("model")[metric].agg(
+            ["mean", "std", "count"]
+        ).round(3).sort_values("mean", ascending=False)
+        print(result.to_string())
+        return result
+
+    def heatmap(self, rows: str, cols: str, values: str = "quality",
+                save_path: Path | None = None) -> None:
+        """Create a matplotlib heatmap of the pivot table.
+
+        Args:
+            rows: Column name for heatmap rows.
+            cols: Column name for heatmap columns.
+            values: Column name for cell values (default: 'quality').
+            save_path: If provided, save the figure to this path instead of showing.
+        """
+        try:
+            import matplotlib
+            matplotlib.use("Agg")  # Non-interactive backend for headless environments
+            import matplotlib.pyplot as plt
+        except ImportError:
+            raise ImportError("matplotlib required for plotting: pip install matplotlib")
+
+        pivot = self.pivot(rows, cols, values)
+        fig, ax = plt.subplots(figsize=(10, 6))
+        im = ax.imshow(pivot.values, cmap="RdYlGn", aspect="auto")
+
+        ax.set_xticks(range(len(pivot.columns)))
+        ax.set_xticklabels(pivot.columns, rotation=45, ha="right")
+        ax.set_yticks(range(len(pivot.index)))
+        ax.set_yticklabels(pivot.index)
+
+        # Annotate cells with values
+        for i in range(len(pivot.index)):
+            for j in range(len(pivot.columns)):
+                val = pivot.values[i, j]
+                if not pd.isna(val):
+                    ax.text(j, i, f"{val:.2f}", ha="center", va="center")
+
+        plt.colorbar(im)
+        plt.title(f"{values} by {rows} × {cols}")
+        plt.tight_layout()
+
+        if save_path:
+            plt.savefig(save_path, dpi=150)
+            print(f"Saved to {save_path}")
+        else:
+            plt.show()
+        plt.close(fig)
+
+    def per_query(self, metric: str = "quality") -> pd.DataFrame:
+        """For each query, show best/worst config and score spread.
+
+        Useful for identifying queries where strategy choice matters most.
+
+        Args:
+            metric: The metric to analyze (default: 'quality').
+
+        Returns:
+            DataFrame sorted by spread (descending).
+        """
+        if self.df.empty or metric not in self.df.columns:
+            print("No data.")
+            return pd.DataFrame()
+        results = []
+        for query, group in self.df.groupby("query_text"):
+            best = group.loc[group[metric].idxmax()]
+            worst = group.loc[group[metric].idxmin()]
+            results.append({
+                "query": str(query)[:80],
+                "best_config": f"{best['strategy']}/{best['model']}",
+                "best_score": best[metric],
+                "worst_config": f"{worst['strategy']}/{worst['model']}",
+                "worst_score": worst[metric],
+                "spread": best[metric] - worst[metric],
+            })
+        result_df = pd.DataFrame(results).sort_values("spread", ascending=False)
+        print(result_df.to_string(index=False))
+        return result_df
+
+    def strategy_vs_size(self, metric: str = "quality") -> pd.DataFrame:
+        """The core research question: when does strategy beat size?
+
+        Pivot strategy x model showing where small models + smart strategies
+        beat large models + simple strategies.
+
+        Args:
+            metric: The metric to pivot (default: 'quality').
+
+        Returns:
+            Pivot table DataFrame of strategy x model.
+        """
+        pivot = self.pivot("strategy", "model", metric)
+        print(pivot.round(3).to_string())
+        return pivot
+
+    def to_csv(self, path: Path) -> None:
+        """Export results to CSV for sharing or further analysis.
+
+        Args:
+            path: File path for the CSV output.
+        """
+        self.df.to_csv(path, index=False)
+
+    def merge(self, other: ExperimentResult) -> ExperimentResult:
+        """Combine two ExperimentResults from different runs.
+
+        Args:
+            other: Another ExperimentResult to merge with this one.
+
+        Returns:
+            New ExperimentResult with concatenated DataFrames.
+        """
+        return ExperimentResult(pd.concat([self.df, other.df], ignore_index=True))
