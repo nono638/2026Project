@@ -1,0 +1,2 @@
+[2026-03-17T00:30:00] task-005: done — Updated train.py, predict.py, app.py to 4-axis config (chunker__embedder__strategy__model). 47 tests pass. [tests: pass]
+[2026-03-17T00:35:00] END-OF-NIGHT: All 5 tasks complete (done). Sweeps skipped — skill file not available on main branch and context was compacted.
