@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "defaultMode": "acceptEdits",
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Read",
       "Edit",
@@ -8,9 +8,6 @@
       "Write",
       "Glob",
       "Grep",
-      "WebSearch",
-      "WebFetch",
-      "AskUserQuestion",
       "Bash(python *)",
       "Bash(python3 *)",
       "Bash(py *)",
@@ -50,15 +47,9 @@
       "Bash(javac *)",
       "Bash(mvn *)",
       "Bash(gradle *)",
-      "Bash(gh *)",
-      "Bash(powershell *)",
-      "Bash(pwsh *)",
       "Bash(cmd /c *)",
       "Bash(bash *)",
       "Bash(bash -c *)",
-      "Bash(start *)",
-      "Bash(curl *)",
-      "Bash(wget *)",
       "Bash(*| head *)",
       "Bash(*| tail *)",
       "Bash(*| wc *)",
@@ -88,6 +79,7 @@
       "Bash(format *)",
       "Bash(git push --force*)",
       "Bash(git push -f *)",
+      "Bash(git push*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
       "Bash(git checkout -- .)",
@@ -109,10 +101,62 @@
       "Bash(powershell*rm -r*)",
       "Bash(powershell*Format-Volume*)",
       "Bash(powershell*Clear-Disk*)",
-      "Bash(powershell*Set-ExecutionPolicy*)"
+      "Bash(powershell*Set-ExecutionPolicy*)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(Invoke-WebRequest*)",
+      "Bash(Invoke-RestMethod*)",
+      "Bash(powershell*Invoke-WebRequest*)",
+      "Bash(powershell*Invoke-RestMethod*)",
+      "Bash(powershell*curl*)",
+      "Bash(powershell*wget*)",
+      "Bash(*| curl *)",
+      "Bash(*| wget *)",
+      "Bash(gh *)",
+      "Bash(start *)",
+      "Bash(powershell *)",
+      "Bash(pwsh *)",
+      "Bash(*powershell*)",
+      "Bash(*pwsh*)",
+      "WebFetch",
+      "WebSearch",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.key)",
+      "Read(**/*.pem)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)",
+      "Read(**/credentials*)",
+      "Read(**/*secret*)",
+      "Read(**/*password*)",
+      "Read(**/.aws/*)",
+      "Read(**/.ssh/*)",
+      "Read(**/.gnupg/*)",
+      "Read(**/.npmrc)",
+      "Read(**/.pypirc)"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write|MultiEdit|Glob|Grep|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/directory_guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/no_ask_human.py\""
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": ".*",
@@ -120,6 +164,11 @@
           {
             "type": "command",
             "command": "python \".claude/hooks/audit_log.py\"",
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/context_monitor.py\"",
             "async": true
           }
         ]
@@ -130,6 +179,27 @@
           {
             "type": "command",
             "command": "python \".claude/hooks/syntax_check.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/stop_quality_gate.py\""
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/notification_log.py\"",
+            "async": true
           }
         ]
       }

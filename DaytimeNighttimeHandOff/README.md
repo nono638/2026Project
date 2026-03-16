@@ -41,10 +41,10 @@ mid-session capture → inbox.md
              ↓                       [nightrun.sh]
        WrittenByDaytime/                   ↓
        + tracker.json (todo)    WrittenByNighttime/result.md
-                                           ↓  [morning review]
-                                flags/blocked → inbox.md
-                                branches reviewed + merged
-                                archive/ (skipped/abandoned)
+                                          ↓  [morning review]
+                               flags/blocked → inbox.md
+                               branches reviewed + merged
+                               archive/ (skipped/abandoned)
 ```
 
 ## tracker.json format

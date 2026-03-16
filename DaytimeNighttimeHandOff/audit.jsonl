@@ -279,40 +279,4 @@
 {"ts": "2026-03-16T05:49:07Z", "tool": "Bash", "session": "5f46f69a", "command": "source .venv/Scripts/activate && python -m pytest tests/test_model.py -v 2>&1"}
 {"ts": "2026-03-16T05:49:49Z", "tool": "Bash", "session": "5f46f69a", "command": "source .venv/Scripts/activate && python -m pytest tests/ -v 2>&1"}
 {"ts": "2026-03-16T05:50:09Z", "tool": "Write", "session": "5f46f69a", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-005-metalearner-api\\result.md"}
-{"ts": "2026-03-16T05:50:22Z", "tool": "Bash", "session": "5f46f69a", "command": "git add -A && git commit -m \"night: task-005 wire meta-learner and FastAPI to 4-axis architecture\""}
-{"ts": "2026-03-16T05:50:32Z", "tool": "Bash", "session": "5f46f69a", "command": "git rev-parse HEAD"}
-{"ts": "2026-03-16T17:09:15Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\project_overview.md"}
-{"ts": "2026-03-16T17:09:16Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\incubating.md"}
-{"ts": "2026-03-16T17:09:17Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-16T17:09:17Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\inbox.md"}
-{"ts": "2026-03-16T17:10:48Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git branch -a | grep -i night"}
-{"ts": "2026-03-16T18:07:35Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && ls DaytimeNighttimeHandOff/WrittenByNighttime/ ..."}
-{"ts": "2026-03-16T18:07:54Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && for branch in night/task-001-core-framework nig..."}
-{"ts": "2026-03-16T18:08:09Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff main..night/task-001-core-framework --..."}
-{"ts": "2026-03-16T18:09:38Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff night/task-001-core-framework..night/t..."}
-{"ts": "2026-03-16T18:11:12Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff night/task-002-migrate-components..nig..."}
-{"ts": "2026-03-16T18:11:19Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff night/task-002-migrate-components..nig..."}
-{"ts": "2026-03-16T18:11:27Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff night/task-004-analysis..night/task-00..."}
-{"ts": "2026-03-16T18:11:36Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git branch | grep -i sweep"}
-{"ts": "2026-03-16T18:12:49Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-001-core-framework:DaytimeN..."}
-{"ts": "2026-03-16T18:12:56Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-002-migrate-components:Dayt..."}
-{"ts": "2026-03-16T18:13:09Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-003-remaining-components:Da..."}
-{"ts": "2026-03-16T18:13:15Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-004-analysis:DaytimeNightti..."}
-{"ts": "2026-03-16T18:13:21Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:Daytime..."}
-{"ts": "2026-03-16T18:13:31Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-16T18:13:45Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-16T18:19:34Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && cat .gitignore 2>/dev/null || echo \"No .gitigno..."}
-{"ts": "2026-03-16T18:19:38Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\.gitignore"}
-{"ts": "2026-03-16T18:20:02Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git rm -r --cached --quiet $(git ls-files '**/_..."}
-{"ts": "2026-03-16T18:21:14Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/emb..."}
-{"ts": "2026-03-16T18:21:21Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/emb..."}
-{"ts": "2026-03-16T18:21:39Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/pro..."}
-{"ts": "2026-03-16T18:21:49Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/mod..."}
-{"ts": "2026-03-16T18:22:04Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/mod..."}
-{"ts": "2026-03-16T18:22:17Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/mod..."}
-{"ts": "2026-03-16T18:22:24Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/mod..."}
-{"ts": "2026-03-16T18:22:51Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/mod..."}
-{"ts": "2026-03-16T18:24:05Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/mod..."}
-{"ts": "2026-03-16T18:24:15Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git show night/task-005-metalearner-api:src/app..."}
-{"ts": "2026-03-16T18:24:34Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\config.py"}
-{"ts": "2026-03-16T18:31:17Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && ls -d \"Project Docs\" \"Project docs\" 2>/dev/null..."}
+{"ts": "2026-03-16T18:42:42Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff --name-only --diff-filter=U"}

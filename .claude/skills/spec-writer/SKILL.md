@@ -77,48 +77,9 @@ For each decision, write a one-line rationale: why this choice over the alternat
 
 ---
 
-## Step 5 — Write the spec section by section
+## Step 5 — Write the spec
 
-Build the spec incrementally. Present each section to the user for validation before
-moving to the next. This catches misunderstandings early instead of at the end.
-
-Create `DaytimeNighttimeHandOff/WrittenByDaytime/task-NNN-short-name/spec.md` and build
-it section by section:
-
-**Section 1 — Summary and Requirements:**
-Write the summary paragraph and numbered requirements. Show the user:
-> "Here's what I have for the core requirements:
-> 1. [requirement]
-> 2. [requirement]
-> Anything missing or wrong?"
-
-Wait for confirmation before proceeding.
-
-**Section 2 — Files to Modify:**
-List exact files with specific functions/classes/sections. Show the user:
-> "These are the files I'd have the night agent touch:
-> - `path/to/file.py` — modify `function_name()` to...
-> - `path/to/new_file.py` — create, purpose...
-> Look right?"
-
-**Section 3 — Edge Cases and Decisions:**
-List edge cases with explicit expected behaviors, and all decisions with rationale. Show:
-> "Edge cases and decisions I've locked in:
-> - When [scenario]: [behavior]
-> - Decision: [choice] because [why]
-> Any edge cases I'm missing?"
-
-**Section 4 — Acceptance Tests:**
-Write concrete test descriptions with specific inputs and expected outputs. Show:
-> "Here's what the night agent will test against:
-> - `function(input)` returns `expected_output`
-> - `function(bad_input)` raises `SpecificError`
-> These cover the requirements?"
-
-**Section 5 — What NOT to Touch:**
-List boundaries. Show briefly, confirm.
-
-After all sections are validated, assemble the complete spec:
+Create `DaytimeNighttimeHandOff/WrittenByDaytime/task-NNN-short-name/spec.md`:
 
 ```markdown
 # task-NNN: <Short Description>
@@ -145,14 +106,20 @@ After all sections are validated, assemble the complete spec:
 ## What NOT to Touch
 - [File or area that should be left alone, and why]
 
-## Acceptance Tests
-- [Concrete test with specific input → expected output]
-- [...]
-
 ## Testing Approach
 - [What the pre-written tests cover]
 - [How to run them]
 ```
+
+**Quality gate — check each before proceeding:**
+- [ ] Exact files to modify are listed with specific sections
+- [ ] All edge cases are explicit (not "handle appropriately")
+- [ ] All judgment calls are made — no ambiguity for the night instance
+- [ ] "Why" is answered for every non-obvious decision
+- [ ] Research URLs included where research was done
+- [ ] Scoped to one focused nighttime session
+
+If any item fails, go back and fix it before continuing.
 
 ---
 
@@ -173,50 +140,7 @@ Include at least:
 
 ---
 
-## Step 7 — Automated spec review
-
-Before finalizing, review the spec as if you were the night agent receiving it. Ask yourself
-these questions and fix any failures:
-
-**Completeness check — could an unattended agent implement this without asking a single question?**
-
-| Check | Pass? | Fix if failing |
-|---|---|---|
-| Every requirement is testable (has a concrete pass/fail condition) | | Rewrite vague requirements |
-| Every file to modify lists the specific function/class/section | | Add specifics |
-| No vague language: "handle appropriately", "as needed", "etc." | | Replace with explicit behavior |
-| Every decision has a rationale (not just "use X" but "use X because Y") | | Add the why |
-| Acceptance tests have concrete inputs and expected outputs | | Add specific examples |
-| Edge cases have explicit expected behavior (not just "consider X") | | State what should happen |
-| Scope is clear — what NOT to touch is stated | | Add boundaries |
-| No unresolved questions or TODOs in the spec | | Resolve them now or ask the user |
-| The task is completable in one nighttime session | | Split if too large |
-
-**Ambiguity scan — search the spec text for red flags:**
-- "should" (weak — change to "must" or remove)
-- "might", "could", "possibly" (unresolved decisions — resolve them)
-- "appropriate", "reasonable", "as needed" (vague — replace with specifics)
-- "TBD", "TODO", "TBC" (unfinished — finish them)
-- "similar to", "like the existing" (which existing? name it)
-
-If you find issues, fix them in the spec and re-show the affected section to the user
-for confirmation.
-
-**Final quality gate:**
-- [ ] Exact files listed with specific sections
-- [ ] All edge cases explicit
-- [ ] All judgment calls made — zero ambiguity
-- [ ] "Why" answered for every non-obvious decision
-- [ ] Research URLs included where research was done
-- [ ] Acceptance tests have concrete inputs → expected outputs
-- [ ] Scoped to one focused nighttime session
-- [ ] No vague language found in ambiguity scan
-
-If any item fails, go back and fix it before continuing.
-
----
-
-## Step 8 — Create tracker.json entry
+## Step 7 — Create tracker.json entry
 
 Add to `DaytimeNighttimeHandOff/tracker.json`:
 
@@ -235,7 +159,7 @@ If this task depends on another, set `depends_on` to an array: `["task-001"]`.
 
 ---
 
-## Step 9 — Handle incubating.md (if promoting)
+## Step 8 — Handle incubating.md (if promoting)
 
 If this task was promoted from incubating.md:
 1. In `incubating.md`, mark the entry: `**Promoted to:** task-NNN`
@@ -243,7 +167,7 @@ If this task was promoted from incubating.md:
 
 ---
 
-## Step 10 — Confirm to user
+## Step 9 — Confirm to user
 
 Summarize:
 > "task-NNN queued: <description>. Spec has N requirements, K test files, covers M files.

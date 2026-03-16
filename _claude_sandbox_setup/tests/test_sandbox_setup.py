@@ -130,17 +130,13 @@ class TestSettingsJson:
             "deny list doesn't block 'curl' (network exfiltration risk)"
         )
 
-    def test_denies_crypto_key_files(self):
-        """Nighttime settings should block reading private key and certificate files."""
+    def test_denies_env_files(self):
         settings = self.get_settings()
         if settings is None:
             pytest.skip("settings.json not found")
         deny = settings.get("permissions", {}).get("deny", [])
-        assert any(".key" in rule for rule in deny), (
-            "deny list doesn't block .key file reads (private key risk)"
-        )
-        assert any(".pem" in rule for rule in deny), (
-            "deny list doesn't block .pem file reads (certificate risk)"
+        assert any(".env" in rule for rule in deny), (
+            "deny list doesn't block .env file reads (secrets risk)"
         )
 
     def test_denies_git_push(self):
@@ -416,14 +412,17 @@ class TestDayNightTemplates:
         assert "WrittenByDaytime" in content
         assert "WrittenByNighttime" in content
 
-    def test_nighttime_supplement_has_crash_recovery(self):
-        """Nighttime supplement should reference crash-recovery skill for git state checks."""
+    def test_nighttime_supplement_has_git_state_check(self):
+        """Nighttime supplement should have an explicit git state check at session start."""
         path = self._template_path("nighttime_supplement.md")
         if not os.path.isfile(path):
             pytest.skip()
         content = open(path, encoding="utf-8").read()
-        assert "crash-recovery" in content, (
-            "nighttime_supplement.md should reference crash-recovery skill at session start"
+        assert "git status" in content, (
+            "nighttime_supplement.md should include explicit git status check at session start"
+        )
+        assert "git branch" in content, (
+            "nighttime_supplement.md should include explicit git branch check at session start"
         )
 
     def test_nighttime_supplement_ignores_daytime_only(self):
@@ -722,14 +721,14 @@ class TestDayNightTemplates:
         )
 
     def test_daytime_settings_has_explicit_default_mode(self):
-        """Daytime settings should have explicit defaultMode: acceptEdits."""
+        """Daytime settings should have explicit defaultMode: ask."""
         path = self._template_path("daytime_settings.json")
         if not os.path.isfile(path):
             pytest.skip()
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        assert data.get("permissions", {}).get("defaultMode") == "acceptEdits", (
-            "daytime_settings.json should have explicit defaultMode: acceptEdits"
+        assert data.get("permissions", {}).get("defaultMode") == "ask", (
+            "daytime_settings.json should have explicit defaultMode: ask"
         )
 
     def test_daytime_settings_allows_web(self):
@@ -984,331 +983,3 @@ class TestScripts:
             pytest.skip()
         content = open(path, encoding="utf-8").read()
         assert "tracker.json" in content
-
-    def test_nightrun_sh_uses_1m_context(self):
-        """nightrun.sh should default to the 1M context window model."""
-        path = self._script_path("nightrun.sh")
-        if not os.path.isfile(path):
-            pytest.skip()
-        content = open(path, encoding="utf-8").read()
-        assert "[1m]" in content, (
-            "nightrun.sh should default to claude-opus-4-6[1m] for 1M context"
-        )
-
-    def test_nightrun_bat_uses_1m_context(self):
-        """nightrun.bat should default to the 1M context window model."""
-        path = self._script_path("nightrun.bat")
-        if not os.path.isfile(path):
-            pytest.skip()
-        content = open(path, encoding="utf-8").read()
-        assert "[1m]" in content, (
-            "nightrun.bat should default to claude-opus-4-6[1m] for 1M context"
-        )
-
-    def test_nightrun_sh_uses_medium_effort(self):
-        """nightrun.sh should default to medium effort for nighttime."""
-        path = self._script_path("nightrun.sh")
-        if not os.path.isfile(path):
-            pytest.skip()
-        content = open(path, encoding="utf-8").read()
-        assert 'EFFORT:-medium' in content or 'EFFORT=medium' in content, (
-            "nightrun.sh should default to medium effort"
-        )
-
-    def test_nightrun_bat_uses_medium_effort(self):
-        """nightrun.bat should default to medium effort for nighttime."""
-        path = self._script_path("nightrun.bat")
-        if not os.path.isfile(path):
-            pytest.skip()
-        content = open(path, encoding="utf-8").read()
-        assert 'EFFORT=medium' in content, (
-            "nightrun.bat should default to medium effort"
-        )
-
-    def test_dayrun_sh_uses_1m_context(self):
-        """dayrun.sh should launch with the 1M context window model."""
-        path = self._script_path("dayrun.sh")
-        if not os.path.isfile(path):
-            pytest.skip()
-        content = open(path, encoding="utf-8").read()
-        assert "[1m]" in content, (
-            "dayrun.sh should use claude-opus-4-6[1m] for 1M context"
-        )
-
-    def test_dayrun_sh_uses_high_effort(self):
-        """dayrun.sh should launch with high effort for daytime."""
-        path = self._script_path("dayrun.sh")
-        if not os.path.isfile(path):
-            pytest.skip()
-        content = open(path, encoding="utf-8").read()
-        assert "high" in content, (
-            "dayrun.sh should use high effort for daytime"
-        )
-
-
-# ── Skills ────────────────────────────────────────────────────────────────
-
-
-class TestSkills:
-    """Verify all skill SKILL.md files exist and have valid frontmatter."""
-
-    EXPECTED_SKILLS = [
-        "architecture-advisor",
-        "branch-review",
-        "coverage-check",
-        "crash-recovery",
-        "dependency-audit",
-        "distill",
-        "end-of-night-sweeps",
-        "environment-bootstrap",
-        "health-check",
-        "install-package",
-        "intake",
-        "pre-commit-review",
-        "project-snapshot",
-        "spec-writer",
-        "tdd-enforcer",
-    ]
-
-    def _skill_path(self, name):
-        return os.path.join(
-            PROJECT_ROOT, "_claude_sandbox_setup", "templates",
-            "skills", name, "SKILL.md"
-        )
-
-    def test_all_skills_exist(self):
-        """Every expected skill should have a SKILL.md in the templates directory."""
-        missing = [
-            s for s in self.EXPECTED_SKILLS
-            if not os.path.isfile(self._skill_path(s))
-        ]
-        assert not missing, (
-            f"Missing skills in templates/skills/: {', '.join(missing)}"
-        )
-
-    def test_all_skills_have_frontmatter(self):
-        """Every SKILL.md should have YAML frontmatter with name and description."""
-        for skill in self.EXPECTED_SKILLS:
-            path = self._skill_path(skill)
-            if not os.path.isfile(path):
-                continue
-            content = open(path, encoding="utf-8").read()
-            assert content.strip().startswith("---"), (
-                f"{skill}/SKILL.md missing YAML frontmatter"
-            )
-            assert "name:" in content, (
-                f"{skill}/SKILL.md frontmatter missing 'name:'"
-            )
-            assert "description:" in content, (
-                f"{skill}/SKILL.md frontmatter missing 'description:'"
-            )
-
-    def test_skills_deployed_to_claude_dir(self):
-        """All skills should also exist in .claude/skills/ (deployed location)."""
-        deployed_dir = os.path.join(PROJECT_ROOT, ".claude", "skills")
-        if not os.path.isdir(deployed_dir):
-            pytest.skip(".claude/skills/ not found — setup may not have run")
-        missing = [
-            s for s in self.EXPECTED_SKILLS
-            if not os.path.isfile(
-                os.path.join(deployed_dir, s, "SKILL.md")
-            )
-        ]
-        assert not missing, (
-            f"Skills missing from .claude/skills/: {', '.join(missing)}"
-        )
-
-
-# ── Nighttime Supplement — New Features ───────────────────────────────────
-
-
-class TestNighttimeNewFeatures:
-    """Verify new nighttime supplement features added in the current session."""
-
-    def _get_content(self):
-        path = os.path.join(
-            PROJECT_ROOT, "_claude_sandbox_setup", "templates",
-            "nighttime_supplement.md"
-        )
-        if not os.path.isfile(path):
-            pytest.skip()
-        return open(path, encoding="utf-8").read()
-
-    def test_has_effort_level(self):
-        content = self._get_content()
-        assert "EFFORT LEVEL" in content
-        assert "medium" in content.lower(), (
-            "nighttime supplement should specify medium effort"
-        )
-
-    def test_references_tdd_enforcer(self):
-        content = self._get_content()
-        assert "tdd-enforcer" in content, (
-            "nighttime supplement should reference the tdd-enforcer skill in Step 5"
-        )
-
-    def test_references_pre_commit_review(self):
-        content = self._get_content()
-        assert "pre-commit-review" in content, (
-            "nighttime supplement should reference the pre-commit-review skill"
-        )
-
-    def test_has_task_splitting(self):
-        content = self._get_content()
-        assert "split" in content.lower(), (
-            "nighttime supplement should have task-splitting instructions"
-        )
-
-    def test_has_tracker_validation(self):
-        content = self._get_content()
-        assert "json.load" in content, (
-            "nighttime supplement should validate tracker.json after writes"
-        )
-
-    def test_has_smart_compaction(self):
-        content = self._get_content()
-        assert "Never use `/clear`" in content or "never clear" in content.lower(), (
-            "nighttime supplement should prohibit /clear"
-        )
-        assert "compact" in content.lower(), (
-            "nighttime supplement should have compaction strategy"
-        )
-
-    def test_references_coverage_check_in_sweeps(self):
-        content = self._get_content()
-        assert "coverage-check" in content, (
-            "nighttime supplement should reference coverage-check in end-of-night sweeps"
-        )
-
-    def test_references_dependency_audit_in_sweeps(self):
-        content = self._get_content()
-        assert "dependency-audit" in content, (
-            "nighttime supplement should reference dependency-audit in end-of-night sweeps"
-        )
-
-    def test_has_verbose_logging(self):
-        content = self._get_content()
-        assert "SESSION START" in content
-        assert "SESSION END" in content
-
-
-# ── Daytime Supplement — New Features ─────────────────────────────────────
-
-
-class TestDaytimeNewFeatures:
-    """Verify new daytime supplement features."""
-
-    def _get_content(self):
-        path = os.path.join(
-            PROJECT_ROOT, "_claude_sandbox_setup", "templates",
-            "daytime_supplement.md"
-        )
-        if not os.path.isfile(path):
-            pytest.skip()
-        return open(path, encoding="utf-8").read()
-
-    def test_has_conversation_first(self):
-        content = self._get_content()
-        assert "CONVERSATION FIRST" in content, (
-            "daytime supplement should have a CONVERSATION FIRST section"
-        )
-
-    def test_references_intake_skill(self):
-        content = self._get_content()
-        assert "intake" in content, (
-            "daytime supplement should reference the intake skill"
-        )
-
-    def test_references_distill_skill(self):
-        content = self._get_content()
-        assert "distill" in content, (
-            "daytime supplement should reference the distill skill"
-        )
-
-    def test_references_architecture_advisor(self):
-        content = self._get_content()
-        assert "architecture-advisor" in content, (
-            "daytime supplement should reference the architecture-advisor skill"
-        )
-
-    def test_has_effort_level(self):
-        content = self._get_content()
-        assert "EFFORT LEVEL" in content
-        assert "high" in content.lower()
-
-    def test_has_permissions_section(self):
-        content = self._get_content()
-        assert "PERMISSIONS" in content, (
-            "daytime supplement should have a PERMISSIONS section documenting relaxed perms"
-        )
-
-    def test_references_install_package_skill(self):
-        content = self._get_content()
-        assert "install-package" in content, (
-            "daytime supplement should reference the install-package skill"
-        )
-
-    def test_has_distiller_mindset(self):
-        content = self._get_content()
-        assert "distiller" in content.lower() or "thinking out loud" in content.lower(), (
-            "daytime supplement should have the distiller mindset behavior"
-        )
-
-
-# ── Daytime Settings — No Directory Guard ─────────────────────────────────
-
-
-class TestDaytimeSettingsPermissions:
-    """Verify daytime settings are properly relaxed."""
-
-    def _get_settings(self):
-        path = os.path.join(
-            PROJECT_ROOT, "_claude_sandbox_setup", "templates",
-            "daytime_settings.json"
-        )
-        if not os.path.isfile(path):
-            return None
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-
-    def test_no_directory_guard_hook(self):
-        """Daytime settings should NOT include the directory_guard hook."""
-        path = os.path.join(
-            PROJECT_ROOT, "_claude_sandbox_setup", "templates",
-            "daytime_settings.json"
-        )
-        if not os.path.isfile(path):
-            pytest.skip()
-        content = open(path, encoding="utf-8").read()
-        assert "directory_guard" not in content, (
-            "daytime_settings.json should not include directory_guard hook"
-        )
-
-    def test_no_secrets_blocking(self):
-        """Daytime settings should not block .env or other config files."""
-        settings = self._get_settings()
-        if settings is None:
-            pytest.skip()
-        deny = settings.get("permissions", {}).get("deny", [])
-        env_rules = [r for r in deny if ".env" in r]
-        assert not env_rules, (
-            "daytime_settings.json should not block .env files (user is present)"
-        )
-
-    def test_allows_git_push(self):
-        """Daytime settings should not block git push (only force-push)."""
-        settings = self._get_settings()
-        if settings is None:
-            pytest.skip()
-        deny = settings.get("permissions", {}).get("deny", [])
-        # Should block force-push but not regular push
-        assert any("force" in r for r in deny), (
-            "daytime_settings.json should still block force-push"
-        )
-        non_force_push_blocks = [
-            r for r in deny
-            if "git push" in r and "force" not in r and "-f" not in r
-        ]
-        assert not non_force_push_blocks, (
-            "daytime_settings.json should allow regular git push"
-        )

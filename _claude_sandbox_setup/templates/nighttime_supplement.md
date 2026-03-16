@@ -51,15 +51,6 @@ user there's a mismatch — the project may have been moved.
 
 ---
 
-## EFFORT LEVEL
-
-Use **medium effort** reasoning. Do competent work — read specs carefully, write solid code,
-debug test failures. But if something isn't working after a reasonable attempt, mark it
-skipped and move on. Don't over-think workarounds or spend excessive time on blockers.
-The user will review in the morning and can course-correct.
-
----
-
 ## NIGHTTIME TASK LOOP
 
 You are running in **nighttime/unattended mode**. The user is not watching. Your job is to
@@ -89,11 +80,6 @@ If the skill file is missing, copy it from
 Then proceed to Step 1 below.
 
 1. Read `DaytimeNighttimeHandOff/tracker.json`
-   Count the number of pending tasks (`"status": "todo"` or `"status": "in_progress"`).
-   Append a session start line to `DaytimeNighttimeHandOff/nighttime.log`:
-   ```
-   [<ISO timestamp>] SESSION START — <N> pending tasks
-   ```
 2. Skip any tasks with `"status": "blocked"` — these need human input. You cannot proceed on them.
    Check if the daytime session has updated `blocked_reason` or `daytime_comments` with new
    information. If the blocker has been resolved, the human will have changed the status back to
@@ -118,12 +104,8 @@ Before touching any code, write your plan to
 Include: which files you'll modify, your approach, and any ambiguities you noticed in the spec.
 Create the `WrittenByNighttime/<task-dir>/` directory if it doesn't exist.
 
-**Step 3 — Update tracker to in_progress and log start**
+**Step 3 — Update tracker to in_progress**
 Update `tracker.json`: set `"status": "in_progress"` and `"nighttime_started": "<ISO timestamp>"`.
-Then append a start line to `DaytimeNighttimeHandOff/nighttime.log`:
-```
-[<ISO timestamp>] START <task-id> — <description from tracker.json>
-```
 
 **Step 4 — Create a git branch**
 ```
@@ -136,28 +118,15 @@ git checkout night/<task-id>-<short-name>
 Then assess its state the same way as Step 0 — check for existing commits and dirty working tree
 before deciding whether to resume or start fresh.
 
-**Step 5 — Implement using TDD**
-Run the TDD enforcer skill: read `.claude/skills/tdd-enforcer/SKILL.md` and follow all
-instructions. This enforces strict red-green-refactor: one failing test → minimal
-implementation → next test. If the spec has an **Acceptance Tests** section, those are
-your test plan. If not, derive tests from the requirements.
+**Step 5 — Implement**
+Implement exactly what the spec says. If you notice gaps or ambiguities, log them in plan.md
+and make the simplest reasonable choice — do NOT deviate from the spec's intent.
 
-If the spec explicitly says "no tests needed" or the task is pure configuration, skip TDD
-and implement directly.
-
-Implement exactly what the spec says. If you notice gaps or ambiguities, log them in
-plan.md and make the simplest reasonable choice — do NOT deviate from the spec's intent.
-
-**Step 6 — Run full test suite**
+**Step 6 — Run tests**
 Run the pre-written test files from `WrittenByDaytime/<task-dir>/tests/`. Note: pass/fail.
 Also run any existing project tests to check for regressions.
 
-**Step 7 — Pre-commit review**
-Run the pre-commit review skill: read `.claude/skills/pre-commit-review/SKILL.md` and
-follow all instructions. This self-reviews your changes against the spec, checking for
-quality issues, security problems, and common mistakes. Fix any BLOCKERs before proceeding.
-
-**Step 8 — Write result.md**
+**Step 7 — Write result.md**
 Write `DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/result.md` using this format:
 
 ```markdown
@@ -184,7 +153,7 @@ Write `DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/result.md` using th
 [What you tried, why each failed — so morning doesn't retry dead ends]
 ```
 
-**Step 9 — Commit and update tracker**
+**Step 8 — Commit and update tracker**
 ```
 git add -A
 git commit -m "night: <task-id> <short description>"
@@ -208,38 +177,7 @@ resolve, a decision about approach), set `status: "blocked"` and write a clear
 `blocked_reason`. The human can read this in the morning and unblock you. Use `skipped`
 only when there's no clear path forward even with human help — true dead ends.
 
-**When to split a task:** If you realize mid-implementation that a task is too large to
-finish in this session (context running low, or the scope is bigger than the spec suggested),
-you may split it:
-1. Commit what you've done so far with a clear message: `night: <task-id> partial — <what's done>`
-2. Mark the current task as `"done"` with a flag: `"flags": ["partial — see continuation task-NNN"]`
-3. Create a NEW tracker entry for the remaining work:
-   ```json
-   {
-     "task_id": "task-NNN",
-     "description": "Continuation: <what's left from original task>",
-     "daytime_created": "<ISO timestamp>",
-     "daytime_comments": "Auto-split from <original task-id>. See plan.md for remaining work.",
-     "depends_on": ["<original task-id>"],
-     "status": "todo"
-   }
-   ```
-4. Write a brief spec for the continuation in `WrittenByDaytime/task-NNN-continuation/spec.md`
-   describing exactly what's left to do.
-5. Log: `[<ISO timestamp>] SPLIT <original-task-id> → <new-task-id> — <what's left>`
-
-Only split when necessary — don't use this as an excuse to leave tasks half-done.
-
-**Tracker validation:** After EVERY write to tracker.json, validate it immediately:
-```bash
-python -c "import json; json.load(open('DaytimeNighttimeHandOff/tracker.json'))"
-```
-If this fails, you wrote invalid JSON. Restore from the `.bak` file (the run script
-creates `tracker.json.bak` before each session) and retry the write. If you can't fix it
-after 2 attempts, log the error to nighttime.log and continue with remaining tasks from
-memory — do NOT leave tracker.json in a broken state.
-
-**Step 10 — Move task files from WrittenByDaytime to WrittenByNighttime**
+**Step 9 — Move task files from WrittenByDaytime to WrittenByNighttime**
 The `WrittenByNighttime/<task-dir>/` directory already exists (you created it in Step 2 for
 plan.md and result.md). Move only the spec and tests into it, then remove the now-empty
 daytime directory:
@@ -250,62 +188,28 @@ mv DaytimeNighttimeHandOff/WrittenByDaytime/<task-dir>/tests DaytimeNighttimeHan
 Then remove the now-empty daytime directory. If `rmdir` fails (extra files left behind), that's
 OK — log it in nighttime.log and continue. Do not use `rm -rf`.
 
-**Step 11 — Log completion to nighttime.log**
-Compute the duration in minutes by subtracting the `nighttime_started` timestamp (from
-tracker.json) from the current time, rounded to the nearest minute.
-Append a completion line to `DaytimeNighttimeHandOff/nighttime.log`:
+**Step 10 — Log to nighttime.log**
+Append a one-line summary to `DaytimeNighttimeHandOff/nighttime.log`:
 ```
-[<ISO timestamp>] DONE <task-id> — <one sentence summary> [tests: pass/fail] (<N>m)
-```
-If the task was skipped or blocked, use the appropriate prefix instead:
-```
-[<ISO timestamp>] SKIPPED <task-id> — <reason> (<N>m)
-[<ISO timestamp>] BLOCKED <task-id> — <reason> (<N>m)
+[<timestamp>] <task-id>: <done/skipped> — <one sentence summary> [tests: pass/fail]
 ```
 
-**Step 12 — Pick up next task**
+**Step 11 — Pick up next task**
 Return to Step 1 of the task loop with the next pending task.
 
 ---
 
 ## END-OF-NIGHT SWEEPS
 
-After all queued tasks are `done`, `skipped`, or `blocked`, run the end-of-night sweeps.
+After all queued tasks are `done`, `skipped`, or `blocked`, run the end-of-night sweeps
+skill: read `.claude/skills/end-of-night-sweeps/SKILL.md` and follow all instructions.
 
-First, log the start:
-```
-[<ISO timestamp>] START end-of-night-sweeps
-```
-
-Then run these in order:
-
-1. Read `.claude/skills/end-of-night-sweeps/SKILL.md` and follow all instructions.
-   The skill contains 6 sweeps: test fixes, bug sweep, DRY refactoring, type hints/docstrings,
-   dead code cleanup, and security scan.
-
-2. Run the coverage check: read `.claude/skills/coverage-check/SKILL.md` and follow all
-   instructions. This produces a coverage report — it does not fix gaps (that's future work).
-
-3. Run the dependency audit: read `.claude/skills/dependency-audit/SKILL.md` and follow all
-   instructions. This checks for outdated packages, vulnerabilities, and dependency conflicts.
+The sweeps are loaded as a skill (not inlined here) to keep this supplement lean during
+the task implementation phase. The skill contains 6 sweeps: test fixes, bug sweep, DRY
+refactoring, type hints/docstrings, dead code cleanup, and security scan.
 
 If the context monitor hook has already fired a WARNING or CRITICAL alert, skip sweeps
 entirely — preserve remaining context for committing and updating tracker.json.
-Log `[<ISO timestamp>] SKIPPED end-of-night-sweeps — context limit` instead.
-
-When sweeps finish (or are skipped), log:
-```
-[<ISO timestamp>] DONE end-of-night-sweeps (<N>m)
-```
-
-### Session End
-
-After sweeps (or after confirming all tasks are done/skipped/blocked if sweeps were skipped),
-write a final summary line to `DaytimeNighttimeHandOff/nighttime.log`:
-```
-[<ISO timestamp>] SESSION END — <done> done, <skipped> skipped, <blocked> blocked (<total>m total)
-```
-Compute `<total>m` from the SESSION START timestamp to now.
 
 ---
 
@@ -322,11 +226,8 @@ you must decide on your own and keep working. Do not try to ask again.
 Network access is blocked. `curl`, `wget`, `WebFetch`, `WebSearch`, and PowerShell web
 cmdlets are all denied. Do not attempt to download files or fetch URLs.
 
-You may read `.env` and other config files to check what environment variables or settings
-exist. However, **never log, print, or commit actual API key values, tokens, or passwords.**
-If you see a value that looks like a secret (long random strings, `sk-`, `ghp_`, `Bearer`,
-etc.), reference it by variable name only — never include the value in nighttime.log,
-result.md, commit messages, or code comments.
+Secrets files (`.env`, `.key`, `.pem`, `credentials`, etc.) are blocked from reading.
+If you need configuration values, check spec.md — they should have been specified there.
 
 ## SOFT CONSTRAINTS (you must follow these — they cover gaps the hooks can't catch perfectly)
 
@@ -372,22 +273,10 @@ This project is running without a human watching. Follow these rules:
 - **No network access.** Do not attempt to download files, fetch URLs, search the web,
   or make any outbound network requests.
 
-- **Manage context proactively — compact smart, never clear.**
-  - **Never use `/clear`.** It erases everything and you'll lose the thread entirely.
-  - **Use `/compact` at these specific moments:**
-    1. **After completing each task** (after Step 12, before starting the next task's Step 1).
-       This frees context from the implementation details of the finished task while keeping
-       your session summary intact.
-    2. **Before loading a skill file** during end-of-night sweeps. Each skill consumes context.
-       Compact before loading end-of-night-sweeps, coverage-check, and dependency-audit.
-    3. **If you notice you're past ~60% of context** (the context_monitor hook will warn you).
-  - **Do NOT compact mid-task.** You need the spec, plan, and implementation context while
-    working on a task. Compacting mid-task loses the detail you need for quality code.
-  - **Always write to disk before compacting.** Update tracker.json, nighttime.log, plan.md,
-    and result.md BEFORE running `/compact` — anything only in context will be summarized
-    and may lose detail.
-  - **After compacting, re-read tracker.json** to reorient. The compact summary will tell you
-    what you've done, but tracker.json is the authoritative state.
+- **Manage context proactively.** Update tracker.json and nighttime.log before any long
+  operation so task state is written to disk. Between tasks, run `/compact` to free context
+  space — this preserves a summary of what you've done so far (unlike `/clear` which erases
+  everything). Multiple compactions are fine; you'll retain a thread of the session history.
 
 ---
 
@@ -398,10 +287,6 @@ This project is running without a human watching. Follow these rules:
   and activate it before installing anything.
 - **Never install packages globally.** No `pip install` without an active venv. No
   `npm install -g`. All dependencies go into the project directory.
-- **Use the install-package skill for every package install.** Read
-  `.claude/skills/install-package/SKILL.md` and follow all instructions. Never run
-  `pip install` directly — the skill enforces venv-only installs, updates requirements.txt,
-  and logs changes to ENVIRONMENT.md.
 - **Respect existing dependency files.** If `requirements.txt`, `pyproject.toml`,
   `package.json`, etc. exist, install from them before adding new packages.
 - **Keep requirements.txt up to date with pinned versions.** After installing any new package,

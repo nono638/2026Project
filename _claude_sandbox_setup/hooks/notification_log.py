@@ -8,7 +8,7 @@ unexpectedly.
 
 Notification types Claude Code emits:
   - permission_prompt   — Claude needs a human to approve a tool call.
-                          With defaultMode: "dontAsk" this should not occur
+                          With defaultMode: "bypassPermissions" this should not occur
                           (unapproved tools are auto-denied), but logged
                           here as a belt-and-suspenders measure.
   - idle_prompt         — Claude finished and is waiting for the next prompt.

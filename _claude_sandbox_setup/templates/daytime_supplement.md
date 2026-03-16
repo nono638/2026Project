@@ -18,50 +18,6 @@ judgment happens here, with you and the user, during the day.
 
 The user works on this project in spare moments alongside a day job. Efficiency matters.
 
-## DEFAULT BEHAVIOR: CONVERSATION FIRST
-
-**Do not jump to implementation.** When the user shares an idea, your first instinct should
-be to discuss, not to code. Enter plan mode before any implementation task. Your default
-mode is conversation — implementation happens only when the user explicitly says to proceed.
-
-**Use the intake skill for new ideas.** When the user brings up a new feature, direction
-change, or problem to solve, run the intake skill: read `.claude/skills/intake/SKILL.md`
-and follow its instructions. This guides you through discovery questions and routes
-information to the right files. Don't skip this step by jumping straight to spec-writer —
-the intake conversation is where the important decisions get made.
-
-**Pull toward spec files, but don't force it.** Always be thinking "do I have enough to
-write a spec yet?" When you do, say so and draft it. But some conversations need time to
-develop before a spec makes sense — read the room.
-
-**Match the conversation style to the topic:**
-- Industry practices, user needs, vision → open-ended, exploratory
-- Architecture, library choices, implementation details → multiple choice, efficient
-- The user gives short answers → move fast, don't over-explain
-- The user gives long answers → they're thinking out loud, reflect and build on it
-
-**When the user is thinking out loud (the "distiller" mindset):**
-The user will sometimes ramble, explore tangents, contradict themselves, or circle back to
-earlier points. This is normal — they're working through their thinking. Your job:
-1. **Don't interrupt.** Let them finish. Don't ask questions mid-stream.
-2. **Reflect back.** After they stop: "I'm hearing three things: [X], [Y], [Z]. Right?"
-3. **Categorize silently.** Each piece is a decision, requirement, constraint, goal, concern,
-   or tangent. Route each to its destination immediately (see INFORMATION ROUTING).
-4. **Ask ONE follow-up** — the single most important question that would unblock progress.
-5. **If the conversation has been long and unstructured,** invoke the distill skill: read
-   `.claude/skills/distill/SKILL.md`. This does a full synthesis — replay, categorize,
-   confirm with the user, then route everything to the right files.
-
-**For architecture and tech stack decisions,** use the architecture-advisor skill: read
-`.claude/skills/architecture-advisor/SKILL.md`. This provides structured evaluation with
-real research, decision matrices, and dead-end detection. Don't let the user (or yourself)
-commit to a tech stack without running through it — hasty choices waste night cycles.
-
-## EFFORT LEVEL
-
-Use **high effort** reasoning. Think deeply about architecture, trade-offs, and
-implications. The user is here to make good decisions — give them the full picture.
-
 ---
 
 ## INTERACTION STYLE
@@ -513,10 +469,6 @@ well-commented code.
   and activate it before installing anything.
 - **Never install packages globally.** No `pip install` without an active venv. No
   `npm install -g`. All dependencies go into the project directory.
-- **Use the install-package skill for every package install.** Read
-  `.claude/skills/install-package/SKILL.md` and follow all instructions. Never run
-  `pip install` directly — the skill enforces venv-only installs, updates requirements.txt,
-  and logs changes to ENVIRONMENT.md.
 - **Respect existing dependency files.** If `requirements.txt`, `pyproject.toml`,
   `package.json`, etc. exist, install from them before adding new packages.
 - **Keep requirements.txt up to date with pinned versions.** After installing any new package,
@@ -550,13 +502,7 @@ after time away, run the project-snapshot skill: read `.claude/skills/project-sn
 
 ---
 
-## PERMISSIONS
+## PROJECT DIRECTORY
 
-Daytime mode has **relaxed permissions**. You can:
-- Read and search files anywhere on the filesystem (no directory guard)
-- Use WebSearch and WebFetch for research
-- Use AskUserQuestion freely (the user is present)
-- Read .env and other config files to check environment details
-- Push to git remotes (with user confirmation)
-
-The user is watching. You don't need the guardrails that nighttime mode has.
+Do not leave this project directory. All reads, writes, and searches must be within
+the project root.

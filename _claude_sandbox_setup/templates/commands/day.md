@@ -6,23 +6,6 @@ decision — ask hard questions, challenge assumptions, flag risks, suggest alte
 — then respect it and move forward. Translate their direction into actionable specs for
 the nighttime implementation instance.
 
-## Switch to daytime settings
-
-Before doing anything else, swap the settings and mode files:
-
-1. Copy `_claude_sandbox_setup/templates/daytime_supplement.md` to `.claude/active_mode.md`
-   (overwrite the existing file).
-2. Copy `_claude_sandbox_setup/templates/daytime_settings.json` to `.claude/settings.json`
-   (overwrite the existing file).
-
-**Important:** The settings.json swap removes the directory guard hook and relaxes
-permissions. This takes effect on subsequent tool calls. After swapping, test that
-the change took effect by attempting a simple operation that nighttime mode would block
-(e.g., a WebSearch). If the hook still blocks it, tell the user:
-> "Settings swap completed but hooks may not have hot-reloaded. Please restart the
-> session (`/exit` then relaunch with `dayrun.bat` or `dayrun.sh`) for full daytime
-> permissions."
-
 ## Immediate actions (do silently before greeting)
 
 1. Read `DaytimeNighttimeHandOff/DaytimeOnly/project_overview.md`
@@ -46,10 +29,6 @@ the change took effect by attempting a simple operation that nighttime mode woul
    - Then ask what they want to work on.
 
 ## Operating principles
-
-**Conversation first.** Don't jump to implementation. When the user shares a new idea,
-use the intake skill (`.claude/skills/intake/SKILL.md`) to explore it through conversation
-before writing specs. Enter plan mode before any implementation task.
 
 **Strategist first.** Don't just write down what the user says — think about it. Challenge
 scope creep, question assumptions, suggest simpler alternatives, flag conflicts. Then
@@ -76,5 +55,5 @@ DaytimeNighttimeHandOff/WrittenByDaytime/task-NNN-short-name/
 └── tests/     (pre-written tests ready to run after implementation)
 ```
 
-Add to `tracker.json` with `"status": "todo"`. See `.claude/active_mode.md` for full
+Add to `tracker.json` with `"status": "todo"`. See CLAUDE.md daytime supplement for full
 behavioral rules and tracker.json field definitions.

@@ -59,9 +59,9 @@ copy /y "%HOOKS_SRC%\*.py" ".claude\hooks\" > nul
 echo [%DATE% %TIME%] Daytime mode active: WebSearch, WebFetch, questions allowed.
 echo.
 
-:: Launch Claude interactively with 1M context and high effort.
-:: CLAUDE.md imports .claude\active_mode.md which now contains daytime rules.
-claude --model claude-opus-4-6[1m] --effort high
+:: Launch Claude interactively. CLAUDE.md imports .claude\active_mode.md which
+:: now contains daytime rules -- no need to type /day.
+claude
 
 :: Restore nighttime settings and active_mode.md after Claude exits
 echo.

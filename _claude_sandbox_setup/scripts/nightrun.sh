@@ -13,8 +13,8 @@
 #   NIGHTRUN_COOLDOWN=300     Seconds to wait between relaunches (default: 300)
 #   NIGHTRUN_MAX_TURNS=2000   Max turns per Claude session (default: 2000)
 #   NIGHTRUN_MAX_RELAUNCHES=10  Max times to relaunch before giving up (default: 10)
-#   NIGHTRUN_MODEL=claude-sonnet-4-6  Override the Claude model (default: claude-opus-4-6[1m])
-#   NIGHTRUN_EFFORT=high              Override effort level (default: medium)
+#   NIGHTRUN_MODEL=claude-sonnet-4-6  Override the Claude model (default: claude-opus-4-6)
+#   NIGHTRUN_EFFORT=max               Override effort level (default: high)
 #
 # What it does:
 #   1. Installs nighttime settings, hooks, and active_mode.md
@@ -105,8 +105,8 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Pre-flight checks passed."
 echo ""
 
 # --- Interactive confirmation ---
-MODEL="${NIGHTRUN_MODEL:-claude-opus-4-6[1m]}"
-EFFORT="${NIGHTRUN_EFFORT:-medium}"
+MODEL="${NIGHTRUN_MODEL:-claude-opus-4-6}"
+EFFORT="${NIGHTRUN_EFFORT:-high}"
 MODEL_FLAG=""
 
 # Count pending tasks for the pre-launch summary

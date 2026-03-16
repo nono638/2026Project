@@ -57,8 +57,6 @@
       "Bash(bash *)",
       "Bash(bash -c *)",
       "Bash(start *)",
-      "Bash(curl *)",
-      "Bash(wget *)",
       "Bash(*| head *)",
       "Bash(*| tail *)",
       "Bash(*| wc *)",
@@ -88,6 +86,7 @@
       "Bash(format *)",
       "Bash(git push --force*)",
       "Bash(git push -f *)",
+      "Bash(git push*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
       "Bash(git checkout -- .)",
@@ -109,10 +108,45 @@
       "Bash(powershell*rm -r*)",
       "Bash(powershell*Format-Volume*)",
       "Bash(powershell*Clear-Disk*)",
-      "Bash(powershell*Set-ExecutionPolicy*)"
+      "Bash(powershell*Set-ExecutionPolicy*)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(Invoke-WebRequest*)",
+      "Bash(Invoke-RestMethod*)",
+      "Bash(powershell*Invoke-WebRequest*)",
+      "Bash(powershell*Invoke-RestMethod*)",
+      "Bash(powershell*curl*)",
+      "Bash(powershell*wget*)",
+      "Bash(*| curl *)",
+      "Bash(*| wget *)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.key)",
+      "Read(**/*.pem)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)",
+      "Read(**/credentials*)",
+      "Read(**/*secret*)",
+      "Read(**/*password*)",
+      "Read(**/.aws/*)",
+      "Read(**/.ssh/*)",
+      "Read(**/.gnupg/*)",
+      "Read(**/.npmrc)",
+      "Read(**/.pypirc)"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Edit|Write|MultiEdit|Glob|Grep|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/directory_guard.py\""
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": ".*",

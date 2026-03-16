@@ -15,8 +15,8 @@ setlocal enabledelayedexpansion
 ::   NIGHTRUN_COOLDOWN=300       Seconds to wait between relaunches (default: 300)
 ::   NIGHTRUN_MAX_TURNS=2000     Max turns per Claude session (default: 2000)
 ::   NIGHTRUN_MAX_RELAUNCHES=10  Max relaunches before giving up (default: 10)
-::   NIGHTRUN_MODEL=claude-sonnet-4-6  Override the Claude model (default: claude-opus-4-6[1m])
-::   NIGHTRUN_EFFORT=high              Override effort level (default: medium)
+::   NIGHTRUN_MODEL=claude-sonnet-4-6  Override the Claude model (default: claude-opus-4-6)
+::   NIGHTRUN_EFFORT=max               Override effort level (default: high)
 ::
 :: What it does:
 ::   1. Pre-flight checks (claude on PATH, python, setup files present)
@@ -111,9 +111,9 @@ echo [%DATE% %TIME%] Pre-flight checks passed.
 echo.
 
 :: --- Interactive confirmation ---
-set "MODEL=claude-opus-4-6[1m]"
+set "MODEL=claude-opus-4-6"
 if defined NIGHTRUN_MODEL set "MODEL=%NIGHTRUN_MODEL%"
-set "EFFORT=medium"
+set "EFFORT=high"
 if defined NIGHTRUN_EFFORT set "EFFORT=%NIGHTRUN_EFFORT%"
 set "MODEL_FLAG="
 

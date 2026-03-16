@@ -63,8 +63,8 @@ cp "$HOOKS_SRC/"*.py ".claude/hooks/"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Daytime mode active: WebSearch, WebFetch, questions allowed."
 echo ""
 
-# Launch Claude interactively with 1M context and high effort.
-# CLAUDE.md imports .claude/active_mode.md which now contains daytime rules.
-claude --model claude-opus-4-6[1m] --effort high
+# Launch Claude interactively. CLAUDE.md imports .claude/active_mode.md which
+# now contains daytime rules — no need to type /day.
+claude
 
 # trap handles nighttime restore on EXIT

@@ -1,8 +1,3 @@
----
-name: health-check
-description: Session-start verification — check all sandbox components are present and configured, self-heal from templates if possible
----
-
 # Health Check Skill
 
 Run this on every session start. Fix what you can silently from the templates;
@@ -51,21 +46,13 @@ don't narrate each check to the user.
 | `.claude/hooks/syntax_check.py` | `_claude_sandbox_setup/hooks/syntax_check.py` |
 | `.claude/commands/day.md` | `_claude_sandbox_setup/templates/commands/day.md` |
 | `.claude/commands/night.md` | `_claude_sandbox_setup/templates/commands/night.md` |
-| `.claude/skills/architecture-advisor/SKILL.md` | `_claude_sandbox_setup/templates/skills/architecture-advisor/SKILL.md` |
-| `.claude/skills/branch-review/SKILL.md` | `_claude_sandbox_setup/templates/skills/branch-review/SKILL.md` |
-| `.claude/skills/coverage-check/SKILL.md` | `_claude_sandbox_setup/templates/skills/coverage-check/SKILL.md` |
-| `.claude/skills/crash-recovery/SKILL.md` | `_claude_sandbox_setup/templates/skills/crash-recovery/SKILL.md` |
-| `.claude/skills/dependency-audit/SKILL.md` | `_claude_sandbox_setup/templates/skills/dependency-audit/SKILL.md` |
-| `.claude/skills/distill/SKILL.md` | `_claude_sandbox_setup/templates/skills/distill/SKILL.md` |
 | `.claude/skills/end-of-night-sweeps/SKILL.md` | `_claude_sandbox_setup/templates/skills/end-of-night-sweeps/SKILL.md` |
-| `.claude/skills/environment-bootstrap/SKILL.md` | `_claude_sandbox_setup/templates/skills/environment-bootstrap/SKILL.md` |
 | `.claude/skills/health-check/SKILL.md` | `_claude_sandbox_setup/templates/skills/health-check/SKILL.md` |
-| `.claude/skills/install-package/SKILL.md` | `_claude_sandbox_setup/templates/skills/install-package/SKILL.md` |
-| `.claude/skills/intake/SKILL.md` | `_claude_sandbox_setup/templates/skills/intake/SKILL.md` |
-| `.claude/skills/pre-commit-review/SKILL.md` | `_claude_sandbox_setup/templates/skills/pre-commit-review/SKILL.md` |
-| `.claude/skills/project-snapshot/SKILL.md` | `_claude_sandbox_setup/templates/skills/project-snapshot/SKILL.md` |
+| `.claude/skills/branch-review/SKILL.md` | `_claude_sandbox_setup/templates/skills/branch-review/SKILL.md` |
 | `.claude/skills/spec-writer/SKILL.md` | `_claude_sandbox_setup/templates/skills/spec-writer/SKILL.md` |
-| `.claude/skills/tdd-enforcer/SKILL.md` | `_claude_sandbox_setup/templates/skills/tdd-enforcer/SKILL.md` |
+| `.claude/skills/environment-bootstrap/SKILL.md` | `_claude_sandbox_setup/templates/skills/environment-bootstrap/SKILL.md` |
+| `.claude/skills/crash-recovery/SKILL.md` | `_claude_sandbox_setup/templates/skills/crash-recovery/SKILL.md` |
+| `.claude/skills/project-snapshot/SKILL.md` | `_claude_sandbox_setup/templates/skills/project-snapshot/SKILL.md` |
 
 **Do NOT overwrite** `.claude/settings.json` or `.claude/active_mode.md` — these are
 mode-specific and managed by the run scripts. Only check that they exist. If missing,
@@ -118,38 +105,9 @@ Try to parse `DaytimeNighttimeHandOff/tracker.json` as JSON.
 
 ---
 
-## Step 5 — Run the setup test suite
+## Step 5 — Log any repairs
 
-Run the verification tests:
-```bash
-python -m pytest _claude_sandbox_setup/tests/ -q 2>&1
-```
-
-**Interpreting results:**
-- Tests in `TestClaudeMd`, `TestSettingsJson`, `TestHooks`, `TestVenv` check deployed files.
-  If these fail, it means files are missing from `.claude/` or the project root. Go back to
-  Step 3 and fix whatever is missing.
-- Tests in `TestDayNightTemplates`, `TestSkills`, `TestScripts` check the template directory.
-  If these fail, the `_claude_sandbox_setup/` folder is damaged or outdated.
-- Tests in `TestNighttimeNewFeatures`, `TestDaytimeNewFeatures`, `TestDaytimeSettingsPermissions`
-  check feature configuration. If these fail, templates may need to be re-copied from the
-  source repo.
-
-**Self-healing from test failures:**
-1. If a test fails because a file is missing → copy it from the template (Step 3 tables)
-2. If a test fails because of wrong content (e.g., wrong defaultMode) → copy the template
-   version to overwrite the corrupt file
-3. If a test fails and you can't fix it → log the failure and continue. Don't block the
-   entire session over a test failure.
-
-After fixing, re-run the tests to confirm. If all pass (or only expected skips remain),
-proceed. If failures persist after one fix attempt, log them and move on.
-
----
-
-## Step 6 — Log any repairs
-
-If you fixed anything in Steps 1–5, append one summary line to
+If you fixed anything in Steps 1–4, append one summary line to
 `DaytimeNighttimeHandOff/nighttime.log`:
 
 ```

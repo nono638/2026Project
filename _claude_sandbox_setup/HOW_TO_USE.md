@@ -16,19 +16,15 @@ walkthrough (includes git init, GitHub connection, and troubleshooting).
 Short version: copy `_claude_sandbox_setup/` into your project, init git, run `claude`,
 tell it to read `_claude_sandbox_setup/SETUP.md`.
 
-### Opening a terminal
-
-Right-click your project folder in File Explorer → **"Open in Terminal"**.
-
 ### Every daytime session
 
 ```bash
 bash _claude_sandbox_setup/scripts/dayrun.sh
 ```
 
-Windows PowerShell:
+Windows (if `bash` isn't available):
 ```
-.\_claude_sandbox_setup\scripts\dayrun.bat
+_claude_sandbox_setup\scripts\dayrun.bat
 ```
 
 Claude enters collaborative mode with daytime settings pre-loaded. Tell it what you want
@@ -71,13 +67,8 @@ _claude_sandbox_setup/
 │   ├── nighttime_settings.json      ← Tight permissions for unattended nighttime
 │   ├── daytime_settings.json        ← Relaxed permissions for interactive daytime
 │   ├── tracker_template.json        ← Empty tracker for new projects
-│   ├── skills/                            ← 15 skill folders (see README.md for full list)
-│   │   ├── intake/SKILL.md               ← Discovery questions for new ideas
-│   │   ├── spec-writer/SKILL.md          ← Section-by-section spec creation
-│   │   ├── tdd-enforcer/SKILL.md         ← Red-green-refactor enforcement
-│   │   ├── pre-commit-review/SKILL.md    ← Self-review before every commit
-│   │   ├── end-of-night-sweeps/SKILL.md  ← 6 codebase sweeps after tasks done
-│   │   └── ...                            ← + 10 more skills
+│   ├── skills/
+│   │   └── end-of-night-sweeps/SKILL.md  ← Codebase sweeps loaded after tasks done
 │   ├── handoff_structure/
 │   │   └── README.md                ← Template README for DaytimeNighttimeHandOff/
 │   ├── commands/
@@ -104,18 +95,6 @@ _claude_sandbox_setup/
 
 ---
 
-## Quick Reference — In-Session Commands
-
-| Command | What it does |
-|---|---|
-| `/day` | Switch to daytime mode (if you launched Claude manually) |
-| `/night` | Switch to nighttime mode (if you launched Claude manually) |
-| `/compact` | Compress conversation history (keeps a summary, frees context) |
-
-**Never use `/clear` during nighttime** — it erases everything and the agent loses the thread.
-
----
-
 ## The Two Modes
 
 ### Daytime mode
@@ -130,10 +109,9 @@ You're present. Claude is collaborative.
 | Write specs + tests | Yes (to WrittenByDaytime/) |
 | Small code fixes | Yes (bug fixes, typos, quick refactors) |
 | Implement large features | Queue for nighttime instead |
-| git push | Yes (with user confirmation) |
-| Network tools (curl, wget) | Yes |
-| Read .env files | Yes |
-| Directory guard | Not active (you're watching) |
+| git push | No |
+| Network tools (curl, wget) | No |
+| Secrets files | No |
 
 **Daytime Claude's job:** strategist and PM. It plans features, writes specs with
 rationale and research URLs, routes information to the right files (goals → project_overview,
@@ -157,8 +135,7 @@ You're asleep. Claude is autonomous.
 | Run end-of-night sweeps | Yes (tests, bugs, DRY, types, dead code, security) |
 | git push | No |
 | Network tools (curl, wget, gh, PowerShell) | No |
-| Read .env files | Yes (but never logs key values) |
-| API key files (.key, .pem, .aws) | **Blocked** |
+| Secrets files | No |
 
 **Nighttime Claude's job:** implementer. Works through all todo tasks, writes well-commented
 code with type hints and docstrings, carries rationale and research URLs from specs into

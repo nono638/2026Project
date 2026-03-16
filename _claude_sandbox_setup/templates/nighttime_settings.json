@@ -120,13 +120,20 @@
       "Bash(*pwsh*)",
       "WebFetch",
       "WebSearch",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
       "Read(**/*.key)",
       "Read(**/*.pem)",
       "Read(**/*.pfx)",
       "Read(**/*.p12)",
+      "Read(**/credentials*)",
+      "Read(**/*secret*)",
+      "Read(**/*password*)",
       "Read(**/.aws/*)",
       "Read(**/.ssh/*)",
-      "Read(**/.gnupg/*)"
+      "Read(**/.gnupg/*)",
+      "Read(**/.npmrc)",
+      "Read(**/.pypirc)"
     ]
   },
   "hooks": {
