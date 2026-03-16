@@ -53,8 +53,15 @@
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "Heatmaps, comparisons, per-query breakdowns, CSV/Parquet export, merge.",
     "depends_on": ["task-002"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-16T23:05:00"
+    "status": "done",
+    "nighttime_started": "2026-03-16T23:05:00",
+    "nighttime_completed": "2026-03-16T23:20:00",
+    "nighttime_comments": "Added 8 analysis methods to ExperimentResult. Installed matplotlib. 26 tests pass.",
+    "branch": "night/task-004-analysis",
+    "commit_sha": "8342aaf6e3ace22cc0c73f5865f4c72994301b9e",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-005",
@@ -62,6 +69,7 @@
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "Config label becomes chunker__embedder__strategy__model.",
     "depends_on": ["task-002", "task-004"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T00:00:00"
   }
 ]
