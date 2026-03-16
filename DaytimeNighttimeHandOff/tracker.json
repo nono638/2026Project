@@ -1,0 +1,43 @@
+[
+  {
+    "task_id": "task-001",
+    "description": "Core framework: protocols, retriever, experiment runner",
+    "daytime_created": "2026-03-16T18:00:00",
+    "daytime_comments": "Foundation for everything else. Creates src/protocols.py, src/retriever.py, src/experiment.py, moves features.py. Does NOT delete old files — task-002 handles cleanup.",
+    "depends_on": null,
+    "status": "in_progress",
+    "nighttime_started": "2026-03-16T22:00:00"
+  },
+  {
+    "task_id": "task-002",
+    "description": "Migrate existing components to pluggable interfaces",
+    "daytime_created": "2026-03-16T18:00:00",
+    "daytime_comments": "Moves pipeline code into chunkers/, embedders/, strategies/, scorers/ packages. Deletes old src/pipeline/ and src/data/ after migration.",
+    "depends_on": ["task-001"],
+    "status": "todo"
+  },
+  {
+    "task_id": "task-003",
+    "description": "Implement remaining strategies, chunkers, and embedders",
+    "daytime_created": "2026-03-16T18:00:00",
+    "daytime_comments": "MultiQueryRAG, CorrectiveRAG, AdaptiveRAG, FixedSizeChunker, RecursiveChunker, SentenceChunker, HuggingFaceEmbedder.",
+    "depends_on": ["task-002"],
+    "status": "todo"
+  },
+  {
+    "task_id": "task-004",
+    "description": "ExperimentResult analysis and visualization methods",
+    "daytime_created": "2026-03-16T18:00:00",
+    "daytime_comments": "Heatmaps, comparisons, per-query breakdowns, CSV/Parquet export, merge. Makes the tool useful for actual research.",
+    "depends_on": ["task-002"],
+    "status": "todo"
+  },
+  {
+    "task_id": "task-005",
+    "description": "Wire meta-learner and FastAPI to new 4-axis architecture",
+    "daytime_created": "2026-03-16T18:00:00",
+    "daytime_comments": "Config label becomes chunker__embedder__strategy__model. train.py accepts ExperimentResult. predict.py returns 4 axes. app.py updated.",
+    "depends_on": ["task-002", "task-004"],
+    "status": "todo"
+  }
+]
