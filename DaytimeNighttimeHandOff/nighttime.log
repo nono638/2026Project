@@ -1,0 +1,4 @@
+[2026-03-16T22:15:00] task-001: done — Created core framework: protocols.py, retriever.py, experiment.py, features.py, test_core.py (15 tests) [tests: pass]
+[2026-03-16T22:35:00] task-002: done — Migrated components to chunkers/, embedders/, scorers/, strategies/ packages. Old pipeline/data deleted. [tests: pass]
+[2026-03-16T23:00:00] task-003: done — Added MultiQueryRAG, CorrectiveRAG, AdaptiveRAG, FixedSizeChunker, RecursiveChunker, SentenceChunker, HuggingFaceEmbedder (29 tests) [tests: pass]
+[2026-03-16T23:20:00] task-004: done — Added 8 analysis methods to ExperimentResult (summary, compare_strategies, compare_models, heatmap, per_query, strategy_vs_size, to_csv, merge) [tests: pass]

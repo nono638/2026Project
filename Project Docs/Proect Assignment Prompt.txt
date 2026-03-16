@@ -1,0 +1,29 @@
+For this project, you will work in small teams to develop a machine learning application which solves a problem of your choosing (in consultation with your professor) and which you will deploy in production. The final outcome will ideally be an interactive shiny app implementing a machine learning solution, but other tools are acceptable (though I may not be able to help as much, FastAPI is a potential alternative tool).
+
+The timeline for the project is as follows:
+
+Team Formation (Week 1-4 February 22nd). This will take place on the course slack page. Ideal teams will be 3 or 4 students. You should message your classmates and post both what topics you are interested in or what tools and technologies you want to work with in this project. If at the end of Week 4 you are unable to find a team, you must contact me and I will assign you to a team. It is important to be thinking about your project idea and working towards your project proposal towards the end of this phase.
+
+Project Proposal (March 1st, 10%). You will develop and submit a project proposal with a maximum length of 3 pages (not including references). The proposal should define the problem and outline your proposed solution. It should also answer as best as possible the following questions:
+
+Who are your target users, and what app features are needed to ensure that the app is useful for them? You do not necessarily have to achieve these goals but they are useful to have in mind.
+
+What interface do you plan to use for you app? (Shiny is recommended, for other choices you must convince me you have the relevant expertise)
+
+What data sources are you planning to use? Does the data you need already exist and is publicly available, or will you need to gather your data on your own?
+
+What type of Machine Learning problem will you need to solve for your app, and which are the initial model types that you will try?
+
+How will you evaluate both model performance and app performance?
+
+Will model training be online (model updates whenever new data is ingested) or batch (at scheduled intervals)?
+
+Do you anticipate any large computational needs? If you think you will need to use large neural network models, LLMs, GPUs/TPUs, make sure to let me know here. Pricing for AWS/Google Cloud can be found here (GCP pricing AWS pricing Where do you plan to host your app?
+
+The key midterm check for this project is the development of a minimally viable product, which will demonstrate feasibility and which you will iteratively improve. What does your minimally viable product look like?
+
+MVP (Minimally Viable Product Demo) (March 30th- April 4th, 20%) You will present/demonstrate your minimally viable project to your professor. Your presentation should be about 10 minutes long. The first part should be a slideshow presentation (target 5 mintues and 3 slides) which pitches your project, gives a diagram of your proposed solution, and outlines what challenges remain. The second part is a 5 minute demo of your MVP. It is ok if your MVP is very basic- ideally I want to see that you have given good thought to your application, tried to make your MVP an end-to-end product, and have a good understanding of the challenges that await.
+
+Final Demo (May 11th 35%) In class live demo. Each team will do a 10 minute presentation. The presentation should consist of a short introduction to the team, description of the problem, description of the technology used to solve the problem, and a scripted live demo. Live demos are challenging. An example of highly polished demo (not live so above the expectations for this class, can be found here (https://www.youtube.com/watch?v=fw9f_HPFnok). This demo was created for the Stanford Class CS 239, which provided inspiration for this assignment. If you want to see other examples of demos, that class had a demo day with a similar structure. Keep in mind that, students in that class already had extensive programming and machine learning experience, but for this class we are making use of some tools to make those aspects less challenging.
+
+Project Writeup/Whitepaper (May 15th 35%) 2500 word description of your project. This aims to be less formal than an academic research paper and more in the style of a white paper or even a technical blog post. You should have sections of the problem definition, system design, machine learning components, application demonstration (ideally you can integrate parts of your application into your report), and a conclusion/reflection. A great example of a whitepaper (though not an app) is here offgrid ai.

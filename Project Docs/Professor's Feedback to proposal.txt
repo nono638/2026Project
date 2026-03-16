@@ -1,0 +1,10 @@
+Overall I like the proposal second draft that you posted here. One thought is that it might be more of an ordinal regression rather than multiclass classification problem because potentially you expect the larger models to do better.
+
+I'm not sure how much you have worked with LLM-as-judge approaches, keep in mind that while they can be good they can also be noisy, make sure to look at a few of them to make yourself confident in the performance.
+
+I personally am familiar and like the ellmer/vitals ecosystem but I think it mirrors chatlas/inspect and I'm sure there are other tools for model evaluation.
+
+One really good thing you could do if you have time (and which would make this project align more with the production goal) is to try to make your evaluation pipeline usable by others, i.e. make it flexible so that someone else could drop in the models they want to use and their targetted corpus for the RAG tasks. But I recognize that time is short and the project is already ambitious as is. You don't need to stick to the suggested project template (it was just there as a suggestion based on what I think would be best for most people)
+[9:48 AM]I'll take a closer look at the proposal this week
+[9:49 AM]For example, if you are very satisfied with how your project is predicting which model to use then releasing your project as a python package would be very impressive to others
+[9:50 AM]it could be something you work towards in your capstone project if that is your interest.
