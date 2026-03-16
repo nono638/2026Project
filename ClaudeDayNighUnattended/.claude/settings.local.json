@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/sandbox-template/.claude/hooks/directory_guard.py\" \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/_claude_sandbox_setup/hooks/directory_guard.py\" && cp \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/sandbox-template/.claude/hooks/no_ask_human.py\" \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/_claude_sandbox_setup/hooks/no_ask_human.py\" && cp \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/sandbox-template/.claude/settings.json\" \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/_claude_sandbox_setup/settings_to_merge.json\" && cp \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/sandbox-template/claudeMDsupplement.md\" \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/_claude_sandbox_setup/claudeMDsupplement.md\" && cp \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/sandbox-template/DangerousClaudeFlagReadme.md\" \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/_claude_sandbox_setup/DangerousClaudeFlagReadme.md\" && cp \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/sandbox-template/HOW_TO_USE_claudeMDsupplement.md\" \"/c/Users/noahc/Dropbox/NotWork/AutoYes1/_claude_sandbox_setup/HOW_TO_USE_claudeMDsupplement.md\")",
+      "Bash(mv:*)"
+    ]
+  }
+}
