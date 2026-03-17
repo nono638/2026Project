@@ -192,6 +192,7 @@
     "daytime_created": "2026-03-17T22:30:00",
     "daytime_comments": "Scorer protocol already exists in src/protocols.py. This implements it with Claude. All API calls must be mocked in tests.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T23:00:00"
   }
 ]
