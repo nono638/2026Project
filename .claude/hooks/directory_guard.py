@@ -202,10 +202,12 @@ def check_bash(inp, project_dir):
             block(f"command references path outside project: {match}")
 
     # Check Unix-style absolute paths to system directories
+    # First strip /dev/null redirects — these are standard shell idiom, not path access
+    cmd_stripped = re.sub(r'[12]?\s*>\s*/dev/null', '', cmd)
     if re.search(
         r'(?<!\w)/(?:etc|usr|tmp|home|root|var|opt|mnt|proc|sys|boot|dev'
         r'|windows|Windows|Users|Program\ Files|ProgramData)[/\w]*',
-        cmd
+        cmd_stripped
     ):
         block("command references system path")
 
@@ -238,6 +240,24 @@ def block(reason):
     sys.exit(2)
 
 
+def is_daytime_mode(cwd):
+    """Check if the current session is running in daytime (interactive) mode.
+
+    Reads .claude/active_mode.md relative to the project directory. If the file
+    contains 'Daytime Mode' in its header, the guard is disabled — the human is
+    present and can approve/deny actions interactively. In nighttime mode (or if
+    the file can't be read), the guard enforces directory restrictions.
+    """
+    try:
+        project_dir = get_project_dir(cwd)
+        mode_file = os.path.join(project_dir, ".claude", "active_mode.md")
+        with open(mode_file, "r", encoding="utf-8") as f:
+            head = f.read(500)
+        return "Daytime Mode" in head
+    except Exception:
+        return False
+
+
 def main():
     """Entry point. Read the hook payload from stdin and run the appropriate check.
 
@@ -247,6 +267,9 @@ def main():
     Exits 0 (allow) or 2 (block). Never exits 1 — an unexpected error
     fails open (exit 0) so a bug in this script doesn't make Claude
     completely non-functional.
+
+    In daytime mode the guard is disabled — the human is present and
+    Claude Code's built-in permission system handles access control.
     """
     try:
         data = json.load(sys.stdin)
@@ -257,6 +280,11 @@ def main():
     tool = data.get("tool_name", "")
     inp = data.get("tool_input", {})
     cwd = data.get("cwd", os.getcwd())
+
+    # Daytime mode: human is present, skip directory guard entirely
+    if is_daytime_mode(cwd):
+        sys.exit(0)
+
     project_dir = get_project_dir(cwd)
 
     if tool in ("Read", "Edit", "Write", "MultiEdit"):

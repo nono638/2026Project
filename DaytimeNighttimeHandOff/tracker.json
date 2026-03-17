@@ -138,8 +138,15 @@
     "daytime_created": "2026-03-16T22:15:00",
     "daytime_comments": "Three more QueryGenerator implementations for methodological breadth. Human = validation anchor, BEIR = benchmark gold standard, Template = uniform/cheap. spaCy needed for template NER.",
     "depends_on": ["task-007"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-17T04:00:00"
+    "status": "done",
+    "nighttime_started": "2026-03-17T04:00:00",
+    "nighttime_completed": "2026-03-17T04:30:00",
+    "nighttime_comments": "HumanQuerySet, BEIRQuerySet, TemplateQueryGenerator implemented. 21 tests pass, 87 total.",
+    "branch": "night/task-009-additional-generators",
+    "commit_sha": "751bda60bb75eb10e5dfa00d4850c837731a4477",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-010",
@@ -163,7 +170,14 @@
     "daytime_created": "2026-03-16T23:00:00",
     "daytime_comments": "CrossEncoderFilter uses ms-marco-MiniLM-L-6-v2 (~100M params, local) for precise query-passage relevance scoring (InPars-v2 methodology, arxiv:2301.01820). DistributionAnalyzer checks set-level quality: type balance, corpus coverage, diversity, duplicates. Separate from QueryFilter protocol — produces reports, not filtered lists.",
     "depends_on": ["task-008"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-17T05:05:00"
+    "status": "done",
+    "nighttime_started": "2026-03-17T05:05:00",
+    "nighttime_completed": "2026-03-17T05:45:00",
+    "nighttime_comments": "CrossEncoderFilter and DistributionAnalyzer implemented. 20 tests pass, 115 total on branch.",
+    "branch": "night/task-011-crossencoder-distribution",
+    "commit_sha": "24452c884acb5b8d242b4a179b9a2fb64b1ac612",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["cross-encoder tests use real model (~25MB download on first run)"]
   }
 ]

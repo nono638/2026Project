@@ -26,3 +26,5 @@
 [2026-03-17T03:45:00] task-008: done — RagasQueryGenerator (RAGAS 0.4.3), RoundTripFilter, HeuristicFilter. 29 tests pass. [tests: pass]
 [2026-03-17T04:30:00] task-009: done — HumanQuerySet (CSV/JSON), BEIRQuerySet (BEIR format), TemplateQueryGenerator (spaCy NER). 21 tests pass, 87 total. [tests: pass]
 [2026-03-17T05:00:00] task-010: done — setup.py, pull_models.py, smoke_test.py, run_experiment.py, .env.example, ENVIRONMENT.md. [tests: pass]
+[2026-03-17 00:08:31] NOTIFICATION (permission_prompt): Claude needs your permission to use Bash
+[2026-03-17 00:12:35] NOTIFICATION (permission_prompt): Claude needs your permission to use Bash
