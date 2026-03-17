@@ -209,8 +209,15 @@
     "daytime_created": "2026-03-17T23:30:00",
     "daytime_comments": "First built-in gold-standard dataset. Uses HuggingFace datasets library (already installed). Each example becomes one Document (10 passages concatenated) + one Query (with reference_answer). Distractor config only.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-17T23:47:00"
+    "status": "done",
+    "nighttime_started": "2026-03-17T23:47:00",
+    "nighttime_completed": "2026-03-17T23:55:00",
+    "nighttime_comments": "HotpotQA loader with stratified sampling. 17 tests pass, 246 existing tests unaffected.",
+    "branch": "night/task-013-hotpotqa-loader",
+    "commit_sha": "e1acde1974f1d0320bbd4afd87ef5aa9a1588ea4",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-014",
