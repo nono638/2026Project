@@ -5,11 +5,9 @@ The Problem
 
 There is no standard, reproducible way to answer the question: "which RAG configuration works best for my documents and queries?" A practitioner choosing between chunking strategies, embedding models, retrieval approaches, and language models faces a combinatorial space with no systematic tooling to explore it. Most published RAG comparisons hold three axes constant and vary one, making results hard to generalize. Meanwhile, users running models locally on consumer hardware face an additional constraint: they need configurations that are not just good, but good enough given limited compute and time.
 
-This project addresses both problems. We build a configurable evaluation pipeline that runs the full cartesian product of RAG configurations against any corpus, scores the results, and produces analysis that helps users understand the tradeoffs — quality vs. latency, strategy sophistication vs. model size, cost vs. correctness. We then demonstrate the pipeline by running two controlled experiments on small local models, and train a meta-learner to predict the optimal configuration for new queries.
+This project addresses both problems with three deliverables. First, a reusable evaluation pipeline that runs the full cartesian product of RAG configurations against any corpus, scores the results, and measures latency — producing structured data that helps users understand the tradeoffs between quality, speed, and cost. Second, a findings gallery: a web-based presentation of insights from two controlled experiments on small local models, showing where strategy sophistication substitutes for parameter count and where the quality gains flatten relative to time invested. Third, a recommendation endpoint backed by a trained meta-learner that predicts the optimal configuration for new queries without manual experimentation.
 
 What We're Building
-
-The project has three deliverables: a reusable evaluation pipeline, experiment findings with visualizations, and a deployed recommendation endpoint.
 
 1. The Evaluation Pipeline (Tool)
 
@@ -41,7 +39,7 @@ Latency as a First-Class Dimension
 
 Every experiment run measures wall-clock time for strategy execution and scoring. The output includes strategy_latency_ms, scorer_latency_ms, and total_latency_ms alongside quality scores. This enables a class of analysis that quality-only pipelines cannot support: "is the 60-second answer meaningfully better than the 5-second answer?" and "what's the cheapest configuration that clears my quality threshold?"
 
-For the Explorer audience (below), latency data powers the most practically useful visualizations — the tradeoff curves where users can see exactly where the quality gains flatten relative to time invested.
+For the findings gallery (below), latency data powers the most practically useful visualizations — the tradeoff curves where users can see exactly where the quality gains flatten relative to time invested.
 
 Data Sources
 
@@ -83,13 +81,11 @@ We hold strategy (Naive RAG, to isolate the chunking effect) and embedder consta
 
 The hypothesis is that smaller models benefit disproportionately from chunking strategies that maximize retrieval precision (semantic > recursive > fixed), while larger models are more robust to chunking differences because they handle irrelevant context better. If confirmed, this has practical implications: users running small local models should invest more effort in chunking than users running large models.
 
-Features, Meta-Learner, and Deployment
+Features and Meta-Learner
 
 From each (query, document, retriever) triple, we extract features before any model runs: query length, query type (one-hot), named entity count, document length, vocabulary entropy, mean and variance of top-k retrieval scores. These features characterize the difficulty of the task independent of which configuration handles it.
 
 The meta-learner is a supervised multiclass classifier (XGBoost) trained to predict the optimal configuration from these features. "Optimal" means the configuration that clears a defined quality threshold — not the best possible answer, but the most efficient acceptable answer. This reflects the real constraint of resource-limited users: good enough at minimum compute cost. The cost function penalizes under-serving (recommending a configuration that produces a bad answer) more heavily than over-serving (recommending a slightly larger model than necessary). We use XGBoost because gradient boosted trees remain the established best practice for tabular classification at this scale (Grinsztajn et al., NeurIPS 2022; Shwartz-Ziv & Armon, Information Fusion 2022). On the question of ordinal regression (per the professor's suggestion): we use multiclass classification because the core hypothesis is that strategy can invert the expected size ordering — if a 4B model with Self-RAG beats an 8B with Naive RAG, the ordinal assumption (bigger = better) is exactly what we're trying to disprove.
-
-In deployment, a FastAPI endpoint accepts a document and question, extracts features, and returns the recommended configuration with a confidence score. The user gets routed to the right (chunker, embedder, strategy, model) combination without manual experimentation.
 
 2. The Findings Gallery (Insights)
 
@@ -103,9 +99,11 @@ The gallery surfaces insights that emerge from the experiments:
 
 Users can explore the data at multiple levels: high-level takeaways, per-strategy breakdowns, per-query drill-downs. The goal is to make RAG configuration decisions less mystical — grounded in data rather than blog post recommendations.
 
-3. The Reusable Tool (Package)
+3. The Recommendation Endpoint and Reusable Package
 
-The pipeline is designed from the start to be usable by others. The Protocol-based architecture means a user can:
+In deployment, a FastAPI endpoint accepts a document and question, extracts features, and returns the recommended configuration with a confidence score. The user gets routed to the right (chunker, embedder, strategy, model) combination without manual experimentation. The endpoint is lightweight and will be hosted on Render.
+
+The pipeline itself is designed from the start to be usable by others. The Protocol-based architecture means a user can:
 
 — Drop in their own documents (any CSV with title and text columns)
 — Add custom embedding backends (implement three methods)
@@ -113,13 +111,13 @@ The pipeline is designed from the start to be usable by others. The Protocol-bas
 — Swap scoring backends (implement one method)
 — Run experiments on built-in gold-standard datasets (HotpotQA) to calibrate their pipeline before testing on their own data
 — Define what "best" means for their use case (optimize for quality, latency, cost, or any combination)
-— Get a trained meta-learner specific to their configuration space
+— Train a meta-learner specific to their configuration space
 
-The pipeline is the reusable contribution. The two experiments are the demonstration — showing that the same tool can answer different research questions by varying different axes. Future work — including multimodal embedding support, additional benchmark datasets, and constraint-aware optimization — can build on the same infrastructure without architectural changes.
+The two experiments are the demonstration — showing that the same tool can answer different research questions by varying different axes. Future work — including multimodal embedding support, additional benchmark datasets, and constraint-aware optimization — can build on the same infrastructure without architectural changes.
 
 Computational Needs and Hosting
 
-Data generation runs as an overnight batch job on a laptop with 8GB VRAM. Ollama loads quantized Qwen3 and Gemma 3 models (Q4) directly into VRAM. The pipeline is designed for sequential execution across configurations — no GPU parallelism required. The FastAPI endpoint is lightweight and will be hosted on Render.
+Data generation runs as an overnight batch job on a laptop with 8GB VRAM. Ollama loads quantized Qwen3 and Gemma 3 models (Q4) directly into VRAM. The pipeline is designed for sequential execution across configurations — no GPU parallelism required.
 
 Evaluation
 
