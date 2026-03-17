@@ -50,11 +50,15 @@ if defined NIGHTRUN_MAX_RELAUNCHES set "MAX_RELAUNCHES=%NIGHTRUN_MAX_RELAUNCHES%
 
 set "TRACKER=%PROJECT_DIR%\DaytimeNighttimeHandOff\tracker.json"
 set "HELPER=%PROJECT_DIR%\_claude_sandbox_setup\scripts\nightrun_helper.py"
+set "SETUP_DIR=%PROJECT_DIR%\_claude_sandbox_setup"
 set "NIGHTTIME_PROMPT=Begin nighttime work session. Check DaytimeNighttimeHandOff/tracker.json for in_progress tasks to resume and todo tasks to start. Follow the nighttime workflow defined in CLAUDE.md."
 
 :: Generate session name — use a simple date format to avoid quote-nesting issues
 for /f "delims=" %%i in ('python -c "from datetime import date; print(date.today().strftime('nightrun-%%Y%%m%%d'))"') do set "SESSION_NAME=%%i"
 if not defined SESSION_NAME set "SESSION_NAME=nightrun-session"
+
+:: Capture session start time so the summary can distinguish tonight's work from previous
+for /f "delims=" %%i in ('python "%HELPER%" timestamp') do set "SESSION_START=%%i"
 
 cd /d "%PROJECT_DIR%" || (
     echo ERROR: Cannot cd to %PROJECT_DIR%
@@ -110,11 +114,28 @@ if "%PREFLIGHT_OK%"=="0" (
 echo [%DATE% %TIME%] Pre-flight checks passed.
 echo.
 
-:: --- Interactive confirmation ---
-set "MODEL=claude-opus-4-6"
-if defined NIGHTRUN_MODEL set "MODEL=%NIGHTRUN_MODEL%"
-set "EFFORT=high"
-if defined NIGHTRUN_EFFORT set "EFFORT=%NIGHTRUN_EFFORT%"
+:: --- Resolve model from config file → fallback file → env var → hardcoded ---
+set "MODEL="
+set "EFFORT="
+set "MODEL_SOURCE="
+
+:: Pass env vars as fallback args so the helper can use them if config/fallback missing
+set "ENV_MODEL="
+set "ENV_EFFORT="
+if defined NIGHTRUN_MODEL set "ENV_MODEL=%NIGHTRUN_MODEL%"
+if defined NIGHTRUN_EFFORT set "ENV_EFFORT=%NIGHTRUN_EFFORT%"
+
+for /f "tokens=1,* delims==" %%a in ('python "%HELPER%" model "%SETUP_DIR%" night "%ENV_MODEL%" "%ENV_EFFORT%" 2^>nul') do (
+    if "%%a"=="MODEL" set "MODEL=%%b"
+    if "%%a"=="EFFORT" set "EFFORT=%%b"
+    if "%%a"=="SOURCE" set "MODEL_SOURCE=%%b"
+)
+
+:: Fallback if helper failed entirely
+if not defined MODEL set "MODEL=claude-opus-4-6"
+if not defined EFFORT set "EFFORT=medium"
+if not defined MODEL_SOURCE set "MODEL_SOURCE=hardcoded"
+
 set "MODEL_FLAG="
 
 :: Count pending tasks using helper script (avoids inline Python in if-blocks)
@@ -131,7 +152,7 @@ echo.
 echo   Pending tasks: %PREFLIGHT_PENDING%
 echo   Max turns:     %MAX_TURNS%
 echo   Cooldown:      %COOLDOWN%s
-echo   Model:         %MODEL%
+echo   Model:         %MODEL% [%MODEL_SOURCE%]
 echo   Effort:        %EFFORT%
 echo ========================================
 
@@ -239,9 +260,16 @@ echo   Total relaunches: %RELAUNCH_COUNT%
 echo ========================================
 
 if exist "%TRACKER%" (
-    python "%HELPER%" summary "%TRACKER%" 2>nul
+    python "%HELPER%" summary "%TRACKER%" "%SESSION_START%" 2>nul
 ) else (
     echo   No tracker.json found.
+)
+
+:: Auto-promote: if session completed successfully, update the fallback file
+:: so the environment tracks the last-known-good model.
+if "%PENDING%"=="0" (
+    echo.
+    python "%HELPER%" promote "%SETUP_DIR%" "%MODEL%" "%EFFORT%" 2>nul
 )
 
 echo ========================================

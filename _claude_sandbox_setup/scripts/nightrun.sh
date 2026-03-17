@@ -49,12 +49,17 @@ MAX_TURNS="${3:-${NIGHTRUN_MAX_TURNS:-2000}}"
 MAX_RELAUNCHES="${NIGHTRUN_MAX_RELAUNCHES:-10}"
 
 TRACKER="${PROJECT_DIR}/DaytimeNighttimeHandOff/tracker.json"
+HELPER="${PROJECT_DIR}/_claude_sandbox_setup/scripts/nightrun_helper.py"
+SETUP_DIR="${PROJECT_DIR}/_claude_sandbox_setup"
 NIGHTTIME_PROMPT="Begin nighttime work session. Check DaytimeNighttimeHandOff/tracker.json for in_progress tasks to resume and todo tasks to start. Follow the nighttime workflow defined in CLAUDE.md."
 
 # Session name is fixed for the day — all relaunches within the same nightrun
 # share a name for traceability, but each relaunch starts fresh (no --resume)
 # so tracker.json remains the authoritative state, not conversation history.
 SESSION_NAME="nightrun-$(date +%Y%m%d)"
+
+# Capture session start time so the summary can distinguish tonight's work from previous
+SESSION_START=$($PYTHON "$HELPER" timestamp 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%S)
 
 cd "$PROJECT_DIR" || { echo "ERROR: Cannot cd to $PROJECT_DIR"; exit 1; }
 
@@ -104,24 +109,24 @@ fi
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Pre-flight checks passed."
 echo ""
 
-# --- Interactive confirmation ---
-MODEL="${NIGHTRUN_MODEL:-claude-opus-4-6}"
-EFFORT="${NIGHTRUN_EFFORT:-high}"
+# --- Resolve model from config file → fallback file → env var → hardcoded ---
+MODEL=""
+EFFORT=""
+MODEL_SOURCE=""
+
+# Read model config using the helper (config → fallback → env → hardcoded)
+eval "$($PYTHON "$HELPER" model "$SETUP_DIR" night "${NIGHTRUN_MODEL:-}" "${NIGHTRUN_EFFORT:-}" 2>/dev/null | sed 's/^/export /')"
+
+# Fallback if helper failed entirely
+MODEL="${MODEL:-claude-opus-4-6}"
+EFFORT="${EFFORT:-medium}"
+MODEL_SOURCE="${MODEL_SOURCE:-hardcoded}"
 MODEL_FLAG=""
 
 # Count pending tasks for the pre-launch summary
 PREFLIGHT_PENDING=0
 if [ -f "$TRACKER" ]; then
-    PREFLIGHT_PENDING=$($PYTHON -c "
-import json, sys
-try:
-    with open('${TRACKER}') as f:
-        tasks = json.load(f)
-    pending = [t for t in tasks if t.get('status') in ('todo', 'in_progress')]
-    print(len(pending))
-except:
-    print(0)
-" 2>/dev/null || echo "0")
+    PREFLIGHT_PENDING=$($PYTHON "$HELPER" count "$TRACKER" 2>/dev/null || echo "0")
 fi
 
 echo "========================================"
@@ -130,7 +135,7 @@ echo ""
 echo "  Pending tasks: $PREFLIGHT_PENDING"
 echo "  Max turns:     $MAX_TURNS"
 echo "  Cooldown:      ${COOLDOWN}s"
-echo "  Model:         $MODEL"
+echo "  Model:         $MODEL [$MODEL_SOURCE]"
 echo "  Effort:        $EFFORT"
 echo "========================================"
 
@@ -138,21 +143,7 @@ echo "========================================"
 if [ -f "$TRACKER" ] && [ "$PREFLIGHT_PENDING" -gt 0 ]; then
     echo ""
     echo "  Tonight's work:"
-    $PYTHON -c "
-import json
-try:
-    with open('${TRACKER}') as f:
-        tasks = json.load(f)
-    for t in tasks:
-        s = t.get('status', '')
-        if s in ('in_progress', 'todo'):
-            tid = t.get('task_id', '???')
-            desc = t.get('description', 'no description')
-            tag = ' (resuming)' if s == 'in_progress' else ''
-            print(f'    {tid}: {desc}{tag}')
-except:
-    print('    (could not read tracker)')
-" 2>/dev/null
+    $PYTHON "$HELPER" show "$TRACKER" 2>/dev/null
     echo ""
 fi
 echo ""
@@ -270,40 +261,16 @@ echo "  Total relaunches: $RELAUNCH_COUNT"
 echo "========================================"
 
 if [ -f "$TRACKER" ]; then
-    $PYTHON -c "
-import json
-try:
-    with open('${TRACKER}') as f:
-        tasks = json.load(f)
-    done    = [t for t in tasks if t.get('status') == 'done']
-    skipped = [t for t in tasks if t.get('status') == 'skipped']
-    blocked = [t for t in tasks if t.get('status') == 'blocked']
-    todo    = [t for t in tasks if t.get('status') == 'todo']
-    print(f'  Done:    {len(done)}')
-    print(f'  Skipped: {len(skipped)}')
-    print(f'  Blocked: {len(blocked)}  <- needs your input')
-    print(f'  Todo:    {len(todo)}     <- not started')
-    print()
-    if done:
-        print('  Completed tasks:')
-        for t in done:
-            branch = t.get('branch', 'no branch')
-            flags  = t.get('flags', [])
-            flag_str = f'  [{len(flags)} flag(s)]' if flags else ''
-            print(f'    {t[\"task_id\"]}: {t.get(\"description\", \"\")} — branch: {branch}{flag_str}')
-    if skipped:
-        print('  Skipped tasks:')
-        for t in skipped:
-            print(f'    {t[\"task_id\"]}: {t.get(\"nighttime_comments\", \"see result.md\")}')
-    if blocked:
-        print('  Blocked tasks (need your input before next run):')
-        for t in blocked:
-            print(f'    {t[\"task_id\"]}: {t.get(\"blocked_reason\", \"see tracker.json\")}')
-except Exception as e:
-    print(f'  (Could not read tracker: {e})')
-" 2>/dev/null || echo "  (Could not read tracker.json)"
+    $PYTHON "$HELPER" summary "$TRACKER" "$SESSION_START" 2>/dev/null || echo "  (Could not read tracker.json)"
 else
     echo "  No tracker.json found."
+fi
+
+# Auto-promote: if session completed successfully, update the fallback file
+# so the environment tracks the last-known-good model.
+if [ "$PENDING" -eq 0 ] 2>/dev/null; then
+    echo ""
+    $PYTHON "$HELPER" promote "$SETUP_DIR" "$MODEL" "$EFFORT" 2>/dev/null
 fi
 
 echo "========================================"

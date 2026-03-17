@@ -1,0 +1,10 @@
+{
+  "day": {
+    "model": "claude-opus-4-6",
+    "effort": "high"
+  },
+  "night": {
+    "model": "claude-opus-4-6",
+    "effort": "medium"
+  }
+}

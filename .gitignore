@@ -8,6 +8,9 @@ __pycache__/
 .claude/settings.local.json
 .claude/hooks/
 
+# Auto-updated model fallback (written after successful sessions)
+_claude_sandbox_setup/.model_defaults
+
 # Runtime logs and artifacts
 DaytimeNighttimeHandOff/audit.jsonl
 DaytimeNighttimeHandOff/nighttime.log

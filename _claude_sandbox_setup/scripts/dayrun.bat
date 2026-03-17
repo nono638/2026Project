@@ -35,6 +35,8 @@ set "NIGHTTIME_SETTINGS=%PROJECT_DIR%\_claude_sandbox_setup\templates\nighttime_
 set "DAYTIME_SUPPLEMENT=%PROJECT_DIR%\_claude_sandbox_setup\templates\daytime_supplement.md"
 set "NIGHTTIME_SUPPLEMENT=%PROJECT_DIR%\_claude_sandbox_setup\templates\nighttime_supplement.md"
 set "HOOKS_SRC=%PROJECT_DIR%\_claude_sandbox_setup\hooks"
+set "HELPER=%PROJECT_DIR%\_claude_sandbox_setup\scripts\nightrun_helper.py"
+set "SETUP_DIR=%PROJECT_DIR%\_claude_sandbox_setup"
 
 cd /d "%PROJECT_DIR%" || (
     echo ERROR: Cannot cd to %PROJECT_DIR%
@@ -56,12 +58,27 @@ copy /y "%DAYTIME_SETTINGS%" ".claude\settings.json" > nul
 copy /y "%DAYTIME_SUPPLEMENT%" ".claude\active_mode.md" > nul
 copy /y "%HOOKS_SRC%\*.py" ".claude\hooks\" > nul
 
+:: Resolve model from config file → fallback file → hardcoded
+set "MODEL="
+set "EFFORT="
+set "MODEL_SOURCE="
+
+for /f "tokens=1,* delims==" %%a in ('python "%HELPER%" model "%SETUP_DIR%" day "" "" 2^>nul') do (
+    if "%%a"=="MODEL" set "MODEL=%%b"
+    if "%%a"=="EFFORT" set "EFFORT=%%b"
+    if "%%a"=="SOURCE" set "MODEL_SOURCE=%%b"
+)
+if not defined MODEL set "MODEL=claude-opus-4-6"
+if not defined EFFORT set "EFFORT=high"
+if not defined MODEL_SOURCE set "MODEL_SOURCE=hardcoded"
+
 echo [%DATE% %TIME%] Daytime mode active: WebSearch, WebFetch, questions allowed.
+echo [%DATE% %TIME%] Model: %MODEL% [%MODEL_SOURCE%] ^| Effort: %EFFORT%
 echo.
 
 :: Launch Claude interactively. CLAUDE.md imports .claude\active_mode.md which
 :: now contains daytime rules -- no need to type /day.
-claude
+claude --model %MODEL% --effort %EFFORT%
 
 :: Restore nighttime settings and active_mode.md after Claude exits.
 :: NOTE: If this script is killed before cleanup runs (Ctrl+C, crash), the project
@@ -72,5 +89,8 @@ echo [%DATE% %TIME%] Restoring nighttime settings...
 copy /y "%NIGHTTIME_SETTINGS%" ".claude\settings.json" > nul
 copy /y "%NIGHTTIME_SUPPLEMENT%" ".claude\active_mode.md" > nul
 echo [%DATE% %TIME%] Done. Project is back in nighttime-safe mode.
+
+:: Auto-promote: update fallback file with the model that was used this session
+python "%HELPER%" promote "%SETUP_DIR%" "%MODEL%" "%EFFORT%" 2>nul
 
 endlocal
