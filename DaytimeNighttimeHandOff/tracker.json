@@ -122,7 +122,15 @@
     "daytime_created": "2026-03-16T22:30:00",
     "daytime_comments": "Makes the project fully portable across machines. setup.py, pull_models.py, smoke_test.py, .env.example, ENVIRONMENT.md, run_experiment.py. Must work on both Windows and Unix. Critical for running experiments on GPU machine.",
     "depends_on": null,
-    "status": "todo"
+    "status": "done",
+    "nighttime_started": "2026-03-17T04:35:00",
+    "nighttime_completed": "2026-03-17T05:00:00",
+    "nighttime_comments": "setup.py bootstrap, scripts/pull_models.py, scripts/smoke_test.py, scripts/run_experiment.py, .env.example, ENVIRONMENT.md. All cross-platform.",
+    "branch": "night/task-010-portable-setup",
+    "commit_sha": "65f188551a3d46266d40157b27dc06be1eaf6d5e",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Core imports fail in smoke test on main — src/document.py only exists on branch. Will pass after merge."]
   },
   {
     "task_id": "task-011",
@@ -130,6 +138,7 @@
     "daytime_created": "2026-03-16T23:00:00",
     "daytime_comments": "CrossEncoderFilter uses ms-marco-MiniLM-L-6-v2 (~100M params, local) for precise query-passage relevance scoring (InPars-v2 methodology, arxiv:2301.01820). DistributionAnalyzer checks set-level quality: type balance, corpus coverage, diversity, duplicates. Separate from QueryFilter protocol — produces reports, not filtered lists.",
     "depends_on": ["task-008"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T05:05:00"
   }
 ]
