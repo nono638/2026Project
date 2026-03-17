@@ -98,7 +98,8 @@
     "commit_sha": "43ca9cf216875ea18ecd3353f9f8fa0ac51d940a",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["google-generativeai SDK is deprecated — emits FutureWarning, should migrate to google.genai"]
+    "flags": ["google-generativeai SDK is deprecated — emits FutureWarning, should migrate to google.genai"],
+    "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
     "task_id": "task-007",
@@ -114,7 +115,8 @@
     "commit_sha": "279c25f06852e764e5601de0a45f51c4db748ac9",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
     "task_id": "task-008",
@@ -130,7 +132,8 @@
     "commit_sha": "06763390a9b0899085a4e0611d646deab43add76",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["RAGAS 0.4.3 API differs significantly from spec's 0.1.x-0.2.x description — wrapper adapts but column names may vary", "jiter downgraded from 0.13.0 to 0.11.1 by openai dependency"]
+    "flags": ["RAGAS 0.4.3 API differs significantly from spec's 0.1.x-0.2.x description — wrapper adapts but column names may vary", "jiter downgraded from 0.13.0 to 0.11.1 by openai dependency"],
+    "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
     "task_id": "task-009",
@@ -146,7 +149,8 @@
     "commit_sha": "751bda60bb75eb10e5dfa00d4850c837731a4477",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
     "task_id": "task-010",
@@ -162,7 +166,8 @@
     "commit_sha": "65f188551a3d46266d40157b27dc06be1eaf6d5e",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Core imports fail in smoke test on main — src/document.py only exists on branch. Will pass after merge."]
+    "flags": ["Core imports fail in smoke test on main — src/document.py only exists on branch. Will pass after merge."],
+    "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
     "task_id": "task-011",
@@ -178,6 +183,15 @@
     "commit_sha": "24452c884acb5b8d242b4a179b9a2fb64b1ac612",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["cross-encoder tests use real model (~25MB download on first run)"]
+    "flags": ["cross-encoder tests use real model (~25MB download on first run)"],
+    "daytime_reviewed": "2026-03-17T22:00:00"
+  },
+  {
+    "task_id": "task-012",
+    "description": "ClaudeScorer: LLM-as-judge scoring with Anthropic API (faithfulness, relevance, conciseness)",
+    "daytime_created": "2026-03-17T22:30:00",
+    "daytime_comments": "Scorer protocol already exists in src/protocols.py. This implements it with Claude. All API calls must be mocked in tests.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
