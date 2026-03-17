@@ -90,7 +90,15 @@
     "daytime_created": "2026-03-16T21:30:00",
     "daytime_comments": "GoogleTextEmbedder only. Multimodal embedder moved to incubating — requires paid GCP Vertex AI account.",
     "depends_on": null,
-    "status": "todo"
+    "status": "done",
+    "nighttime_started": "2026-03-17T02:00:00",
+    "nighttime_completed": "2026-03-17T02:30:00",
+    "nighttime_comments": "GoogleTextEmbedder wrapping text-embedding-005 via google-generativeai SDK. 7 tests pass, 54 total.",
+    "branch": "night/task-006-google-embedder",
+    "commit_sha": "43ca9cf216875ea18ecd3353f9f8fa0ac51d940a",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["google-generativeai SDK is deprecated — emits FutureWarning, should migrate to google.genai"]
   },
   {
     "task_id": "task-007",
@@ -98,7 +106,15 @@
     "daytime_created": "2026-03-16T22:00:00",
     "daytime_comments": "Interfaces and data models only — no implementations. Document and Query as own modules. Bridge helpers for existing Experiment runner. CSV loader for Wikipedia dataset.",
     "depends_on": null,
-    "status": "todo"
+    "status": "done",
+    "nighttime_started": "2026-03-17T02:30:00",
+    "nighttime_completed": "2026-03-17T03:00:00",
+    "nighttime_comments": "Document/Query dataclasses, CSV loader, stratified sampler, JSON persistence, QueryGenerator/QueryFilter protocols. 19 tests pass, 66 total.",
+    "branch": "night/task-007-query-pipeline-protocols",
+    "commit_sha": "279c25f06852e764e5601de0a45f51c4db748ac9",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-008",
@@ -106,7 +122,15 @@
     "daytime_created": "2026-03-16T22:00:00",
     "daytime_comments": "First concrete implementations of task-007 protocols. RAGAS for query generation (with evolution types), RoundTripFilter for validation. All RAGAS API calls mocked in tests.",
     "depends_on": ["task-007"],
-    "status": "todo"
+    "status": "done",
+    "nighttime_started": "2026-03-17T03:00:00",
+    "nighttime_completed": "2026-03-17T03:45:00",
+    "nighttime_comments": "RagasQueryGenerator (RAGAS 0.4.3), RoundTripFilter, HeuristicFilter. 29 tests pass. Merged task-007 branch for dependencies.",
+    "branch": "night/task-008-ragas-implementation",
+    "commit_sha": "06763390a9b0899085a4e0611d646deab43add76",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["RAGAS 0.4.3 API differs significantly from spec's 0.1.x-0.2.x description — wrapper adapts but column names may vary", "jiter downgraded from 0.13.0 to 0.11.1 by openai dependency"]
   },
   {
     "task_id": "task-009",
@@ -114,7 +138,15 @@
     "daytime_created": "2026-03-16T22:15:00",
     "daytime_comments": "Three more QueryGenerator implementations for methodological breadth. Human = validation anchor, BEIR = benchmark gold standard, Template = uniform/cheap. spaCy needed for template NER.",
     "depends_on": ["task-007"],
-    "status": "todo"
+    "status": "done",
+    "nighttime_started": "2026-03-17T04:00:00",
+    "nighttime_completed": "2026-03-17T04:30:00",
+    "nighttime_comments": "HumanQuerySet (CSV/JSON), BEIRQuerySet (BEIR format), TemplateQueryGenerator (spaCy NER). 21 tests pass, 87 total.",
+    "branch": "night/task-009-additional-generators",
+    "commit_sha": "751bda60bb75eb10e5dfa00d4850c837731a4477",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-010",
@@ -122,7 +154,8 @@
     "daytime_created": "2026-03-16T22:30:00",
     "daytime_comments": "Makes the project fully portable across machines. setup.py, pull_models.py, smoke_test.py, .env.example, ENVIRONMENT.md, run_experiment.py. Must work on both Windows and Unix. Critical for running experiments on GPU machine.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T04:35:00"
   },
   {
     "task_id": "task-011",
