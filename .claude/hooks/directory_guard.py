@@ -64,7 +64,7 @@ import re
 #
 # When this is None, the hook falls back to cwd from stdin (less safe).
 # ============================================================================
-HARDCODED_PROJECT_DIR = r"C:\Users\noahc\Dropbox\NotWork\CUNY SPS\2026\Spring 2026\Project"
+HARDCODED_PROJECT_DIR = r"C:\Users\noahc\Dropbox\NotWork\CUNYSPS\2026\Spring2026\Project"
 # ============================================================================
 
 
