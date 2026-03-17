@@ -74,7 +74,11 @@ def predict(features: dict) -> dict:
     config = _label_classes[pred_idx]
     # Config format: chunker__embedder__strategy__model (4 parts)
     parts = config.split("__")
-    chunker, embedder, strategy, model = parts[0], parts[1], parts[2], parts[3]
+    if len(parts) != 4:
+        raise ValueError(
+            f"Expected config with 4 '__'-separated parts, got {len(parts)}: {config!r}"
+        )
+    chunker, embedder, strategy, model = parts
 
     return {
         "chunker": chunker,
