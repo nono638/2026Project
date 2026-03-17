@@ -192,7 +192,14 @@
     "daytime_created": "2026-03-17T22:30:00",
     "daytime_comments": "Scorer protocol already exists in src/protocols.py. This implements it with Claude. All API calls must be mocked in tests.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-17T23:00:00"
+    "status": "done",
+    "nighttime_started": "2026-03-17T23:00:00",
+    "nighttime_completed": "2026-03-17T23:15:00",
+    "nighttime_comments": "Rewrote ClaudeScorer with JSON output, rubric, edge cases, batch scoring, ScorerError. 17 tests pass.",
+    "branch": "night/task-012-claude-scorer",
+    "commit_sha": "ba8087241b24337861f03096d0c7c528d63e8659",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Pre-existing test collection errors in tests/ (missing xgboost, langchain_openai) — unrelated to this task"]
   }
 ]
