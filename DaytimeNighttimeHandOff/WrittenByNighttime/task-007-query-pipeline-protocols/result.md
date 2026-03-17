@@ -3,7 +3,7 @@
 **Completed:** 2026-03-17T03:00:00
 
 ## Commits
-- (pending) — night: task-007 query pipeline protocols and data models
+- `279c25f06852e764e5601de0a45f51c4db748ac9` — night: task-007 query pipeline protocols and data models
 
 ## Test Results
 - Command run: `.venv/Scripts/python.exe -m pytest tests/test_query_pipeline.py -v`
