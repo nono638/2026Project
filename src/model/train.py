@@ -20,18 +20,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import classification_report, f1_score
 import xgboost as xgb
 
-
-FEATURE_COLS = [
-    "query_length",
-    "num_named_entities",
-    "doc_length",
-    "doc_vocab_entropy",
-    "mean_retrieval_score",
-    "var_retrieval_score",
-]
-
-# Quality threshold below which a config is not considered "viable"
-DEFAULT_QUALITY_THRESHOLD = 3.0
+from src.config import DEFAULT_QUALITY_THRESHOLD, FEATURE_COLS, MODELS_DIR
 
 
 def prepare_data(
@@ -115,7 +104,7 @@ def train(
         df = data
 
     if save_dir is None:
-        save_dir = Path("models")
+        save_dir = MODELS_DIR
     save_dir.mkdir(parents=True, exist_ok=True)
 
     X, y = prepare_data(df, quality_threshold)

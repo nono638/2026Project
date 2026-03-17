@@ -280,3 +280,114 @@
 {"ts": "2026-03-16T05:49:49Z", "tool": "Bash", "session": "5f46f69a", "command": "source .venv/Scripts/activate && python -m pytest tests/ -v 2>&1"}
 {"ts": "2026-03-16T05:50:09Z", "tool": "Write", "session": "5f46f69a", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-005-metalearner-api\\result.md"}
 {"ts": "2026-03-16T18:42:42Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff --name-only --diff-filter=U"}
+{"ts": "2026-03-16T18:46:35Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git checkout -- DaytimeNighttimeHandOff/audit.j..."}
+{"ts": "2026-03-16T18:47:59Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && .venv/Scripts/python -m pytest tests/ -v 2>&1 |..."}
+{"ts": "2026-03-16T18:51:10Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\model\\train.py"}
+{"ts": "2026-03-16T18:51:10Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\model\\predict.py"}
+{"ts": "2026-03-16T18:51:20Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\model\\train.py"}
+{"ts": "2026-03-16T18:51:22Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\model\\predict.py"}
+{"ts": "2026-03-16T18:51:30Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\model\\train.py"}
+{"ts": "2026-03-16T18:51:33Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\model\\predict.py"}
+{"ts": "2026-03-16T18:52:30Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && .venv/Scripts/python -m pytest tests/ -v 2>&1 |..."}
+{"ts": "2026-03-16T19:05:25Z", "tool": "ToolSearch", "session": "8f8b4aac", "query": "WebSearch web fetch"}
+{"ts": "2026-03-16T19:06:15Z", "tool": "Agent", "session": "8f8b4aac"}
+{"ts": "2026-03-16T19:32:58Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\incubating.md"}
+{"ts": "2026-03-16T19:33:05Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\architecture-decisions.md"}
+{"ts": "2026-03-16T19:33:21Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\architecture-decisions.md"}
+{"ts": "2026-03-16T19:33:33Z", "tool": "Bash", "session": "8f8b4aac", "command": "ls \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/DaytimeNighttimeHandOff/WrittenByDaytime/\""}
+{"ts": "2026-03-16T19:33:41Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\retriever.py"}
+{"ts": "2026-03-16T19:33:43Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\embedders\\huggingface.py"}
+{"ts": "2026-03-16T19:33:43Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\embedders\\ollama.py"}
+{"ts": "2026-03-16T19:33:43Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\embedders/__init__.py"}
+{"ts": "2026-03-16T19:33:56Z", "tool": "Bash", "session": "8f8b4aac", "command": "mkdir -p \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/DaytimeNighttimeHandOff/WrittenByDaytime/task..."}
+{"ts": "2026-03-16T19:34:56Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-006-google-embedders\\spec.md"}
+{"ts": "2026-03-16T19:35:02Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T19:35:11Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T19:35:37Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\.claude\\hooks\\stop_quality_gate.py"}
+{"ts": "2026-03-16T19:35:46Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\.claude\\hooks\\stop_quality_gate.py"}
+{"ts": "2026-03-16T20:35:17Z", "tool": "Bash", "session": "8f8b4aac", "command": "ls \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/data/\""}
+{"ts": "2026-03-16T20:35:39Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\data\\Wikipedia 2 - wikipedia_sample(2).csv"}
+{"ts": "2026-03-16T20:35:47Z", "tool": "Bash", "session": "8f8b4aac", "command": "wc -l \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/data/Wikipedia 2 - wikipedia_sample(2).csv\""}
+{"ts": "2026-03-16T20:36:23Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && .venv/Scripts/python -c \"\nimport pandas as pd\nd..."}
+{"ts": "2026-03-16T20:44:19Z", "tool": "ToolSearch", "session": "8f8b4aac", "query": "web search fetch"}
+{"ts": "2026-03-16T20:44:35Z", "tool": "Glob", "session": "8f8b4aac", "pattern": ".claude/skills/**/SKILL.md"}
+{"ts": "2026-03-16T20:46:16Z", "tool": "Agent", "session": "8f8b4aac"}
+{"ts": "2026-03-16T20:55:56Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\research.md"}
+{"ts": "2026-03-16T20:56:41Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\research.md"}
+{"ts": "2026-03-16T21:04:19Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\architecture-decisions.md"}
+{"ts": "2026-03-16T21:05:31Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\protocols.py"}
+{"ts": "2026-03-16T21:05:32Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\experiment.py"}
+{"ts": "2026-03-16T21:05:39Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\src\\experiment.py"}
+{"ts": "2026-03-16T21:05:56Z", "tool": "Bash", "session": "8f8b4aac", "command": "mkdir -p \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/DaytimeNighttimeHandOff/WrittenByDaytime/task..."}
+{"ts": "2026-03-16T21:06:52Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-007-query-pipeline-protocols\\spec.md"}
+{"ts": "2026-03-16T21:08:05Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-008-ragas-implementation\\spec.md"}
+{"ts": "2026-03-16T21:08:27Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T21:08:39Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T21:28:44Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\incubating.md"}
+{"ts": "2026-03-16T21:29:00Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\architecture-decisions.md"}
+{"ts": "2026-03-16T21:30:25Z", "tool": "Bash", "session": "8f8b4aac", "command": "mkdir -p \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/DaytimeNighttimeHandOff/WrittenByDaytime/task..."}
+{"ts": "2026-03-16T21:31:45Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-009-additional-generators\\spec.md"}
+{"ts": "2026-03-16T21:31:58Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T21:47:12Z", "tool": "Bash", "session": "8f8b4aac", "command": "ls \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/Project Docs/\""}
+{"ts": "2026-03-16T21:47:53Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proect Assignment Prompt.txt"}
+{"ts": "2026-03-16T21:47:55Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Professor's Feedback to proposal.txt"}
+{"ts": "2026-03-16T21:47:57Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal.txt"}
+{"ts": "2026-03-16T21:54:30Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-16T22:03:50Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-16T22:03:58Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-16T22:04:04Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-16T22:04:08Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-16T22:04:14Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-16T22:04:46Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-16T22:10:41Z", "tool": "Bash", "session": "8f8b4aac", "command": "mkdir -p \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/DaytimeNighttimeHandOff/WrittenByDaytime/task..."}
+{"ts": "2026-03-16T22:11:54Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-010-portable-setup\\spec.md"}
+{"ts": "2026-03-16T22:12:02Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T22:12:14Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T23:14:26Z", "tool": "ToolSearch", "session": "8f8b4aac", "query": "select:WebSearch,WebFetch"}
+{"ts": "2026-03-16T23:14:32Z", "tool": "ToolSearch", "session": "8f8b4aac", "query": "web search fetch browse"}
+{"ts": "2026-03-16T23:14:56Z", "tool": "Glob", "session": "8f8b4aac", "pattern": "**/*research*"}
+{"ts": "2026-03-16T23:14:56Z", "tool": "Glob", "session": "8f8b4aac", "pattern": "**/*RAG*"}
+{"ts": "2026-03-16T23:14:57Z", "tool": "Glob", "session": "8f8b4aac", "pattern": "**/*reference*"}
+{"ts": "2026-03-16T23:15:03Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\research.md"}
+{"ts": "2026-03-16T23:15:08Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\project_overview.md"}
+{"ts": "2026-03-16T23:17:14Z", "tool": "Agent", "session": "8f8b4aac"}
+{"ts": "2026-03-16T23:23:11Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\research.md"}
+{"ts": "2026-03-16T23:23:41Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\research.md"}
+{"ts": "2026-03-16T23:23:49Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-008-ragas-implementation\\spec.md"}
+{"ts": "2026-03-16T23:24:15Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-008-ragas-implementation\\spec.md"}
+{"ts": "2026-03-16T23:24:45Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-008-ragas-implementation\\spec.md"}
+{"ts": "2026-03-16T23:25:00Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-008-ragas-implementation\\spec.md"}
+{"ts": "2026-03-16T23:25:18Z", "tool": "Bash", "session": "8f8b4aac", "command": "mkdir -p \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/DaytimeNighttimeHandOff/WrittenByDaytime/task..."}
+{"ts": "2026-03-16T23:26:45Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-011-crossencoder-distribution\\spec.md"}
+{"ts": "2026-03-16T23:26:59Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T23:44:40Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-006-google-embedders\\spec.md"}
+{"ts": "2026-03-16T23:44:45Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-006-google-embedders\\spec.md"}
+{"ts": "2026-03-16T23:45:29Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-006-google-embedders\\spec.md"}
+{"ts": "2026-03-16T23:45:44Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-16T23:46:02Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\incubating.md"}
+{"ts": "2026-03-16T23:53:38Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\architecture-decisions.md"}
+{"ts": "2026-03-16T23:55:47Z", "tool": "ToolSearch", "session": "8f8b4aac", "query": "web search fetch"}
+{"ts": "2026-03-16T23:56:06Z", "tool": "Bash", "session": "8f8b4aac", "command": "ls .claude/hooks/"}
+{"ts": "2026-03-16T23:56:12Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\.claude\\hooks\\directory_guard.py"}
+{"ts": "2026-03-16T23:56:34Z", "tool": "ToolSearch", "session": "8f8b4aac", "query": "WebSearch WebFetch web browse internet"}
+{"ts": "2026-03-16T23:56:37Z", "tool": "ToolSearch", "session": "8f8b4aac", "query": "search web internet fetch URL browse"}
+{"ts": "2026-03-16T23:58:07Z", "tool": "Agent", "session": "8f8b4aac"}
+{"ts": "2026-03-17T00:01:35Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-17T00:01:59Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-17T00:02:24Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-17T00:02:48Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-17T00:02:58Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-17T00:03:09Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-17T00:03:30Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\architecture-decisions.md"}
+{"ts": "2026-03-17T00:03:50Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\research.md"}
+{"ts": "2026-03-17T00:06:15Z", "tool": "Grep", "session": "8f8b4aac", "pattern": "C:\\\\|/c/Users|/home/|%USERPROFILE%|\\\\Users\\\\"}
+{"ts": "2026-03-17T00:06:23Z", "tool": "Grep", "session": "8f8b4aac", "pattern": "Path\\([\\\"']/(|[A-Z]:)"}
+{"ts": "2026-03-17T00:06:25Z", "tool": "Grep", "session": "8f8b4aac", "pattern": "os\\.path\\.(join|abspath).*[\\\"']/"}
+{"ts": "2026-03-17T00:06:36Z", "tool": "Grep", "session": "8f8b4aac", "pattern": "Path\\("}
+{"ts": "2026-03-17T00:08:59Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\Project Docs\\Proposal_v2.txt"}
+{"ts": "2026-03-17T00:10:38Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\project_overview.md"}
+{"ts": "2026-03-17T00:11:19Z", "tool": "Write", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\project_overview.md"}
+{"ts": "2026-03-17T00:11:58Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\inbox.md"}
+{"ts": "2026-03-17T00:13:47Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git status"}
+{"ts": "2026-03-17T00:13:59Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff --stat"}
+{"ts": "2026-03-17T00:14:17Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git log --oneline -5"}

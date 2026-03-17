@@ -13,6 +13,8 @@ import pandas as pd
 import numpy as np
 import xgboost as xgb
 
+from src.config import MODELS_DIR
+
 
 _model: xgb.XGBClassifier | None = None
 _label_classes: list[str] | None = None
@@ -27,7 +29,7 @@ def _load_model(model_dir: Path | None = None) -> None:
     """
     global _model, _label_classes, _feature_columns
     if model_dir is None:
-        model_dir = Path("models")
+        model_dir = MODELS_DIR
 
     _model = xgb.XGBClassifier()
     _model.load_model(str(model_dir / "xgb_meta_learner.json"))

@@ -6,59 +6,64 @@
 
 ## What This Project Is
 
-**SmallModelBigStrategy** is two things:
+**RAGBench** is a configurable RAG evaluation pipeline that runs the full cartesian product
+of RAG configurations (chunker × embedder × strategy × language model) against any corpus,
+scores the results, and trains a meta-learner to predict the optimal configuration for
+new queries. Each pipeline stage is defined by a Python Protocol, making every component
+swappable without modifying the framework.
 
-1. **A generalized RAG research tool** — a pluggable framework where users choose their own embedding models, chunking strategies, RAG strategies, LLM models, and corpora, then run controlled experiments comparing them. Every component is swappable via Python Protocols (duck-typed interfaces). The tool handles the experiment matrix, scoring, and analysis.
+The project serves two purposes: (1) a reusable evaluation tool for RAG research, and
+(2) a vehicle for two specific experiments on small local language models.
 
-2. **A specific research project** using that tool — testing the hypothesis that RAG strategy sophistication can substitute for raw parameter count in locally-hosted language models. This is the CUNY SPS graduate project deliverable.
+The tool is the product. The experiments are the first use cases. The professor specifically
+encouraged making the evaluation pipeline reusable by others, potentially as a Python
+package, and potentially extending into a capstone project.
 
-The tool is the product. The research is the first use case. The professor specifically encouraged making the evaluation pipeline reusable by others, potentially as a Python package, and potentially extending into a capstone project.
-
-**Team:** Noah (solo — Curtis and Cailinn dropped out as of 2026-03-16)
+**Team:** Noah (solo)
 
 ---
 
 ## Current Goals
 
-- [ ] Build the generalized RAG research tool with pluggable components
-- [ ] Run our specific experiment (strategy × model size) using the tool
+- [ ] Complete the query generation and filtering pipeline (tasks 007-009, 011)
+- [ ] Get the project portable across machines (task 010)
+- [ ] Add Google text embedding as a cloud comparison point (task 006)
+- [ ] Run Experiment 1: strategy × model size (5 strategies × 6 models = 30 configs)
+- [ ] Run Experiment 2: chunking × model size (3 chunkers × 4 models = 12 configs)
 - [ ] Train meta-learner on experiment results
-- [ ] FastAPI app for configuration recommendation
-- [ ] Final demo May 11 (10-min presentation + live demo)
-- [ ] Project writeup/whitepaper due May 15 (2500 words)
-- [ ] Confirm with professor whether March 30 MVP is a graded deliverable
+- [ ] Build web frontend for FastAPI demo
+- [ ] MVP demo (March 30th)
+- [ ] Final demo (May 11th)
+- [ ] Writeup/whitepaper (May 15th)
 
 ---
 
 ## Scope
 
 ### In Scope
-**The tool (generalized):**
-- Pluggable component system: chunkers, embedders, LLMs, RAG strategies, scorers
-- Python API: users build experiments by composing components, tool runs cartesian product
-- ExperimentResult with analysis/visualization (heatmaps, comparisons, pivots, export)
-- Built-in components: 4 chunkers, 2 embedder backends (Ollama, HuggingFace), 5 RAG strategies, Claude scorer
 
-**Our research (specific use case):**
-- 5 RAG strategies × 4+ Qwen3 model sizes + Llama 3.2 cross-validation
-- Embedding: mxbai-embed-large via Ollama (mid-range to avoid masking strategy differences)
-- Corpus: wikimedia/wikipedia HuggingFace dataset
+**The pipeline (generalized):**
+- Pluggable 4-axis experiment system: chunkers, embedders, strategies, models
+- Pluggable query generation (RAGAS, templates, human-curated, BEIR benchmarks)
+- Query validation pipeline (heuristic, round-trip, cross-encoder, distribution analysis)
+- ExperimentResult with analysis/visualization (heatmaps, comparisons, export)
+- Portable setup scripts for cross-machine transferability
+
+**Our experiments (specific use cases):**
+- Experiment 1: 5 RAG strategies × Qwen3 (0.6B, 1.7B, 4B, 8B) + Gemma 3 (1B, 4B)
+- Experiment 2: 3 chunking strategies × Qwen3 (0.6B, 1.7B, 4B, 8B)
+- Embedding: mxbai-embed-large via Ollama (held constant in both experiments)
+- Corpus: Wikipedia article sample
 - Scoring: Claude as LLM-as-judge (faithfulness, relevance, conciseness)
-- Meta-learner: XGBoost predicting optimal (chunker, embedder, strategy, model) config
-- FastAPI app for configuration recommendation, deployed on Render
+- Meta-learner: XGBoost predicting optimal configuration
+- FastAPI recommendation endpoint, deployed on Render
 
 ### Out of Scope
-- HyDE (different kind of intervention — not a fair comparison)
+- Multimodal embedding (incubating — needs paid GCP Vertex AI)
+- HyDE (different intervention type — not a fair comparison)
 - Agentic RAG (implausible for sub-7B models, too many confounds)
 - Cloud GPU resources (all local, 8GB VRAM laptop)
-- Deep learning classifiers (XGBoost is established best practice for tabular data at this scale)
-
-### Now In Scope (promoted from stretch)
-- Reusable evaluation pipeline — pluggable components, any user can run their own experiments
-- Potential Python package release
-
-### Stretch Goals
-- Thinking mode as a second axis (Qwen3 standard vs thinking mode)
+- Deep learning classifiers (XGBoost is established best for tabular at this scale)
 
 ---
 
@@ -66,22 +71,40 @@ The tool is the product. The research is the first use case. The professor speci
 
 | Decision | Rationale | Date |
 |---|---|---|
-| Protocols over ABCs | Structural subtyping (duck typing) — users don't need to inherit from framework classes. Less boilerplate for a research tool. | 2026-03-16 |
-| No registry pattern | Components passed directly as instances to Experiment(). Simpler, explicit, type-checkable. YAML config layer deferred to later. | 2026-03-16 |
-| Python API first, YAML later | Keep interface honest — if the API is clean, YAML is just a thin wrapper. Avoids premature abstraction. | 2026-03-16 |
-| Multiclass classification, not ordinal | Core hypothesis is that strategy can invert size ordering (4B+SelfRAG > 8B+Naive). Ordinal regression would assume monotonic size→quality. See architecture-decisions.md. | 2026-03-16 |
-| XGBoost over PyTorch for meta-learner | Grinsztajn et al. (NeurIPS 2022): tree-based models outperform NNs on tabular data <100K rows | 2026-03 |
-| mxbai-embed-large for embeddings | Outperforms nomic-embed-text on MTEB; deliberately mid-range to avoid masking strategy differences | 2026-03 |
-| Asymmetric cost function | Under-serving (bad answer) penalized more than over-serving (extra compute); reflects real user constraints | 2026-03 |
-| Claude as both query classifier and judge | Acknowledged limitation — both feature and label carry Claude's biases; flagged for future work | 2026-03 |
+| Protocols over ABCs | Structural subtyping — users don't inherit from framework classes | 2026-03-16 |
+| Multiclass classification, not ordinal | Strategy can invert size ordering — ordinal assumption is what we're testing | 2026-03-16 |
+| Two focused experiments, not one full matrix | Full 4-axis matrix is computationally prohibitive; two experiments isolate interactions cleanly | 2026-03-16 |
+| Every pipeline stage gets its own protocol/module | Multimodal is an end goal; tightly coupled stages break later | 2026-03-16 |
+| Multiple query generators by design | Single-source evaluation is a methodological weakness | 2026-03-16 |
+| Recursive chunker (512/50) as default for Experiment 1 | Most common in production and literature; most defensible baseline | 2026-03-16 |
+| Gemma 3 for cross-family validation (not Llama 3.2) | Cleaner size overlap at 1B and 4B for direct comparison | 2026-03-16 |
+| Google multimodal embedder moved to incubating | Requires paid GCP Vertex AI; text embedder is free | 2026-03-16 |
+
+---
+
+## Architecture
+
+```
+Documents → QueryGenerator → Queries → QueryFilter(s) → Validated Queries
+                                                              ↓
+Validated Queries × (Chunker × Embedder × Strategy × Model) → Answers
+                                                              ↓
+                                                     Scorer → Scores
+                                                              ↓
+                                                   ExperimentResult → Analysis
+                                                              ↓
+                                                   Meta-Learner (XGBoost)
+                                                              ↓
+                                                   FastAPI Endpoint
+```
 
 ---
 
 ## Professor's Feedback (on proposal)
 
-1. **Consider ordinal regression** instead of multiclass classification — larger models expected to do better, so outcomes are ordered
-2. **LLM-as-judge can be noisy** — manually validate a sample of scores to build confidence
-3. **Stretch: make pipeline reusable** — let others drop in their own models and corpus; could release as Python package; could extend into capstone
+1. **Consider ordinal regression** — addressed: using multiclass because strategy can invert size ordering
+2. **LLM-as-judge can be noisy** — plan to manually validate a sample of scores
+3. **Make pipeline reusable** — this became the project's primary framing
 4. Mentioned ellmer/vitals and chatlas/inspect ecosystems for model evaluation
 
 ---
@@ -91,4 +114,8 @@ The tool is the product. The research is the first use case. The professor speci
 | Date | Change | Why | Impact on Night Tasks |
 |---|---|---|---|
 | 2026-03-16 | Initial project setup | Project kickoff | n/a |
-| 2026-03-16 | Scope shift: generalized RAG research tool | Professor encouraged reusability; building pluggable tool first, then using it for our experiment. MVP date TBD with professor. | Existing skeleton will be redesigned around registry/plugin pattern |
+| 2026-03-16 | Renamed to RAGBench | Reframed around the pipeline, not just one hypothesis | Update any references to SmallModelBigStrategy |
+| 2026-03-16 | Added Experiment 2 (chunking × model size) | Research gap — no peer-reviewed chunking × model size study exists | Chunkers are a test axis, not just infrastructure |
+| 2026-03-16 | Switched to Gemma 3 from Llama 3.2 | Cleaner size overlap at 1B and 4B | Update model references in specs |
+| 2026-03-16 | Dropped Google multimodal embedder | Requires paid GCP billing | Moved to incubating |
+| 2026-03-16 | Solo project | Curtis and Cailinn dropped out | n/a |

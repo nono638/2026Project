@@ -3,3 +3,21 @@
 [2026-03-16T23:00:00] task-003: done — Added MultiQueryRAG, CorrectiveRAG, AdaptiveRAG, FixedSizeChunker, RecursiveChunker, SentenceChunker, HuggingFaceEmbedder (29 tests) [tests: pass]
 [2026-03-16T23:20:00] task-004: done — Added 8 analysis methods to ExperimentResult (summary, compare_strategies, compare_models, heatmap, per_query, strategy_vs_size, to_csv, merge) [tests: pass]
 [2026-03-16 14:42:55] NOTIFICATION (permission_prompt): Claude needs your permission to use Bash
+[2026-03-16 14:49:06] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 14:53:41] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 15:07:32] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 15:23:35] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 15:36:53] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 17:33:07] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 17:41:19] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 17:50:03] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 17:55:44] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 18:01:39] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 18:13:25] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 18:20:58] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 18:24:23] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 18:53:57] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 19:18:41] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 19:28:09] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 19:59:37] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 20:07:44] NOTIFICATION (idle_prompt): Claude is waiting for your input
