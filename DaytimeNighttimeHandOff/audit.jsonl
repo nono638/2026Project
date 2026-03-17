@@ -512,3 +512,6 @@
 {"ts": "2026-03-17T02:49:59Z", "tool": "Bash", "session": "614b6654", "command": "git stash --include-untracked"}
 {"ts": "2026-03-17T02:50:29Z", "tool": "Bash", "session": "614b6654", "command": "git diff --name-only"}
 {"ts": "2026-03-17T02:50:42Z", "tool": "Bash", "session": "614b6654", "command": "git stash list"}
+{"ts": "2026-03-17T02:51:32Z", "tool": "Bash", "session": "614b6654", "command": "git checkout HEAD -- DaytimeNighttimeHandOff/audit.jsonl"}
+{"ts": "2026-03-17T02:51:43Z", "tool": "Bash", "session": "614b6654", "command": "git status --short"}
+{"ts": "2026-03-17T02:51:55Z", "tool": "Bash", "session": "614b6654", "command": "git diff DaytimeNighttimeHandOff/audit.jsonl | head -20"}
