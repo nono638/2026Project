@@ -225,7 +225,14 @@
     "daytime_created": "2026-03-17T23:30:00",
     "daytime_comments": "Latency as a first-class output dimension. Uses time.perf_counter(). New analysis methods: latency_report() and time_vs_quality(). Not a meta-learner feature — measurement for human decision-making.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-17T23:56:00"
+    "status": "done",
+    "nighttime_started": "2026-03-17T23:56:00",
+    "nighttime_completed": "2026-03-18T00:05:00",
+    "nighttime_comments": "Added strategy_latency_ms, scorer_latency_ms, total_latency_ms columns + latency_report() and time_vs_quality() methods. 10 tests pass, 246 existing tests unaffected.",
+    "branch": "night/task-014-experiment-timing",
+    "commit_sha": "129cc9f04770357222baeedf203f311d709f3249",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   }
 ]
