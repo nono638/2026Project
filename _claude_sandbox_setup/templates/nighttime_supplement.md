@@ -104,8 +104,14 @@ Before touching any code, write your plan to
 Include: which files you'll modify, your approach, and any ambiguities you noticed in the spec.
 Create the `WrittenByNighttime/<task-dir>/` directory if it doesn't exist.
 
-**Step 3 — Update tracker to in_progress**
-Update `tracker.json`: set `"status": "in_progress"` and `"nighttime_started": "<ISO timestamp>"`.
+**Step 3 — Update tracker to in_progress (on main, before branching)**
+While still on main, update `tracker.json`: set `"status": "in_progress"` and
+`"nighttime_started": "<ISO timestamp>"`. Commit it immediately:
+```
+git add DaytimeNighttimeHandOff/tracker.json
+git commit -m "tracker: <task-id> in_progress"
+```
+This keeps tracker.json linear on main and avoids merge conflicts across branches.
 
 **Step 4 — Create a git branch**
 ```
@@ -153,14 +159,33 @@ Write `DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/result.md` using th
 [What you tried, why each failed — so morning doesn't retry dead ends]
 ```
 
-**Step 8 — Commit and update tracker**
+**Step 8 — Commit on branch, then update tracker on main**
+
+Stage only the files you created or modified for this task. **Never use `git add -A` or
+`git add .`** — these will pick up runtime files that must not be committed.
+
 ```
-git add -A
+git add src/<files you changed>
+git add tests/<test files>
+git add DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/
+git add requirements.txt  # only if you installed new packages
 git commit -m "night: <task-id> <short description>"
 git rev-parse HEAD   # capture the SHA
 git checkout main
 ```
-Update `tracker.json`:
+
+**Never stage or commit** files under `.claude/` — these are runtime configuration managed
+by the launcher scripts. Also never commit `pip_output.txt`, `*.bak`, `audit.jsonl`, or
+`nighttime.log`.
+
+Now update `tracker.json` **on main** and commit it:
+```
+# edit tracker.json with the fields below
+git add DaytimeNighttimeHandOff/tracker.json
+git commit -m "tracker: <task-id> done"
+```
+
+Tracker fields to update:
 - `"status": "done"` (or `"skipped"` or `"blocked"` — see below)
 - `"nighttime_completed": "<ISO timestamp>"`
 - `"nighttime_comments": "<one-sentence summary>"`
@@ -177,16 +202,16 @@ resolve, a decision about approach), set `status: "blocked"` and write a clear
 `blocked_reason`. The human can read this in the morning and unblock you. Use `skipped`
 only when there's no clear path forward even with human help — true dead ends.
 
-**Step 9 — Move task files from WrittenByDaytime to WrittenByNighttime**
+**Step 9 — Copy task files from WrittenByDaytime to WrittenByNighttime**
 The `WrittenByNighttime/<task-dir>/` directory already exists (you created it in Step 2 for
-plan.md and result.md). Move only the spec and tests into it, then remove the now-empty
-daytime directory:
+plan.md and result.md). **Copy** (do not move) the spec and tests into it:
 ```
-mv DaytimeNighttimeHandOff/WrittenByDaytime/<task-dir>/spec.md DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/spec.md
-mv DaytimeNighttimeHandOff/WrittenByDaytime/<task-dir>/tests DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/tests
+cp DaytimeNighttimeHandOff/WrittenByDaytime/<task-dir>/spec.md DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/spec.md
+cp -r DaytimeNighttimeHandOff/WrittenByDaytime/<task-dir>/tests DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/tests
 ```
-Then remove the now-empty daytime directory. If `rmdir` fails (extra files left behind), that's
-OK — log it in nighttime.log and continue. Do not use `rm -rf`.
+Do NOT delete the WrittenByDaytime directory — leave the originals in place. Deleting them
+on the branch creates merge conflicts when multiple branches are merged. The daytime agent
+will clean up WrittenByDaytime/ during morning review after merging.
 
 **Step 10 — Log to nighttime.log**
 Append a one-line summary to `DaytimeNighttimeHandOff/nighttime.log`:

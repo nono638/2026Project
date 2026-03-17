@@ -63,7 +63,10 @@ echo.
 :: now contains daytime rules -- no need to type /day.
 claude
 
-:: Restore nighttime settings and active_mode.md after Claude exits
+:: Restore nighttime settings and active_mode.md after Claude exits.
+:: NOTE: If this script is killed before cleanup runs (Ctrl+C, crash), the project
+:: will be left in daytime mode. This is safe — nightrun.bat always reinstalls
+:: nighttime settings before launching Claude. No manual intervention needed.
 echo.
 echo [%DATE% %TIME%] Restoring nighttime settings...
 copy /y "%NIGHTTIME_SETTINGS%" ".claude\settings.json" > nul

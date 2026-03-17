@@ -1,3 +1,15 @@
 __pycache__/
 *.pyc
 .venv/
+
+# Runtime configuration — managed by dayrun/nightrun launchers, not source-controlled
+.claude/active_mode.md
+.claude/settings.json
+.claude/settings.local.json
+.claude/hooks/
+
+# Runtime logs and artifacts
+DaytimeNighttimeHandOff/audit.jsonl
+DaytimeNighttimeHandOff/nighttime.log
+DaytimeNighttimeHandOff/*.bak
+pip_output.txt
