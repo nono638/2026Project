@@ -24,3 +24,4 @@
 [2026-03-17T02:30:00] task-006: done — GoogleTextEmbedder wrapping text-embedding-005 via google-generativeai SDK. 7 tests pass. [tests: pass]
 [2026-03-17T03:00:00] task-007: done — Document/Query dataclasses, CSV loader, stratified sampler, JSON persistence, QueryGenerator/QueryFilter protocols. 19 tests pass. [tests: pass]
 [2026-03-17T03:45:00] task-008: done — RagasQueryGenerator (RAGAS 0.4.3), RoundTripFilter, HeuristicFilter. 29 tests pass. [tests: pass]
+[2026-03-17T04:30:00] task-009: done — HumanQuerySet (CSV/JSON), BEIRQuerySet (BEIR format), TemplateQueryGenerator (spaCy NER). 21 tests pass, 87 total. [tests: pass]
