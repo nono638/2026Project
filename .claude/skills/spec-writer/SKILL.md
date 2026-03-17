@@ -95,6 +95,10 @@ Create `DaytimeNighttimeHandOff/WrittenByDaytime/task-NNN-short-name/spec.md`:
 - `path/to/file.py` — [what changes, which functions/classes]
 - `path/to/new_file.py` — [create, purpose]
 
+## New Dependencies
+- `package-name==x.y.z` — [why needed, what it provides]
+- (or "None — all required packages are already installed")
+
 ## Edge Cases
 - [Explicit scenario → expected behavior]
 - [...]
@@ -117,9 +121,24 @@ Create `DaytimeNighttimeHandOff/WrittenByDaytime/task-NNN-short-name/spec.md`:
 - [ ] All judgment calls are made — no ambiguity for the night instance
 - [ ] "Why" is answered for every non-obvious decision
 - [ ] Research URLs included where research was done
+- [ ] New dependencies identified and installed in venv (see Step 5b)
 - [ ] Scoped to one focused nighttime session
 
 If any item fails, go back and fix it before continuing.
+
+---
+
+## Step 5b — Install new dependencies
+
+If the spec lists new dependencies in the "New Dependencies" section, install them now
+using the install-package skill: read `.claude/skills/install-package/SKILL.md` and follow
+all instructions.
+
+This must happen during the daytime session — before the task is queued for nighttime.
+The night agent can install packages, but doing it during the day lets you troubleshoot
+pip errors immediately and avoids wasting unattended time.
+
+If the spec says "None", skip this step.
 
 ---
 

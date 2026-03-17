@@ -109,10 +109,7 @@ def show_summary(tracker_path: str, session_start_iso: str | None = None) -> Non
                 flag_str = f"  [{len(flags)} flag(s)]" if flags else ""
                 print(f"    {t['task_id']}: {t.get('description', '')} -- branch: {branch}{flag_str}")
         if done_previously:
-            print("  Previously completed:")
-            for t in done_previously:
-                branch = t.get("branch", "no branch")
-                print(f"    {t['task_id']}: {t.get('description', '')} -- branch: {branch}")
+            print(f"  Previously completed: {len(done_previously)} task(s)")
         if skipped:
             print("  Skipped tasks:")
             for t in skipped:

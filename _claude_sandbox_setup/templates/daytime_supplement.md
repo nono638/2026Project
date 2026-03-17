@@ -255,6 +255,9 @@ missing, tell the user the setup folder is damaged.
   previous daytime session.
 - For each `done` task (without `daytime_reviewed`): read `WrittenByNighttime/<task>/result.md`.
   Check `flags[]` in tracker.json (same flags, machine-readable). Add any flags to `inbox.md`.
+  **Check if any flag reveals a systemic day/night workflow issue** (process gap, confusing
+  output, protocol error). If so, run the protocol-fix skill: read
+  `.claude/skills/protocol-fix/SKILL.md` and follow all instructions.
   Note the `branch` field — the night branch needs review before merging. For a structured
   review of each branch, run the branch-review skill: read `.claude/skills/branch-review/SKILL.md`.
   Then set `"daytime_reviewed": "<ISO timestamp>"` on that tracker entry.
@@ -402,6 +405,7 @@ into code comments — preserving the rationale at the point of use.
 - [ ] All judgment calls are made
 - [ ] **Why** is answered for every non-obvious decision
 - [ ] Research URLs included where research was done
+- [ ] New dependencies identified and installed in venv (use install-package skill)
 - [ ] Tests cover key behaviors, not just "does it run"
 - [ ] Scoped to one focused session
 

@@ -130,7 +130,12 @@ and make the simplest reasonable choice — do NOT deviate from the spec's inten
 
 **Step 6 — Run tests**
 Run the pre-written test files from `WrittenByDaytime/<task-dir>/tests/`. Note: pass/fail.
-Also run any existing project tests to check for regressions.
+Also run existing project tests to check for regressions, but **exclude the handoff
+directory** to avoid collecting pre-written tests for other tasks (they may import modules
+that only exist on unmerged branches):
+```
+python -m pytest tests/ --ignore=DaytimeNighttimeHandOff/ -v
+```
 
 **Step 7 — Write result.md**
 Write `DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/result.md` using this format:
