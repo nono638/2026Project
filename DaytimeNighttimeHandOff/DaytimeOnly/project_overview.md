@@ -23,15 +23,89 @@ package, and potentially extending into a capstone project.
 
 ---
 
+## Product Vision
+
+RAGBench serves two distinct audiences with the same core engine:
+
+### 1. The Explorer (findings gallery)
+
+A website where someone curious about RAG browses pre-computed experimental results.
+Interactive visualizations showing insights like:
+- When a 4B model + smart strategy outperforms an 8B model + naive RAG
+- Cost/time vs quality tradeoffs: is a 60-second answer meaningfully better than a 5-second one?
+- The impact of changing one variable (chunking, embedder, strategy) in isolation
+- Where the quality curve flattens — "betterness thresholds" for latency and cost
+
+This is powered by our own experiments. The data generated for the academic paper IS the
+content. Users can drill down and see the effect of individual decisions.
+
+### 2. The Builder (experiment engine)
+
+A Python tool where researchers/engineers run their own experiment matrix. They choose:
+- Corpus (their own docs or a built-in benchmark dataset)
+- Configs to test (full matrix or specific comparisons)
+- Constraints (latency, cost, offline-only, model size cap)
+- Whether they have gold validation data
+
+They get: scored results, analysis, visualizations, config recommendations.
+
+### Evaluation modes
+
+The pipeline works with or without gold-standard reference data:
+
+- **Intrinsic evaluation** (always available): scorer rates answers against retrieved context.
+  Measures: faithfulness, relevance, conciseness. No external reference needed.
+- **Extrinsic evaluation** (when gold data exists): compare answers against known-correct
+  facts. Measures: factual correctness (exact match, F1). Enables scorer validation.
+
+Both modes use the same experiment runner and produce the same output structure. When
+reference answers exist (`Query.reference_answer`), the analysis layer can compute
+additional correctness metrics. When they don't, those columns are simply absent.
+The two signals are complementary: a model can be faithful to bad context (high intrinsic,
+low extrinsic) or terse but correct (low intrinsic, high extrinsic).
+
+### Built-in datasets
+
+RAGBench ships with gold-standard dataset loaders so users can calibrate their pipeline
+before running on their own data. Primary: HotpotQA (113K multi-hop Wikipedia Q&A pairs
+with gold answers and difficulty labels). Secondary: the project's Wikipedia sample with
+template-generated queries (no gold answers — intrinsic only).
+
+### "Best" is user-defined
+
+RAGBench doesn't decide what "best" means. Users express priorities through the analysis
+layer: best by faithfulness, best within a latency budget, cheapest config above a quality
+floor, etc. The experiment data is the same — the question you ask of it changes.
+
+---
+
 ## Current Goals
 
-- [ ] Complete the query generation and filtering pipeline (tasks 007-009, 011)
-- [ ] Get the project portable across machines (task 010)
-- [ ] Add Google text embedding as a cloud comparison point (task 006)
+### Done
+- [x] Core framework: protocols, retriever, experiment runner (tasks 001-005)
+- [x] Query generation and filtering pipeline (tasks 007-009, 011)
+- [x] Google text embedder (task 006)
+- [x] Portable setup scripts (task 010)
+- [x] ClaudeScorer: LLM-as-judge (task 012)
+- [x] Integration tests + E2E smoke tests (246 tests passing)
+
+### Next — Data & Experiments
+- [ ] HotpotQA dataset loader (built-in gold-standard benchmark)
+- [ ] Add timing to experiment runner (latency as a first-class output dimension)
 - [ ] Run Experiment 1: strategy × model size (5 strategies × 6 models = 30 configs)
 - [ ] Run Experiment 2: chunking × model size (3 chunkers × 4 models = 12 configs)
+- [ ] Scorer validation: correlate ClaudeScorer with gold-answer correctness on HotpotQA subset
+
+### Next — Model & Endpoint
 - [ ] Train meta-learner on experiment results
-- [ ] Build web frontend for FastAPI demo
+- [ ] FastAPI recommendation endpoint
+
+### Next — Product
+- [ ] Findings gallery: website with key visualizations and insights
+- [ ] Builder docs: how to run your own experiments
+- [ ] Constraint-aware analysis: best config within latency/cost/size budgets
+
+### Milestones
 - [ ] MVP demo (March 30th)
 - [ ] Final demo (May 11th)
 - [ ] Writeup/whitepaper (May 15th)
@@ -46,17 +120,27 @@ package, and potentially extending into a capstone project.
 - Pluggable 4-axis experiment system: chunkers, embedders, strategies, models
 - Pluggable query generation (RAGAS, templates, human-curated, BEIR benchmarks)
 - Query validation pipeline (heuristic, round-trip, cross-encoder, distribution analysis)
+- Built-in gold-standard dataset loaders (HotpotQA, with room for more)
 - ExperimentResult with analysis/visualization (heatmaps, comparisons, export)
+- Timing and cost tracking as first-class output dimensions
+- Dual evaluation: intrinsic (scorer vs context) + extrinsic (vs gold answers when available)
+- Constraint-aware analysis: best config within latency/cost/size budgets
 - Portable setup scripts for cross-machine transferability
 
 **Our experiments (specific use cases):**
 - Experiment 1: 5 RAG strategies × Qwen3 (0.6B, 1.7B, 4B, 8B) + Gemma 3 (1B, 4B)
 - Experiment 2: 3 chunking strategies × Qwen3 (0.6B, 1.7B, 4B, 8B)
 - Embedding: mxbai-embed-large via Ollama (held constant in both experiments)
-- Corpus: Wikipedia article sample
+- Primary corpus: HotpotQA (multi-hop Wikipedia, gold answers, difficulty labels)
+- Secondary corpus: Wikipedia sample + template queries (generalization validation)
 - Scoring: Claude as LLM-as-judge (faithfulness, relevance, conciseness)
 - Meta-learner: XGBoost predicting optimal configuration
 - FastAPI recommendation endpoint, deployed on Render
+
+**Deliverables:**
+- Python package: the experiment engine (Builder audience)
+- Findings gallery: website with pre-computed insights and visualizations (Explorer audience)
+- Academic paper: experiments, methodology, results
 
 ### Out of Scope
 - Multimodal embedding (incubating — needs paid GCP Vertex AI)
@@ -119,3 +203,7 @@ Validated Queries × (Chunker × Embedder × Strategy × Model) → Answers
 | 2026-03-16 | Switched to Gemma 3 from Llama 3.2 | Cleaner size overlap at 1B and 4B | Update model references in specs |
 | 2026-03-16 | Dropped Google multimodal embedder | Requires paid GCP billing | Moved to incubating |
 | 2026-03-16 | Solo project | Curtis and Cailinn dropped out | n/a |
+| 2026-03-17 | All 12 initial tasks complete | Pipeline built end-to-end, 246 tests passing | Ready for experiments |
+| 2026-03-17 | HotpotQA as primary corpus | Multi-hop Wikipedia Q&A with gold answers; stronger methodology than Wikipedia-only | Need HotpotQA loader |
+| 2026-03-17 | Product vision: Explorer + Builder audiences | Pipeline is both a findings gallery and a tool for others | Adds timing, constraint-aware analysis, built-in datasets |
+| 2026-03-17 | Latency/time as first-class dimension | Users care about speed vs quality tradeoffs, not just quality alone | Add timing to experiment runner |

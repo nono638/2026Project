@@ -372,9 +372,10 @@ class TestShowSummary:
         assert "Done tonight: 1" in out
         assert "Previously:   1" in out
         assert "Completed this session:" in out
-        assert "Previously completed:" in out
+        assert "Previously completed: 1 task(s)" in out
         assert "task-002" in out
-        assert "task-001" in out
+        # task-001 is "previously completed" — only shown as a count, not listed individually
+        assert "task-001" not in out
 
     def test_skipped_tasks_shown(self, tmp_path, capsys):
         """Skipped tasks appear in output."""

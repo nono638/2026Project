@@ -202,5 +202,21 @@
     "attempted_approaches": [],
     "flags": ["Pre-existing test collection errors in tests/ (missing xgboost, langchain_openai) — unrelated to this task"],
     "daytime_reviewed": "2026-03-17T22:00:00"
+  },
+  {
+    "task_id": "task-013",
+    "description": "HotpotQA dataset loader: download, convert to Document+Query, stratified sampling",
+    "daytime_created": "2026-03-17T23:30:00",
+    "daytime_comments": "First built-in gold-standard dataset. Uses HuggingFace datasets library (already installed). Each example becomes one Document (10 passages concatenated) + one Query (with reference_answer). Distractor config only.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-014",
+    "description": "Add timing to experiment runner: strategy_latency_ms, scorer_latency_ms, total_latency_ms columns + analysis methods",
+    "daytime_created": "2026-03-17T23:30:00",
+    "daytime_comments": "Latency as a first-class output dimension. Uses time.perf_counter(). New analysis methods: latency_report() and time_vs_quality(). Not a meta-learner feature — measurement for human decision-making.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
