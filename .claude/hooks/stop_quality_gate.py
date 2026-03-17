@@ -43,17 +43,6 @@ def main():
         sys.exit(0)
 
     cwd = data.get("cwd", os.getcwd())
-
-    # Only block during nighttime mode — daytime intentionally leaves todo tasks queued
-    active_mode_path = os.path.join(cwd, ".claude", "active_mode.md")
-    try:
-        with open(active_mode_path, encoding="utf-8") as f:
-            mode_content = f.read()
-        if "Nighttime Mode" not in mode_content:
-            sys.exit(0)  # Daytime mode — allow stop with pending tasks
-    except Exception:
-        sys.exit(0)  # Can't read mode file — don't block
-
     tracker_path = os.path.join(cwd, "DaytimeNighttimeHandOff", "tracker.json")
 
     if not os.path.exists(tracker_path):
