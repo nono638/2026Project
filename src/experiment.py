@@ -9,6 +9,7 @@ results into an ExperimentResult for analysis.
 from __future__ import annotations
 
 import hashlib
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -131,16 +132,30 @@ class Experiment:
                         for strategy in self._strategies:
                             for model in self._models:
                                 count += 1
-                                if progress:
-                                    print(f"[{count}/{total}] {strategy.name} / "
-                                          f"{model} / {query['text'][:50]}...")
 
+                                # Time strategy execution — perf_counter for monotonic, sub-μs resolution
+                                t0 = time.perf_counter()
                                 answer = strategy.run(
                                     query["text"], retriever, model
                                 )
+                                t1 = time.perf_counter()
+                                strategy_latency_ms = (t1 - t0) * 1000
+
+                                # Time scorer execution separately — users need to know
+                                # where latency comes from (generation vs evaluation)
+                                t2 = time.perf_counter()
                                 scores = self._scorer.score(
                                     query["text"], doc["text"], answer
                                 )
+                                t3 = time.perf_counter()
+                                scorer_latency_ms = (t3 - t2) * 1000
+
+                                total_latency_ms = strategy_latency_ms + scorer_latency_ms
+
+                                if progress:
+                                    print(f"[{count}/{total}] {strategy.name} / "
+                                          f"{model} / {query['text'][:50]}... "
+                                          f"({total_latency_ms:.0f}ms)")
 
                                 row = {
                                     "doc_title": doc["title"],
@@ -154,6 +169,9 @@ class Experiment:
                                     **scores,
                                     "quality": sum(scores.values()) / len(scores) if scores else 0,
                                     **features,
+                                    "strategy_latency_ms": strategy_latency_ms,
+                                    "scorer_latency_ms": scorer_latency_ms,
+                                    "total_latency_ms": total_latency_ms,
                                     "timestamp": datetime.now().isoformat(),
                                 }
                                 rows.append(row)
@@ -394,3 +412,40 @@ class ExperimentResult:
             New ExperimentResult with concatenated DataFrames.
         """
         return ExperimentResult(pd.concat([self.df, other.df], ignore_index=True))
+
+    def latency_report(self) -> pd.DataFrame:
+        """Mean/std/min/max latency grouped by (strategy, model), sorted fastest-first.
+
+        Returns:
+            Grouped DataFrame with latency statistics, or empty DataFrame if no data.
+        """
+        if self.df.empty or "total_latency_ms" not in self.df.columns:
+            return pd.DataFrame()
+
+        report = self.df.groupby(["strategy", "model"])["total_latency_ms"].agg(
+            ["mean", "std", "min", "max"]
+        ).round(1).sort_values("mean", ascending=True)
+        return report
+
+    def time_vs_quality(self) -> pd.DataFrame:
+        """Mean quality and mean latency per config, sorted by quality descending.
+
+        Shows the tradeoff between answer quality and response time so users
+        can judge whether slower configs are worth the wait.
+
+        Returns:
+            DataFrame with mean quality and latency per (strategy, model),
+            or empty DataFrame if no data.
+        """
+        if self.df.empty:
+            return pd.DataFrame()
+
+        needed = {"quality", "total_latency_ms"}
+        if not needed.issubset(set(self.df.columns)):
+            return pd.DataFrame()
+
+        table = self.df.groupby(["strategy", "model"]).agg(
+            mean_quality=("quality", "mean"),
+            mean_latency_ms=("total_latency_ms", "mean"),
+        ).round(3).sort_values("mean_quality", ascending=False)
+        return table
