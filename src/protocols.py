@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 import numpy as np
 
 if TYPE_CHECKING:
+    from src.document import Document
+    from src.query import Query
     from src.retriever import Retriever
 
 
@@ -81,4 +83,67 @@ class Scorer(Protocol):
 
     def score(self, query: str, context: str, answer: str) -> dict[str, float]:
         """Score a generated answer. Returns dict of metric_name -> score (1-5)."""
+        ...
+
+
+@runtime_checkable
+class QueryGenerator(Protocol):
+    """Interface for evaluation query generation backends.
+
+    Implementations produce Query objects from Document objects. Multiple
+    generators exist by design — RAGAS, templates, human-curated, BEIR —
+    because single-source evaluation is a methodological weakness.
+    """
+
+    @property
+    def name(self) -> str:
+        """Unique identifier (e.g., 'ragas:gpt-4o-mini', 'template:factoid')."""
+        ...
+
+    def generate(
+        self,
+        documents: list[Document],
+        queries_per_doc: int = 5,
+    ) -> list[Query]:
+        """Generate evaluation queries from documents.
+
+        Args:
+            documents: List of Document objects from src.document.
+            queries_per_doc: Target number of queries to generate per document.
+
+        Returns:
+            List of Query objects from src.query.
+        """
+        ...
+
+
+@runtime_checkable
+class QueryFilter(Protocol):
+    """Interface for query validation/filtering backends.
+
+    Filters validate generated queries and remove low-quality ones.
+    Implementations include round-trip consistency, cross-encoder scoring,
+    and LLM-based judgment.
+    """
+
+    @property
+    def name(self) -> str:
+        """Unique identifier (e.g., 'round_trip:k=5', 'llm_judge')."""
+        ...
+
+    def filter(
+        self,
+        queries: list[Query],
+        documents: list[Document],
+    ) -> list[Query]:
+        """Filter queries, returning only those that pass validation.
+
+        Args:
+            queries: List of Query objects to validate.
+            documents: The source documents (needed for context-dependent filters
+                       like round-trip retrieval).
+
+        Returns:
+            Filtered list of Query objects.
+        """
         ...
