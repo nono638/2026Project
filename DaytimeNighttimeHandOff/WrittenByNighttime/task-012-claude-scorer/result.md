@@ -3,7 +3,8 @@
 **Completed:** 2026-03-17T23:15:00
 
 ## Commits
-- `<pending>` — night: task-012 ClaudeScorer LLM-as-judge implementation
+- `ba80872` — night: task-012 ClaudeScorer LLM-as-judge implementation
+- `c9bbae5` — night: task-012 copy spec and tests to WrittenByNighttime
 
 ## Test Results
 - Command run: `python -m pytest DaytimeNighttimeHandOff/WrittenByDaytime/task-012-claude-scorer/tests/test_claude_scorer.py -v`
