@@ -3,139 +3,83 @@ Noah Collin | March 2026 (Revised)
 
 The Problem
 
-There is no standard, reproducible way to answer the question: "which RAG configuration works best for my documents and queries?" A practitioner choosing between chunking strategies, embedding models, retrieval approaches, and language models faces a combinatorial space with no systematic tooling to explore it. Most published RAG comparisons hold three axes constant and vary one, making results hard to generalize. Meanwhile, users running models locally on consumer hardware face an additional constraint: they need configurations that are not just good, but good enough given limited compute and time.
+There is no standard, reproducible way to answer: "which RAG configuration works best for my documents and queries?" Practitioners face a combinatorial space of chunking strategies, embedding models, retrieval approaches, and language models with no systematic tooling to explore it. Most published comparisons hold three axes constant and vary one, making results hard to generalize. Users running models locally on consumer hardware face an additional constraint: configurations must be not just good, but good enough given limited compute and time.
 
-This project addresses both problems with three deliverables. First, a reusable evaluation pipeline that runs the full cartesian product of RAG configurations against any corpus, scores the results, and measures latency — producing structured data that helps users understand the tradeoffs between quality, speed, and cost. Second, a findings gallery: a web-based presentation of insights from two controlled experiments on small local models, showing where strategy sophistication substitutes for parameter count and where the quality gains flatten relative to time invested. Third, a recommendation endpoint backed by a trained meta-learner that predicts the optimal configuration for new queries without manual experimentation.
+This project addresses both problems with three deliverables: (1) a reusable evaluation pipeline that runs the full cartesian product of RAG configurations, scoring quality and measuring latency; (2) a findings gallery with interactive visualizations from two controlled experiments on small local models; and (3) a recommendation endpoint backed by a trained meta-learner.
 
-What We're Building
+1. The Evaluation Pipeline
 
-1. The Evaluation Pipeline (Tool)
+The pipeline takes four pluggable axes — chunker, embedder, strategy, and language model — and runs every combination against a document corpus with evaluation queries. Each axis is defined by a Python Protocol, so users can add implementations without modifying the framework. The result is a structured dataset of (configuration x query x document -> quality scores + latency) for analysis, visualization, and meta-learner training.
 
-The pipeline takes four pluggable axes as input — chunker, embedder, strategy, and language model — and runs every combination against a document corpus with evaluation queries. Each configuration produces an answer, which is scored by an automated judge. The result is a structured dataset of (configuration × query × document → scores + latency) that can be analyzed, visualized, and used to train the meta-learner.
-
-Each axis is defined by a Python Protocol (structural interface), so users can add their own implementations without modifying the framework:
-
-Chunkers split documents into retrieval units. We include semantic chunking (respecting meaning boundaries), fixed-size chunking, recursive chunking, and sentence-level chunking. All share the same interface: text in, chunks out.
-
-Embedders convert text to vector representations for retrieval. We include Ollama-hosted models (mxbai-embed-large), HuggingFace sentence-transformers (all-MiniLM-L6-v2), and Google's text-embedding-005 via API. A user could add any embedding backend by implementing three methods: name, dimension, and embed.
-
-Strategies define the retrieval-and-reasoning pipeline. We implement five, described below.
-
-Models are the language models that generate answers. Our primary family is Qwen3 via Ollama (0.6B, 1.7B, 4B, 8B), with Gemma 3 (1B, 4B) as cross-family validation. Gemma 3 overlaps with Qwen3 at 1B and 4B, enabling direct same-size comparisons across architectures to test whether findings generalize beyond a single model family.
+Built-in implementations span four chunkers (semantic, fixed-size, recursive, sentence), three embedders (Ollama mxbai-embed-large, HuggingFace all-MiniLM-L6-v2, Google text-embedding-005), five strategies (below), and six models: Qwen3 via Ollama (0.6B, 1.7B, 4B, 8B) as the primary family, with Gemma 3 (1B, 4B) for cross-family validation at matched parameter counts.
 
 Evaluation Approach
 
-The pipeline supports two evaluation modes that coexist:
+The pipeline supports two coexisting evaluation modes. Intrinsic evaluation (always available) uses Claude as an LLM-as-judge, scoring each answer on faithfulness, relevance, and conciseness — no gold-standard answers required. Extrinsic evaluation (when gold data exists) compares answers against reference answers using exact match and token-level F1, providing an independent correctness signal and enabling scorer validation.
 
-Intrinsic evaluation (always available): An LLM-as-judge (Claude) rates each answer against the retrieved context on faithfulness, relevance, and conciseness. This works with any corpus — users don't need gold-standard answers.
+Per the professor's feedback on LLM-as-judge noise: we validate the scorer empirically by correlating Claude's ratings with gold-answer correctness on HotpotQA, rather than relying on assumption.
 
-Extrinsic evaluation (when gold data exists): Answers are compared against known-correct reference answers using exact match and token-level F1. This enables scorer validation — confirming that the LLM judge's ratings actually correlate with factual correctness — and gives a second, independent quality signal.
-
-Both modes use the same experiment runner. When reference answers exist in the query data, the analysis layer computes additional correctness metrics. When they don't, those columns are simply absent. This means the pipeline works for users who bring their own documents (no gold standard) and for users who want to benchmark against established datasets (with gold standard).
-
-Per the professor's feedback on LLM-as-judge noise: we validate the scorer by running experiments on HotpotQA (Yang et al., 2018, EMNLP), which provides 113K Wikipedia-based question-answer pairs with gold answers. By correlating Claude's quality ratings with gold-answer correctness on a validation subset, we provide empirical evidence of scorer reliability rather than relying on assumption.
-
-Latency as a First-Class Dimension
-
-Every experiment run measures wall-clock time for strategy execution and scoring. The output includes strategy_latency_ms, scorer_latency_ms, and total_latency_ms alongside quality scores. This enables a class of analysis that quality-only pipelines cannot support: "is the 60-second answer meaningfully better than the 5-second answer?" and "what's the cheapest configuration that clears my quality threshold?"
-
-For the findings gallery (below), latency data powers the most practically useful visualizations — the tradeoff curves where users can see exactly where the quality gains flatten relative to time invested.
+Every run also measures wall-clock latency for both strategy execution and scoring, enabling tradeoff analysis: "is the 60-second answer meaningfully better than the 5-second one?"
 
 Data Sources
 
-Primary corpus: HotpotQA (Yang et al., 2018), accessed via HuggingFace. This is a multi-hop Wikipedia question-answering dataset with 113K examples, each containing 10 Wikipedia passages (2 supporting + 8 distractors), a gold-standard answer, question type labels (bridge/comparison), and difficulty levels (easy/medium/hard). Multi-hop questions are where RAG strategies should diverge most: bridge questions require two retrieval steps, which is exactly where Corrective RAG and Adaptive RAG should outperform Naive RAG. The difficulty labels and question types also enable slicing results by query characteristics, making the analysis richer.
+Primary corpus: HotpotQA (Yang et al., 2018), a multi-hop Wikipedia QA dataset with 113K examples. Each contains 10 passages (2 supporting + 8 distractors), a gold answer, question type labels (bridge/comparison), and difficulty levels (easy/medium/hard). Multi-hop questions are where strategies should diverge most — bridge questions require chained retrieval, which is exactly where Corrective RAG and Adaptive RAG should outperform Naive RAG.
 
-Secondary corpus: A 10,000-article Wikipedia sample with template-generated queries (no gold answers, intrinsic evaluation only). This serves as a generalization check: if the same strategy rankings hold across both corpora — one with gold validation, one without — the findings are more robust.
+Secondary corpus: a 10,000-article Wikipedia sample with template-generated queries (no gold answers, intrinsic evaluation only), serving as a generalization check.
 
-Query generation is also pluggable. We implement four QueryGenerator backends: RAGAS synthetic generation (Shahul et al., 2023), template-based generation with NER extraction, BEIR benchmark loading, and human-curated query sets. A round-trip consistency filter and cross-encoder reranker validate query quality. Multiple generators exist by design — single-source evaluation is a methodological weakness.
+Query generation is pluggable: we implement RAGAS synthetic generation, template-based generation with NER, BEIR benchmark loading, and human-curated query sets, with round-trip consistency and cross-encoder filters for quality validation.
 
 The Five Strategies
 
-We test five RAG strategies. In Experiment 1 (below), chunker and embedder are held constant so that strategy and model size are the only variables.
+Naive RAG — retrieve chunks, generate answer. Baseline where raw model capability matters most.
 
-Naive RAG — baseline. Retrieve chunks, generate answer. No special logic. Where raw model capability matters most.
+Multi-Query RAG — generates multiple query phrasings, retrieves for each, merges results. Compensates for weak query understanding in small models.
 
-Multi-Query RAG — generates multiple phrasings of the query, retrieves for each, merges results. Compensates for weak query understanding in small models by casting a wider retrieval net.
+Corrective RAG (Shi et al., 2024) — evaluates chunk relevance and discards low-confidence context before generation. Addresses small models' tendency to hallucinate from irrelevant context.
 
-Corrective RAG (Shi et al., 2024, arXiv:2401.15884) — evaluates retrieved chunk relevance and discards low-confidence context before generation. Addresses small models' tendency to hallucinate from irrelevant context.
+Adaptive RAG (Jeong et al., 2024) — classifies query complexity and routes: skip retrieval for simple, single-pass for moderate, multi-pass for complex.
 
-Adaptive RAG (Jeong et al., 2024, NAACL) — classifies query complexity and routes accordingly: skip retrieval for simple questions, single-pass for moderate, multi-pass for complex. Prevents unnecessary retrieval from confusing small models on easy queries.
+Self-RAG (Asai et al., 2024) — the model decides when to retrieve, evaluates what it retrieved, generates, and self-critiques. Highest ceiling but requires self-reasoning capability that very small models may lack entirely.
 
-Self-RAG (Asai et al., 2024, ICLR) — the model decides at each step whether retrieval is needed, evaluates what it retrieved, generates an answer, and critiques its own output. Implemented as a prompted approximation. Highest ceiling but requires self-reasoning capability that very small models may lack entirely.
+Experiment 1: Strategy x Model Size
 
-Experiment 1: Strategy × Model Size
+Research question: can RAG strategy sophistication substitute for raw parameter count?
 
-Our first research question: can RAG strategy sophistication substitute for raw parameter count?
+We hold chunker and embedder constant and run the 5 x 4 matrix of strategies x Qwen3 sizes, plus 5 x 2 for Gemma 3 — 30 configurations per query. The hypothesis is that strategies like Self-RAG and Corrective RAG disproportionately help small models by compensating for their weaknesses, while providing diminishing returns for larger models that handle these challenges natively.
 
-We hold chunker (recursive, 512 tokens, 50-token overlap) and embedder (mxbai-embed-large) constant and run the 5 × 4 matrix of strategies × Qwen3 sizes, plus 5 × 2 for Gemma 3 at 1B and 4B. This gives us 30 configurations per query, scored across three quality dimensions plus latency, with enough data to identify interaction effects — cases where the ranking of strategies changes depending on model size — and cross-family validation at matched parameter counts.
+Experiment 2: Chunking Strategy x Model Size
 
-The hypothesis is that strategies like Self-RAG and Corrective RAG disproportionately help small models by compensating for their weaknesses (poor self-monitoring, susceptibility to irrelevant context), while providing diminishing returns for larger models that handle these challenges natively. Finding the capability threshold where Self-RAG's self-critique becomes viable is one of the most interesting questions.
+Research question: does the optimal chunking strategy depend on model size?
 
-Experiment 2: Chunking Strategy × Model Size
+Existing chunking comparisons (Wang et al., 2024; Chen et al., 2023) use only large models (GPT-3.5/4). No published work studies how chunking interacts with model size for small (<14B) models. Liu et al. (2023) showed that small models degrade more with irrelevant context, suggesting chunking precision matters more for them.
 
-Our second research question: does the optimal chunking strategy depend on model size?
+We hold strategy (Naive RAG) and embedder constant, running 3 chunkers x 4 Qwen3 sizes — 12 configurations per query. The hypothesis is that smaller models benefit disproportionately from precision-maximizing chunking (semantic > recursive > fixed), with practical implications for users running small local models.
 
-Existing chunking comparisons (Wang et al., 2024; Chen et al., 2023) use large models (GPT-3.5/GPT-4) exclusively. No published work systematically studies how chunking strategy interacts with model size for small (<14B) models. There is indirect evidence that smaller models are more sensitive to chunking choices: Liu et al. (2023, "Lost in the Middle") demonstrated that small models degrade more severely with irrelevant context, suggesting that retrieval precision — which is directly affected by chunking — matters more for small models.
+Meta-Learner
 
-We hold strategy (Naive RAG, to isolate the chunking effect) and embedder constant, and run 3 chunking strategies × 4 Qwen3 sizes: fixed-size (512 tokens), recursive (512 tokens, 50-token overlap), and semantic chunking. This gives us 12 configurations per query — a small matrix that runs in a fraction of the time of Experiment 1.
+From each (query, document, retriever) triple, we extract features before any model runs: query length, query type, named entity count, document length, vocabulary entropy, and top-k retrieval score statistics. An XGBoost classifier predicts the optimal configuration — the most efficient one that clears a quality threshold, not the absolute best. We use multiclass classification rather than ordinal regression (per the professor's suggestion) because the core hypothesis is that strategy can invert the expected size ordering: a 4B with Self-RAG may beat an 8B with Naive RAG.
 
-The hypothesis is that smaller models benefit disproportionately from chunking strategies that maximize retrieval precision (semantic > recursive > fixed), while larger models are more robust to chunking differences because they handle irrelevant context better. If confirmed, this has practical implications: users running small local models should invest more effort in chunking than users running large models.
+2. The Findings Gallery
 
-Features and Meta-Learner
-
-From each (query, document, retriever) triple, we extract features before any model runs: query length, query type (one-hot), named entity count, document length, vocabulary entropy, mean and variance of top-k retrieval scores. These features characterize the difficulty of the task independent of which configuration handles it.
-
-The meta-learner is a supervised multiclass classifier (XGBoost) trained to predict the optimal configuration from these features. "Optimal" means the configuration that clears a defined quality threshold — not the best possible answer, but the most efficient acceptable answer. This reflects the real constraint of resource-limited users: good enough at minimum compute cost. The cost function penalizes under-serving (recommending a configuration that produces a bad answer) more heavily than over-serving (recommending a slightly larger model than necessary). We use XGBoost because gradient boosted trees remain the established best practice for tabular classification at this scale (Grinsztajn et al., NeurIPS 2022; Shwartz-Ziv & Armon, Information Fusion 2022). On the question of ordinal regression (per the professor's suggestion): we use multiclass classification because the core hypothesis is that strategy can invert the expected size ordering — if a 4B model with Self-RAG beats an 8B with Naive RAG, the ordinal assumption (bigger = better) is exactly what we're trying to disprove.
-
-2. The Findings Gallery (Insights)
-
-Beyond the raw experiment data, we produce a web-based presentation of key findings with interactive visualizations. This is designed for a broader audience — practitioners curious about RAG tradeoffs, not just researchers who want to run their own experiments.
-
-The gallery surfaces insights that emerge from the experiments:
-- When a 4B model with the right strategy outperforms an 8B model with a naive approach
-- Time-vs-quality tradeoff curves: where does additional compute stop buying meaningful improvement?
-- The impact of individual decisions (chunking strategy, embedding model) shown in experimental isolation
-- Difficulty-dependent behavior: which strategies help most on easy vs. hard questions?
-
-Users can explore the data at multiple levels: high-level takeaways, per-strategy breakdowns, per-query drill-downs. The goal is to make RAG configuration decisions less mystical — grounded in data rather than blog post recommendations.
+A web-based presentation of experiment insights with interactive visualizations, designed for practitioners curious about RAG tradeoffs. The gallery surfaces cases where small models with the right strategy outperform larger ones, time-vs-quality tradeoff curves showing where additional compute stops buying improvement, the impact of individual decisions in experimental isolation, and difficulty-dependent behavior across strategies.
 
 3. The Recommendation Endpoint and Reusable Package
 
-In deployment, a FastAPI endpoint accepts a document and question, extracts features, and returns the recommended configuration with a confidence score. The user gets routed to the right (chunker, embedder, strategy, model) combination without manual experimentation. The endpoint is lightweight and will be hosted on Render.
+A FastAPI endpoint accepts a document and question, extracts features, and returns the recommended configuration with a confidence score, hosted on Render. The pipeline is also designed as a reusable tool: users can drop in their own documents, add custom embedders or strategies, run experiments on built-in datasets (HotpotQA) to calibrate before testing their own data, and define what "best" means for their use case — optimizing for quality, latency, cost, or any combination.
 
-The pipeline itself is designed from the start to be usable by others. The Protocol-based architecture means a user can:
+Computational Needs
 
-— Drop in their own documents (any CSV with title and text columns)
-— Add custom embedding backends (implement three methods)
-— Add custom RAG strategies (implement one method)
-— Swap scoring backends (implement one method)
-— Run experiments on built-in gold-standard datasets (HotpotQA) to calibrate their pipeline before testing on their own data
-— Define what "best" means for their use case (optimize for quality, latency, cost, or any combination)
-— Train a meta-learner specific to their configuration space
-
-The two experiments are the demonstration — showing that the same tool can answer different research questions by varying different axes. Future work — including multimodal embedding support, additional benchmark datasets, and constraint-aware optimization — can build on the same infrastructure without architectural changes.
-
-Computational Needs and Hosting
-
-Data generation runs as an overnight batch job on a laptop with 8GB VRAM. Ollama loads quantized Qwen3 and Gemma 3 models (Q4) directly into VRAM. The pipeline is designed for sequential execution across configurations — no GPU parallelism required.
+Data generation runs as an overnight batch job on a laptop with 8GB VRAM. Ollama loads quantized Qwen3 and Gemma 3 models (Q4) directly into VRAM, with sequential execution across configurations.
 
 Evaluation
 
-We evaluate at three levels:
-
-Per-configuration quality: Claude's faithfulness, relevance, and conciseness scores, validated against gold-answer correctness on the HotpotQA subset. This addresses the LLM-as-judge noise concern with empirical evidence.
-
-Per-configuration latency: Wall-clock timing for strategy execution, enabling time-quality tradeoff analysis.
-
-Meta-learner accuracy: Evaluated on held-out query-document pairs using weighted F1, and validated by comparing routed recommendations against the naive baseline of always using the largest model with the simplest strategy.
+Per-configuration quality: Claude's scores validated against gold-answer correctness on HotpotQA. Per-configuration latency: wall-clock timing enabling time-quality tradeoff analysis. Meta-learner accuracy: weighted F1 on held-out pairs, validated against the naive baseline of always using the largest model with the simplest strategy.
 
 Timeline
 
-Pipeline and all components are implemented and tested (246 passing tests as of March 17). Remaining work: HotpotQA data loading, experiment runs, meta-learner training, findings gallery, and final writeup.
+Pipeline and all components are implemented and tested (246 passing tests as of March 17). Remaining: HotpotQA data loading, experiment runs, meta-learner training, findings gallery, and writeup.
 
-MVP demo: March 30
-Final demo: May 11
-Writeup: May 15
+MVP demo: March 30 | Final demo: May 11 | Writeup: May 15
 
 References
 
@@ -144,11 +88,9 @@ Jeong et al. (2024). Adaptive-RAG: Learning to Adapt Retrieval-Augmented Large L
 Saad-Falcon et al. (2024). ARES: An Automated Evaluation Framework for Retrieval-Augmented Generation Systems. NAACL.
 Shahul et al. (2023). RAGAS: Automated Evaluation of Retrieval Augmented Generation. arXiv:2309.15217.
 Yang et al. (2018). HotpotQA: A Dataset for Diverse, Explainable Multi-hop Question Answering. EMNLP.
-Dai et al. (2022). Promptagator: Few-shot Dense Retrieval From 8 Examples. arXiv:2209.11755.
 Shi et al. (2024). Corrective Retrieval Augmented Generation. arXiv:2401.15884.
 Grinsztajn et al. (2022). Why do tree-based models still outperform deep learning on typical tabular data? NeurIPS.
 Shwartz-Ziv & Armon (2022). Tabular data: Deep learning is not all you need. Information Fusion.
-Zhang et al. (2025). RAGRouter. arXiv:2505.23052.
 Wang et al. (2024). Searching for Best Practices in Retrieval-Augmented Generation. arXiv:2407.01219.
 Chen et al. (2023). Dense X Retrieval: What Retrieval Granularity Should We Use? arXiv:2312.06648.
 Liu et al. (2023). Lost in the Middle: How Language Models Use Long Contexts. arXiv:2307.03172.
