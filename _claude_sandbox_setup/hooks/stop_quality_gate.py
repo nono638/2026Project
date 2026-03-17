@@ -36,6 +36,16 @@ import sys
 import os
 
 
+def is_daytime_mode(cwd):
+    """Check if running in daytime mode — if so, don't block stops."""
+    try:
+        mode_file = os.path.join(cwd, ".claude", "active_mode.md")
+        with open(mode_file, "r", encoding="utf-8") as f:
+            return "Daytime Mode" in f.read(500)
+    except Exception:
+        return False
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -43,6 +53,11 @@ def main():
         sys.exit(0)
 
     cwd = data.get("cwd", os.getcwd())
+
+    # Daytime mode: human is present, they decide when to stop
+    if is_daytime_mode(cwd):
+        sys.exit(0)
+
     tracker_path = os.path.join(cwd, "DaytimeNighttimeHandOff", "tracker.json")
 
     if not os.path.exists(tracker_path):

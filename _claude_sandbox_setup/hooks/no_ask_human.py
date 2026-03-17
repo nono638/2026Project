@@ -48,15 +48,24 @@ def main():
 
     tool = data.get("tool_name", "")
     inp = data.get("tool_input", {})
+    cwd = data.get("cwd", os.getcwd())
 
     if tool != "AskUserQuestion":
         sys.exit(0)
+
+    # Daytime mode: human is present, allow questions
+    try:
+        mode_file = os.path.join(cwd, ".claude", "active_mode.md")
+        with open(mode_file, "r", encoding="utf-8") as f:
+            if "Daytime Mode" in f.read(500):
+                sys.exit(0)
+    except Exception:
+        pass  # Can't determine mode — assume nighttime, block
 
     # Extract the question Claude wanted to ask
     question = inp.get("question", "(no question text)")
 
     # Log the question to CLAUDE_LOG.md so the user can review later
-    cwd = data.get("cwd", os.getcwd())
     log_path = os.path.join(cwd, "CLAUDE_LOG.md")
 
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
