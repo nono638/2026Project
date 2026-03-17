@@ -209,7 +209,8 @@
     "daytime_created": "2026-03-17T23:30:00",
     "daytime_comments": "First built-in gold-standard dataset. Uses HuggingFace datasets library (already installed). Each example becomes one Document (10 passages concatenated) + one Query (with reference_answer). Distractor config only.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T23:47:00"
   },
   {
     "task_id": "task-014",
