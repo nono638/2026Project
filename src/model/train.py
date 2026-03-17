@@ -138,9 +138,9 @@ def train(
 
     # Save model artifacts for inference
     model.save_model(str(save_dir / "xgb_meta_learner.json"))
-    with open(save_dir / "label_encoder.json", "w") as f:
+    with open(save_dir / "label_encoder.json", "w", encoding="utf-8") as f:
         json.dump({"classes": le.classes_.tolist()}, f)
-    with open(save_dir / "feature_columns.json", "w") as f:
+    with open(save_dir / "feature_columns.json", "w", encoding="utf-8") as f:
         json.dump({"columns": list(X.columns)}, f)
 
     print(f"Weighted F1: {f1:.3f}")

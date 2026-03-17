@@ -106,7 +106,13 @@ class CrossEncoderFilter:
         if self._use_full_doc:
             # Score against full document — model will truncate if too long
             scores = self._model.predict([(query_text, doc_text)])
-            return self._sigmoid(float(scores[0]) if hasattr(scores, '__len__') else float(scores))
+            # Handle scalar, non-empty array, and empty array cases
+            if hasattr(scores, '__len__') and len(scores) > 0:
+                return self._sigmoid(float(scores[0]))
+            elif hasattr(scores, '__len__'):
+                return 0.0  # Empty result — no score available
+            else:
+                return self._sigmoid(float(scores))
         else:
             # Split into paragraphs and take max score
             paragraphs = [p.strip() for p in doc_text.split("\n\n") if p.strip()]
