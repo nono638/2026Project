@@ -391,92 +391,135 @@
 {"ts": "2026-03-17T00:13:47Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git status"}
 {"ts": "2026-03-17T00:13:59Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git diff --stat"}
 {"ts": "2026-03-17T00:14:17Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git log --oneline -5"}
-{"ts": "2026-03-17T02:01:02Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add DaytimeNighttimeHandOff/audit.jsonl && gi..."}
-{"ts": "2026-03-17T02:02:49Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:02:59Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git branch && echo \"---\" && git status --short"}
-{"ts": "2026-03-17T02:03:17Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls DaytimeNighttimeHandOff/WrittenByDaytime/ && e..."}
-{"ts": "2026-03-17T02:03:44Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git log --oneline -1 night/task-006-google-embedd..."}
-{"ts": "2026-03-17T02:04:14Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git rev-parse night/task-006-google-embedder && e..."}
-{"ts": "2026-03-17T02:04:24Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git log --oneline night/task-008-ragas-implementa..."}
-{"ts": "2026-03-17T02:04:48Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls -R DaytimeNighttimeHandOff/WrittenByDaytime/ta..."}
-{"ts": "2026-03-17T02:04:54Z", "tool": "ToolSearch", "session": "614b6654", "query": "select:TodoWrite"}
-{"ts": "2026-03-17T02:05:04Z", "tool": "TodoWrite", "session": "614b6654"}
-{"ts": "2026-03-17T02:05:24Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git show night/task-006-google-embedder:DaytimeNi..."}
-{"ts": "2026-03-17T02:05:31Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git show night/task-007-query-pipeline-protocols:..."}
-{"ts": "2026-03-17T02:05:37Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git show night/task-008-ragas-implementation:Dayt..."}
-{"ts": "2026-03-17T02:05:56Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git show night/task-006-google-embedder:DaytimeNi..."}
-{"ts": "2026-03-17T02:06:03Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git show night/task-007-query-pipeline-protocols:..."}
-{"ts": "2026-03-17T02:06:13Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git show night/task-008-ragas-implementation:Dayt..."}
-{"ts": "2026-03-17T02:06:33Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
-{"ts": "2026-03-17T02:06:57Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mv DaytimeNighttimeHandOff/WrittenByDaytime/task-..."}
-{"ts": "2026-03-17T02:07:04Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-006-google-embedders\\plan.md"}
-{"ts": "2026-03-17T02:07:08Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-006-google-embedders\\result.md"}
-{"ts": "2026-03-17T02:07:11Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-007-query-pipeline-protocols\\plan.md"}
-{"ts": "2026-03-17T02:07:14Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-007-query-pipeline-protocols\\result.md"}
-{"ts": "2026-03-17T02:07:19Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-008-ragas-implementation\\plan.md"}
-{"ts": "2026-03-17T02:07:24Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-008-ragas-implementation\\result.md"}
-{"ts": "2026-03-17T02:07:37Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:07:54Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:08:10Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:08:16Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\nighttime.log"}
-{"ts": "2026-03-17T02:08:28Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\nighttime.log"}
-{"ts": "2026-03-17T02:08:35Z", "tool": "TodoWrite", "session": "614b6654"}
-{"ts": "2026-03-17T02:08:42Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-009-additional-generators\\spec.md"}
-{"ts": "2026-03-17T02:08:51Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls DaytimeNighttimeHandOff/WrittenByDaytime/task-..."}
-{"ts": "2026-03-17T02:09:24Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
-{"ts": "2026-03-17T02:09:37Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-009-additional-generators\\plan.md"}
-{"ts": "2026-03-17T02:09:50Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:10:03Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git checkout -b night/task-009-additional-generat..."}
-{"ts": "2026-03-17T02:10:32Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add DaytimeNighttimeHandOff/tracker.json Dayt..."}
-{"ts": "2026-03-17T02:11:00Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add DaytimeNighttimeHandOff/WrittenByDaytime/..."}
-{"ts": "2026-03-17T02:11:21Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:11:31Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:11:41Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:11:53Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:12:02Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-007-query-pipeline-protocols\\result.md"}
-{"ts": "2026-03-17T02:12:07Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-007-query-pipeline-protocols\\result.md"}
-{"ts": "2026-03-17T02:12:33Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add DaytimeNighttimeHandOff/tracker.json Dayt..."}
-{"ts": "2026-03-17T02:12:47Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls src/document.py src/query.py src/query_generat..."}
-{"ts": "2026-03-17T02:12:54Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\document.py"}
-{"ts": "2026-03-17T02:12:55Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query.py"}
-{"ts": "2026-03-17T02:12:55Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\__init__.py"}
-{"ts": "2026-03-17T02:13:20Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip install spacy 2>&..."}
-{"ts": "2026-03-17T02:13:22Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\human.py"}
-{"ts": "2026-03-17T02:13:44Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\beir.py"}
-{"ts": "2026-03-17T02:14:13Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m spacy download en_cor..."}
-{"ts": "2026-03-17T02:14:23Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\template.py"}
-{"ts": "2026-03-17T02:14:31Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\__init__.py"}
-{"ts": "2026-03-17T02:15:11Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\tests\\test_additional_generators.py"}
-{"ts": "2026-03-17T02:15:42Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_add..."}
-{"ts": "2026-03-17T02:16:37Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/ -v 2>&1"}
-{"ts": "2026-03-17T02:16:52Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip freeze > requirem..."}
-{"ts": "2026-03-17T02:17:06Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-009-additional-generators\\result.md"}
-{"ts": "2026-03-17T02:17:31Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add -A && git commit -m \"$(cat <<'EOF'\nnight:..."}
-{"ts": "2026-03-17T02:17:41Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git rev-parse HEAD"}
-{"ts": "2026-03-17T02:18:32Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git checkout --theirs DaytimeNighttimeHandOff/aud..."}
-{"ts": "2026-03-17T02:18:37Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:19:05Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:19:19Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls DaytimeNighttimeHandOff/WrittenByDaytime/task-..."}
-{"ts": "2026-03-17T02:19:38Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
-{"ts": "2026-03-17T02:19:42Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\nighttime.log"}
-{"ts": "2026-03-17T02:19:51Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\nighttime.log"}
-{"ts": "2026-03-17T02:19:58Z", "tool": "TodoWrite", "session": "614b6654"}
-{"ts": "2026-03-17T02:20:06Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-010-portable-setup\\spec.md"}
-{"ts": "2026-03-17T02:20:14Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls DaytimeNighttimeHandOff/WrittenByDaytime/task-..."}
-{"ts": "2026-03-17T02:20:28Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
-{"ts": "2026-03-17T02:20:40Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-010-portable-setup\\plan.md"}
-{"ts": "2026-03-17T02:20:50Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
-{"ts": "2026-03-17T02:21:08Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add DaytimeNighttimeHandOff/ && git stash && ..."}
-{"ts": "2026-03-17T02:21:26Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add -A && git commit -m \"$(cat <<'EOF'\nbookke..."}
-{"ts": "2026-03-17T02:21:46Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip install python-do..."}
-{"ts": "2026-03-17T02:21:55Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.env.example"}
-{"ts": "2026-03-17T02:22:06Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\ENVIRONMENT.md"}
-{"ts": "2026-03-17T02:22:21Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\scripts\\pull_models.py"}
-{"ts": "2026-03-17T02:22:55Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\scripts\\smoke_test.py"}
-{"ts": "2026-03-17T02:23:19Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\scripts\\run_experiment.py"}
-{"ts": "2026-03-17T02:23:47Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\setup.py"}
-{"ts": "2026-03-17T02:24:05Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip freeze > requirem..."}
-{"ts": "2026-03-17T02:24:52Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe scripts/smoke_test.py 2>..."}
-{"ts": "2026-03-17T02:25:17Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe scripts/run_experiment.p..."}
-{"ts": "2026-03-17T02:26:43Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/ -v 2>&1"}
-{"ts": "2026-03-17T02:27:00Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-010-portable-setup\\result.md"}
+{"ts": "2026-03-17T00:15:45Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git add .claude/hooks/stop_quality_gate.py Dayt..."}
+{"ts": "2026-03-17T00:17:05Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git commit -m \"$(cat <<'EOF'\nDaytime session: R..."}
+{"ts": "2026-03-17T00:17:20Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git status"}
+{"ts": "2026-03-17T00:17:57Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git remote -v"}
+{"ts": "2026-03-17T00:18:40Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git push origin main"}
+{"ts": "2026-03-17T00:19:23Z", "tool": "Bash", "session": "8f8b4aac", "command": "ls \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project/_claude_sandbox_setup/scripts/nightrun\"*"}
+{"ts": "2026-03-17T00:21:20Z", "tool": "Grep", "session": "8f8b4aac", "pattern": "CUNY SPS"}
+{"ts": "2026-03-17T00:21:22Z", "tool": "Grep", "session": "8f8b4aac", "pattern": "CUNY SPS"}
+{"ts": "2026-03-17T00:21:22Z", "tool": "Grep", "session": "8f8b4aac", "pattern": "CUNY SPS"}
+{"ts": "2026-03-17T00:23:01Z", "tool": "Read", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\.claude\\hooks\\directory_guard.py"}
+{"ts": "2026-03-17T00:23:09Z", "tool": "Edit", "session": "8f8b4aac", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNY SPS\\2026\\Spring 2026\\Project\\.claude\\hooks\\directory_guard.py"}
+{"ts": "2026-03-17T00:24:12Z", "tool": "Bash", "session": "8f8b4aac", "command": "cd \"/c/Users/noahc/Dropbox/NotWork/CUNY SPS/2026/Spring 2026/Project\" && git add .claude/hooks/directory_guard.py && git..."}
+{"ts": "2026-03-17T01:02:53Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.claude\\skills\\health-check\\SKILL.md"}
+{"ts": "2026-03-17T01:02:53Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.claude\\active_mode.md"}
+{"ts": "2026-03-17T01:02:54Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:03:10Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.claude\\hooks\\directory_guard.py"}
+{"ts": "2026-03-17T01:03:44Z", "tool": "Glob", "session": "614b6654", "pattern": "_claude_sandbox_setup/SETUP.md"}
+{"ts": "2026-03-17T01:05:59Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && pwd"}
+{"ts": "2026-03-17T01:06:56Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.claude\\active_mode.md"}
+{"ts": "2026-03-17T01:07:00Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.claude\\hooks\\directory_guard.py"}
+{"ts": "2026-03-17T01:07:06Z", "tool": "ToolSearch", "session": "614b6654", "query": "select:TodoWrite"}
+{"ts": "2026-03-17T01:07:17Z", "tool": "TodoWrite", "session": "614b6654"}
+{"ts": "2026-03-17T01:07:26Z", "tool": "Glob", "session": "614b6654", "pattern": ".claude/skills/*/SKILL.md"}
+{"ts": "2026-03-17T01:07:27Z", "tool": "Glob", "session": "614b6654", "pattern": ".claude/commands/*.md"}
+{"ts": "2026-03-17T01:07:28Z", "tool": "Glob", "session": "614b6654", "pattern": ".claude/hooks/*.py"}
+{"ts": "2026-03-17T01:07:28Z", "tool": "Glob", "session": "614b6654", "pattern": "DaytimeNighttimeHandOff/**"}
+{"ts": "2026-03-17T01:08:16Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.claude\\skills\\crash-recovery\\SKILL.md"}
+{"ts": "2026-03-17T01:08:18Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\project_overview.md"}
+{"ts": "2026-03-17T01:08:20Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\DaytimeOnly\\reference\\architecture-decisions.md"}
+{"ts": "2026-03-17T01:08:28Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls -d .venv"}
+{"ts": "2026-03-17T01:09:20Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git status --porcelain && echo \"---BRANCH---\" && ..."}
+{"ts": "2026-03-17T01:09:47Z", "tool": "TodoWrite", "session": "614b6654"}
+{"ts": "2026-03-17T01:09:56Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-006-google-embedders\\spec.md"}
+{"ts": "2026-03-17T01:10:00Z", "tool": "Glob", "session": "614b6654", "pattern": "DaytimeNighttimeHandOff/WrittenByDaytime/task-006-google-embedders/tests/**"}
+{"ts": "2026-03-17T01:10:17Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\protocols.py"}
+{"ts": "2026-03-17T01:10:17Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\embedders\\__init__.py"}
+{"ts": "2026-03-17T01:10:17Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\embedders\\ollama.py"}
+{"ts": "2026-03-17T01:10:18Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\embedders\\huggingface.py"}
+{"ts": "2026-03-17T01:10:44Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
+{"ts": "2026-03-17T01:10:56Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-006-google-embedders\\plan.md"}
+{"ts": "2026-03-17T01:11:06Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:11:17Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:11:34Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git checkout -b night/task-006-google-embedder"}
+{"ts": "2026-03-17T01:12:18Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\.claude\\skills\\install-package\\SKILL.md"}
+{"ts": "2026-03-17T01:15:04Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && source .venv/Scripts/activate && python -c \"impor..."}
+{"ts": "2026-03-17T01:15:35Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && ls .venv/Scripts/python.exe .venv/Scripts/pip.exe..."}
+{"ts": "2026-03-17T01:16:04Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -c \"import sys; print(sy..."}
+{"ts": "2026-03-17T01:17:37Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/pip.exe install google-generativeai..."}
+{"ts": "2026-03-17T01:18:06Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/pip.exe install --verbose google-ge..."}
+{"ts": "2026-03-17T01:18:11Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\pip_output.txt"}
+{"ts": "2026-03-17T01:18:47Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip --version"}
+{"ts": "2026-03-17T01:19:50Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip install google-ge..."}
+{"ts": "2026-03-17T01:20:45Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -c \"import google.genera..."}
+{"ts": "2026-03-17T01:20:46Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\requirements.txt"}
+{"ts": "2026-03-17T01:21:13Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip freeze > requirem..."}
+{"ts": "2026-03-17T01:21:43Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\embedders\\google_text.py"}
+{"ts": "2026-03-17T01:21:55Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\embedders\\__init__.py"}
+{"ts": "2026-03-17T01:22:18Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\tests\\test_google_embedders.py"}
+{"ts": "2026-03-17T01:24:26Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_goo..."}
+{"ts": "2026-03-17T01:26:31Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_goo..."}
+{"ts": "2026-03-17T01:26:36Z", "tool": "ToolSearch", "session": "614b6654", "query": "select:TaskOutput"}
+{"ts": "2026-03-17T01:28:48Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_goo..."}
+{"ts": "2026-03-17T01:29:24Z", "tool": "TaskOutput", "session": "614b6654"}
+{"ts": "2026-03-17T01:32:54Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/ -v 2>&1..."}
+{"ts": "2026-03-17T01:33:12Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-006-google-embedders\\result.md"}
+{"ts": "2026-03-17T01:34:20Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add src/embedders/google_text.py src/embedder..."}
+{"ts": "2026-03-17T01:34:45Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git rev-parse HEAD && git checkout main"}
+{"ts": "2026-03-17T01:34:58Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:35:13Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:35:58Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
+{"ts": "2026-03-17T01:36:04Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\nighttime.log"}
+{"ts": "2026-03-17T01:36:14Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\nighttime.log"}
+{"ts": "2026-03-17T01:36:28Z", "tool": "TodoWrite", "session": "614b6654"}
+{"ts": "2026-03-17T01:36:31Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-007-query-pipeline-protocols\\spec.md"}
+{"ts": "2026-03-17T01:36:33Z", "tool": "Glob", "session": "614b6654", "pattern": "DaytimeNighttimeHandOff/WrittenByDaytime/task-007-query-pipeline-protocols/tests/**"}
+{"ts": "2026-03-17T01:36:55Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
+{"ts": "2026-03-17T01:37:07Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-007-query-pipeline-protocols\\plan.md"}
+{"ts": "2026-03-17T01:37:23Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:37:33Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git checkout -b night/task-007-query-pipeline-pro..."}
+{"ts": "2026-03-17T01:38:00Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\document.py"}
+{"ts": "2026-03-17T01:38:13Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query.py"}
+{"ts": "2026-03-17T01:38:20Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\__init__.py"}
+{"ts": "2026-03-17T01:38:28Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_filters\\__init__.py"}
+{"ts": "2026-03-17T01:38:44Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\protocols.py"}
+{"ts": "2026-03-17T01:38:53Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\protocols.py"}
+{"ts": "2026-03-17T01:39:08Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\protocols.py"}
+{"ts": "2026-03-17T01:39:46Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\tests\\test_query_pipeline.py"}
+{"ts": "2026-03-17T01:40:25Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_que..."}
+{"ts": "2026-03-17T01:40:43Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\document.py"}
+{"ts": "2026-03-17T01:41:21Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_que..."}
+{"ts": "2026-03-17T01:42:51Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/ -v 2>&1..."}
+{"ts": "2026-03-17T01:43:04Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-007-query-pipeline-protocols\\result.md"}
+{"ts": "2026-03-17T01:43:30Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add src/document.py src/query.py src/protocol..."}
+{"ts": "2026-03-17T01:43:50Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git rev-parse HEAD && git checkout main"}
+{"ts": "2026-03-17T01:43:57Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:44:14Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:44:30Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
+{"ts": "2026-03-17T01:44:38Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\nighttime.log"}
+{"ts": "2026-03-17T01:44:51Z", "tool": "TodoWrite", "session": "614b6654"}
+{"ts": "2026-03-17T01:44:52Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByDaytime\\task-008-ragas-implementation\\spec.md"}
+{"ts": "2026-03-17T01:44:53Z", "tool": "Glob", "session": "614b6654", "pattern": "DaytimeNighttimeHandOff/WrittenByDaytime/task-008-ragas-implementation/tests/**"}
+{"ts": "2026-03-17T01:45:14Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p DaytimeNighttimeHandOff/WrittenByNightti..."}
+{"ts": "2026-03-17T01:45:25Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-008-ragas-implementation\\plan.md"}
+{"ts": "2026-03-17T01:45:36Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:45:45Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git checkout -b night/task-008-ragas-implementati..."}
+{"ts": "2026-03-17T01:46:01Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip show ragas 2>&1; ..."}
+{"ts": "2026-03-17T01:46:38Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip install ragas 2>&..."}
+{"ts": "2026-03-17T01:47:49Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -c \"import ragas; print(..."}
+{"ts": "2026-03-17T01:48:48Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -c \"\nfrom ragas.testset ..."}
+{"ts": "2026-03-17T01:49:58Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -c \"\nimport inspect\nfrom..."}
+{"ts": "2026-03-17T01:51:40Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -c \"\nfrom ragas.testset...."}
+{"ts": "2026-03-17T01:53:31Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\ragas.py"}
+{"ts": "2026-03-17T01:54:07Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_filters\\heuristic.py"}
+{"ts": "2026-03-17T01:54:17Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\retriever.py"}
+{"ts": "2026-03-17T01:54:39Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_filters\\round_trip.py"}
+{"ts": "2026-03-17T01:55:01Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && mkdir -p src/query_generators src/query_filters"}
+{"ts": "2026-03-17T01:55:07Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\__init__.py"}
+{"ts": "2026-03-17T01:55:08Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_filters\\__init__.py"}
+{"ts": "2026-03-17T01:55:54Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add -A && git commit -m \"$(cat <<'EOF'\ncheckp..."}
+{"ts": "2026-03-17T01:56:11Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_generators\\__init__.py"}
+{"ts": "2026-03-17T01:56:12Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\src\\query_filters\\__init__.py"}
+{"ts": "2026-03-17T01:56:19Z", "tool": "Read", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:56:28Z", "tool": "Edit", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\tracker.json"}
+{"ts": "2026-03-17T01:56:45Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add DaytimeNighttimeHandOff/tracker.json src/..."}
+{"ts": "2026-03-17T01:57:18Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\tests\\test_ragas_generator.py"}
+{"ts": "2026-03-17T01:57:48Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\tests\\test_heuristic_filter.py"}
+{"ts": "2026-03-17T01:58:19Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\tests\\test_round_trip_filter.py"}
+{"ts": "2026-03-17T01:58:56Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_heu..."}
+{"ts": "2026-03-17T01:59:31Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pytest tests/test_rou..."}
+{"ts": "2026-03-17T01:59:46Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && .venv/Scripts/python.exe -m pip freeze > requirem..."}
+{"ts": "2026-03-17T02:00:04Z", "tool": "Write", "session": "614b6654", "path": "C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\\DaytimeNighttimeHandOff\\WrittenByNighttime\\task-008-ragas-implementation\\result.md"}
+{"ts": "2026-03-17T02:00:30Z", "tool": "Bash", "session": "614b6654", "command": "cd \"C:\\Users\\noahc\\Dropbox\\NotWork\\CUNYSPS\\2026\\Spring2026\\Project\" && git add -A && git commit -m \"$(cat <<'EOF'\nnight:..."}

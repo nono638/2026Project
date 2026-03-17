@@ -20,7 +20,9 @@ which gives you `bash`).
 | `/clear` | Wipe conversation entirely and start fresh |
 
 If `bash` isn't recognized, use the `.bat` versions instead:
-`_claude_sandbox_setup\scripts\dayrun.bat`, `nightrun.bat`, `repairrun.bat`.
+`_claude_sandbox_setup\scripts\dayrun.bat`, 
+`_claude_sandbox_setup\scripts\nightrun.bat`, 
+`_claude_sandbox_setup\scripts\repairrun.bat`.
 
 ---
 
