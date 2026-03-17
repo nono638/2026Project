@@ -21,3 +21,4 @@
 [2026-03-16 19:28:09] NOTIFICATION (idle_prompt): Claude is waiting for your input
 [2026-03-16 19:59:37] NOTIFICATION (idle_prompt): Claude is waiting for your input
 [2026-03-16 20:07:44] NOTIFICATION (idle_prompt): Claude is waiting for your input
+[2026-03-16 23:59:55] NOTIFICATION (permission_prompt): Claude needs your permission to use Bash
