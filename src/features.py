@@ -63,6 +63,8 @@ def _count_entities(text: str) -> int:
     words = text.split()
     count = 0
     for word in words:
+        if not word:
+            continue
         if word[0].isupper() and word not in ("What", "When", "Where", "Who",
                                                 "Why", "How", "Is", "Are",
                                                 "Does", "Do", "Can", "The", "A"):
