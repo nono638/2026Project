@@ -89,12 +89,15 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - [x] ClaudeScorer: LLM-as-judge (task 012)
 - [x] Integration tests + E2E smoke tests (246 tests passing)
 
-### Next — Data & Experiments
-- [ ] HotpotQA dataset loader (built-in gold-standard benchmark)
-- [ ] Add timing to experiment runner (latency as a first-class output dimension)
-- [ ] Run Experiment 1: strategy × model size (5 strategies × 6 models = 30 configs)
-- [ ] Run Experiment 2: chunking × model size (3 chunkers × 4 models = 12 configs)
-- [ ] Scorer validation: correlate ClaudeScorer with gold-answer correctness on HotpotQA subset
+### Next — Pre-experiment Hardening (queued for tonight)
+- [ ] SQuAD 2.0 dataset loader (task-015)
+- [ ] Migrate Google embedder to google-genai SDK (task-016)
+- [ ] Refactor ClaudeScorer → LLMScorer with provider adapters (task-017)
+
+### Next — Experiments (requires GPU machine + Ollama)
+- [ ] Experiment 0: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 5 LLM judges (Gemini Flash, Gemini Pro, Claude Haiku, Claude Sonnet, Claude Opus). Measures inter-scorer agreement and correlation with gold answers. ~$1.10 total.
+- [ ] Experiment 1: Strategy × Model Size — 5 strategies × 6 models = 30 configs. Held constant: Recursive chunker (500/100), mxbai-embed-large.
+- [ ] Experiment 2: Chunking × Model Size — 4 chunkers × 4 Qwen3 models = 16 configs. Held constant: NaiveRAG strategy, mxbai-embed-large.
 
 ### Next — Model & Endpoint
 - [ ] Train meta-learner on experiment results
@@ -129,11 +132,12 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 
 **Our experiments (specific use cases):**
 - Experiment 1: 5 RAG strategies × Qwen3 (0.6B, 1.7B, 4B, 8B) + Gemma 3 (1B, 4B)
-- Experiment 2: 3 chunking strategies × Qwen3 (0.6B, 1.7B, 4B, 8B)
+- Experiment 0: Scorer validation — 5 LLM judges compared on 50 HotpotQA examples
+- Experiment 2: 4 chunking strategies × Qwen3 (0.6B, 1.7B, 4B, 8B)
 - Embedding: mxbai-embed-large via Ollama (held constant in both experiments)
 - Primary corpus: HotpotQA (multi-hop Wikipedia, gold answers, difficulty labels)
-- Secondary corpus: Wikipedia sample + template queries (generalization validation)
-- Scoring: Claude as LLM-as-judge (faithfulness, relevance, conciseness)
+- Secondary corpus: SQuAD 2.0 (simple factoid, easy baseline) + Wikipedia sample
+- Scoring: LLMScorer — provider-agnostic (Anthropic or Google), choice informed by Experiment 0
 - Meta-learner: XGBoost predicting optimal configuration
 - FastAPI recommendation endpoint, deployed on Render
 
@@ -207,3 +211,9 @@ Validated Queries × (Chunker × Embedder × Strategy × Model) → Answers
 | 2026-03-17 | HotpotQA as primary corpus | Multi-hop Wikipedia Q&A with gold answers; stronger methodology than Wikipedia-only | Need HotpotQA loader |
 | 2026-03-17 | Product vision: Explorer + Builder audiences | Pipeline is both a findings gallery and a tool for others | Adds timing, constraint-aware analysis, built-in datasets |
 | 2026-03-17 | Latency/time as first-class dimension | Users care about speed vs quality tradeoffs, not just quality alone | Add timing to experiment runner |
+| 2026-03-17 | ClaudeScorer → LLMScorer (provider-agnostic) | Users shouldn't be locked to one API; Gemini is 23x cheaper | Refactor scorer, add Google adapter |
+| 2026-03-17 | Added Experiment 0: scorer validation | Must validate LLM-as-judge before trusting it on 2K+ runs | Compare 5 LLM judges on 50 HotpotQA examples |
+| 2026-03-17 | Experiment 2 expanded to 4 chunkers | Semantic chunker is worth testing — measures embedding-aware boundaries | 16 configs instead of 12 |
+| 2026-03-17 | SQuAD 2.0 as secondary gold dataset | Easy-baseline calibration alongside HotpotQA | Add SQuAD loader |
+| 2026-03-17 | Hybrid retrieval (dense + BM25 + RRF) as default | Dense-only misses keyword matches; hybrid is production standard; NDCG +26-31% | Retriever upgrade, held constant for experiments |
+| 2026-03-17 | LLM Protocol: Ollama + OpenAI-compatible | Strategies hardcoded Ollama; users need LM Studio/vLLM/OpenAI support | Refactor all 5 strategies to accept LLM interface |

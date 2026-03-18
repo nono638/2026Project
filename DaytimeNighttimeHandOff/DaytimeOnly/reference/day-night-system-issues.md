@@ -123,6 +123,26 @@ matters. The "Done tonight" / "Previously" split exists but the detail listing f
 **Fix:** Show only the count for previously completed tasks, not the full listing.
 **Transposed to main repo:** no
 
+### Night instance fabricates timestamps instead of using wall-clock time
+**Found:** 2026-03-17
+**Severity:** causes confusion
+**Description:** The night instance generates plausible-looking ISO timestamps that are
+~11 hours off from actual wall-clock time. For example, tasks running at 13:03-13:29 EDT
+got `nighttime_completed` values of 23:47-00:05. This caused 7/14 tasks to have
+`daytime_reviewed` timestamps that predated `nighttime_completed` — chronologically
+impossible. Root cause: instruction files used vague `<ISO timestamp>` placeholders instead
+of requiring a specific datetime command, so the LLM estimated rather than measuring.
+**Fix:** Updated 8 instruction files (4 active + 4 templates) to replace every
+`<ISO timestamp>` with an explicit
+`python -c "from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))"`
+command and added "do NOT estimate or fabricate timestamps" warnings. Also corrected the 7
+bad timestamps in tracker.json to postdate their `nighttime_completed` values.
+**Files changed:** `_claude_sandbox_setup/templates/nighttime_supplement.md`,
+`_claude_sandbox_setup/templates/daytime_supplement.md`,
+`.claude/active_mode.md`, `.claude/skills/spec-writer/SKILL.md` (active + template),
+`.claude/skills/branch-review/SKILL.md` (active + template)
+**Transposed to main repo:** no
+
 ### Pre-written tests in WrittenByDaytime/ cause pytest collection errors on main
 **Found:** 2026-03-17
 **Severity:** causes confusion

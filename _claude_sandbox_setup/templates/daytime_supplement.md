@@ -260,17 +260,17 @@ missing, tell the user the setup folder is damaged.
   `.claude/skills/protocol-fix/SKILL.md` and follow all instructions.
   Note the `branch` field — the night branch needs review before merging. For a structured
   review of each branch, run the branch-review skill: read `.claude/skills/branch-review/SKILL.md`.
-  Then set `"daytime_reviewed": "<ISO timestamp>"` on that tracker entry.
+  Then set `"daytime_reviewed"` to the actual wall-clock time (run `python -c "from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))"` — do NOT estimate) on that tracker entry.
 - For each `skipped` task (without `daytime_reviewed`): read result.md for what was tried
   (`attempted_approaches` in tracker.json). Add to `inbox.md` with a note on what failed and
-  whether to retry or drop. Then set `"daytime_reviewed": "<ISO timestamp>"`.
+  whether to retry or drop. Then set `"daytime_reviewed"` to the actual wall-clock time (run `python -c "from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))"` — do NOT estimate).
 - For each `blocked` task (without `daytime_reviewed`): read `blocked_reason` in tracker.json.
   This is a task nighttime couldn't finish because it needs something from you. Handle it now:
   - If you can resolve the blocker: update `daytime_comments` in tracker.json with the answer,
     set `status` back to `"todo"` (and remove `daytime_reviewed` if present).
   - If the task should be abandoned: set `status: "cancelled"`.
   - If you need more time: leave it `"blocked"` — nighttime will skip it again.
-  Then set `"daytime_reviewed": "<ISO timestamp>"` (unless you changed status back to todo).
+  Then set `"daytime_reviewed"` to the actual wall-clock time (run `python -c "from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))"` — do NOT estimate) (unless you changed status back to todo).
 
 **3. Triage inbox.md** (clear it completely before greeting the user):
 - For each item, decide: promote now / incubate / reference / drop

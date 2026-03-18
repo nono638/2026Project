@@ -14,7 +14,7 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": [],
-    "daytime_reviewed": "2026-03-16T21:00:00"
+    "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
     "task_id": "task-002",
@@ -31,7 +31,7 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": ["__pycache__ directories remain under old src/data/ and src/pipeline/"],
-    "daytime_reviewed": "2026-03-16T21:00:00"
+    "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
     "task_id": "task-003",
@@ -48,7 +48,7 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": ["sentence-transformers adds ~2GB of deps (torch)"],
-    "daytime_reviewed": "2026-03-16T21:00:00"
+    "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
     "task_id": "task-004",
@@ -65,7 +65,7 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": [],
-    "daytime_reviewed": "2026-03-16T21:00:00"
+    "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
     "task_id": "task-005",
@@ -82,7 +82,7 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": ["src/config.py no longer exists — train.py and predict.py use inline defaults"],
-    "daytime_reviewed": "2026-03-16T21:00:00"
+    "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
     "task_id": "task-006",
@@ -201,7 +201,7 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": ["Pre-existing test collection errors in tests/ (missing xgboost, langchain_openai) — unrelated to this task"],
-    "daytime_reviewed": "2026-03-17T22:00:00"
+    "daytime_reviewed": "2026-03-18T10:30:00"
   },
   {
     "task_id": "task-013",
@@ -217,7 +217,8 @@
     "commit_sha": "e1acde1974f1d0320bbd4afd87ef5aa9a1588ea4",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-18T13:15:00"
   },
   {
     "task_id": "task-014",
@@ -233,6 +234,55 @@
     "commit_sha": "129cc9f04770357222baeedf203f311d709f3249",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-18T13:15:00"
+  },
+  {
+    "task_id": "task-015",
+    "description": "SQuAD 2.0 dataset loader: convert to Document+Query, stratified sampling by article title",
+    "daytime_created": "2026-03-17T14:58:15",
+    "daytime_comments": "Same pattern as HotpotQA loader. Easy-baseline gold dataset for calibration. Skips unanswerable questions. Stratifies by article title (442 unique articles).",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-016",
+    "description": "Migrate Google embedder from google-generativeai to google-genai SDK",
+    "daytime_created": "2026-03-17T15:23:11",
+    "daytime_comments": "Fixes task-006 deprecation flag. google-genai==1.67.0 already installed. After migration, remove google-generativeai from requirements.txt.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-017",
+    "description": "Refactor ClaudeScorer → LLMScorer with Anthropic + Google provider adapters",
+    "daytime_created": "2026-03-17T15:23:11",
+    "daytime_comments": "Provider-agnostic scoring. Adapter factory pattern — each provider is a small callable. Anthropic + Google initially, extensible to OpenAI/Ollama. No backwards-compat alias for ClaudeScorer.",
+    "depends_on": ["task-016"],
+    "status": "todo"
+  },
+  {
+    "task_id": "task-018",
+    "description": "Experiment 0 script: scorer validation — 50 HotpotQA × 5 LLM judges, inter-scorer agreement + gold correlation",
+    "daytime_created": "2026-03-17T16:21:12",
+    "daytime_comments": "Write the script only — user runs it later when Ollama is set up. Judges: Gemini Flash, Gemini Pro, Claude Haiku, Claude Sonnet, Claude Opus. Includes --skip-generation flag for re-scoring without re-generating. NOTE: task-020 changes NaiveRAG to require llm parameter — construct as NaiveRAG(llm=OllamaLLM()) not NaiveRAG().",
+    "depends_on": ["task-017", "task-020"],
+    "status": "todo"
+  },
+  {
+    "task_id": "task-019",
+    "description": "Hybrid retrieval: dense + BM25 with Reciprocal Rank Fusion (RRF)",
+    "daytime_created": "2026-03-17T21:04:35",
+    "daytime_comments": "Upgrades Retriever to hybrid by default. RRF at k=60 avoids weight-tuning. rank-bm25==0.2.2 already installed. No changes to strategies or downstream code.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-020",
+    "description": "LLM Protocol: abstract generation backend with Ollama + OpenAI-compatible adapters",
+    "daytime_created": "2026-03-17T21:53:01",
+    "daytime_comments": "Touches all 5 strategy files + run_experiment.py. Mechanical refactor — same pattern applied 5 times. No new dependencies (ollama and openai already installed). OpenAI-compatible adapter covers LM Studio, vLLM, llama.cpp server.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

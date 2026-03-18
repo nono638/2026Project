@@ -47,11 +47,37 @@
 **Context:** Extend ExperimentResult with methods like `configs_above(quality=3.5)`, `best_config(metric="quality", where={"model_size": "<4B"})`, and sorting by latency or estimated cost. Users define what "best" means by expressing priorities. The experiment data is the same — the question you ask of it changes.
 **Next trigger:** Experiment results exist with timing data. The analysis layer needs to support the Builder audience.
 
-## Additional built-in dataset loaders
+## Additional built-in dataset loaders (NQ + FRAMES)
 **Captured:** 2026-03-17
 **Last reviewed:** 2026-03-17
-**Context:** HotpotQA is the first built-in dataset. Others worth considering: SQuAD (simple factoid, good for baselines), Natural Questions (real Google searches + Wikipedia), FRAMES (hard multi-hop, 824 examples, good for stress-testing). Each needs a loader that outputs Document + Query objects with reference_answer populated. Ships with RAGBench so users can calibrate before running on their own data.
-**Next trigger:** HotpotQA loader is built and working. User wants to expand the "calibrate first" workflow.
+**Context:** SQuAD promoted to task-015. Remaining candidates: Natural Questions (real Google searches — but `nq_open` has no context documents, full version is 42GB HTML; would need Wikipedia fetching layer) and FRAMES (hard multi-hop, 824 examples — only provides Wikipedia URLs, not text; also needs fetching). Both require different infrastructure than the simple HuggingFace-to-Document pattern.
+**Next trigger:** User decides to invest in a Wikipedia article fetching layer, or a simpler variant of NQ/FRAMES becomes available on HuggingFace.
+**Partial promotion:** SQuAD → task-015 (2026-03-17)
+
+## LLM Protocol: abstract generation backend — PROMOTED 2026-03-17
+**Promoted to:** task-020
+
+## CLI: expose chunker/embedder/dataset selection
+**Captured:** 2026-03-17
+**Last reviewed:** 2026-03-17
+**Context:** `run_experiment.py` hardcodes chunker and embedder choices. Users can pick models and strategies via `--models` and `--strategies`, but can't select chunkers (`--chunkers fixed,recursive`) or embedders (`--embedder google`) or built-in datasets (`--dataset hotpotqa`). These are all wired up internally via Protocols but not exposed in the CLI.
+**Next trigger:** After experiments run and the tool is being positioned for external users. Low priority for our own research since we control the code.
+
+## User documentation: README, tutorial, output guide
+**Captured:** 2026-03-17
+**Last reviewed:** 2026-03-17
+**Context:** No README.md, no getting-started tutorial, no explanation of output columns, no API docs for the FastAPI endpoint. Code has good docstrings but nothing user-facing. A researcher who isn't us can't use RAGBench without reading source code. Needs: README with quick-start, output format spec (what each CSV column means), and a "run your first experiment" walkthrough.
+**Next trigger:** MVP demo approaching (March 30th) or when positioning for external users. Could be part of the findings gallery effort.
+
+## Reranker protocol
+**Captured:** 2026-03-17
+**Last reviewed:** 2026-03-17
+**Context:** Add a `Reranker` protocol (`rerank(query, chunks, top_k) -> chunks`) as an optional stage between retrieval and generation. Cross-encoder reranking is standard in production RAG and improves NDCG@10 by 7-20% depending on baseline. The interaction between reranker and embedding model is non-trivial (Rao et al. 2025: smaller embeddings can outperform larger ones with the right reranker). Relevance-only reranking can actually hurt answer quality (REBEL 2025). For our experiments, hold reranking constant (either off, or one fixed reranker like `gte-reranker-modernbert-base` 149M). Infrastructure should support swapping rerankers for future users. See `reference/research.md` "Reranking in RAG Systems" for full literature review.
+**Next trigger:** Experiments 1 & 2 are complete. User wants to run Experiment 3 (reranking study) or position RAGBench for external users who expect reranking support.
+**Blocked by:** Hybrid retrieval should be implemented first — rerankers can only reorder what was retrieved, so recall matters more than precision at the retrieval stage.
+
+## Hybrid retrieval as default — PROMOTED 2026-03-17
+**Promoted to:** task-019
 
 ## Project Gutenberg corpus
 **Captured:** 2026-03-16

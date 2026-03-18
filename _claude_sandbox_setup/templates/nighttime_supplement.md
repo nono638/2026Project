@@ -106,7 +106,9 @@ Create the `WrittenByNighttime/<task-dir>/` directory if it doesn't exist.
 
 **Step 3 — Update tracker to in_progress (on main, before branching)**
 While still on main, update `tracker.json`: set `"status": "in_progress"` and
-`"nighttime_started": "<ISO timestamp>"`. Commit it immediately:
+`"nighttime_started"` to the current wall-clock time. **Get the real time** by running
+`python -c "from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))"` —
+do NOT estimate, guess, or fabricate timestamps. Commit it immediately:
 ```
 git add DaytimeNighttimeHandOff/tracker.json
 git commit -m "tracker: <task-id> in_progress"
@@ -143,7 +145,7 @@ Write `DaytimeNighttimeHandOff/WrittenByNighttime/<task-dir>/result.md` using th
 ```markdown
 # Result: <task-id> — <short description>
 **Status:** done | skipped | blocked
-**Completed:** <ISO timestamp>
+**Completed:** <actual wall-clock time from python datetime.now(), NOT estimated>
 
 ## Commits
 - `<sha>` — <commit message>
@@ -192,7 +194,9 @@ git commit -m "tracker: <task-id> done"
 
 Tracker fields to update:
 - `"status": "done"` (or `"skipped"` or `"blocked"` — see below)
-- `"nighttime_completed": "<ISO timestamp>"`
+- `"nighttime_completed"`: current wall-clock time (run
+  `python -c "from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))"` —
+  do NOT estimate or fabricate timestamps)
 - `"nighttime_comments": "<one-sentence summary>"`
 - `"branch": "night/<task-id>-<short-name>"`
 - `"commit_sha": "<full SHA from git rev-parse HEAD>"`
@@ -221,7 +225,7 @@ will clean up WrittenByDaytime/ during morning review after merging.
 **Step 10 — Log to nighttime.log**
 Append a one-line summary to `DaytimeNighttimeHandOff/nighttime.log`:
 ```
-[<timestamp>] <task-id>: <done/skipped> — <one sentence summary> [tests: pass/fail]
+[<wall-clock time from datetime.now()>] <task-id>: <done/skipped> — <one sentence summary> [tests: pass/fail]
 ```
 
 **Step 11 — Pick up next task**

@@ -167,7 +167,7 @@ Add to `DaytimeNighttimeHandOff/tracker.json`:
 {
   "task_id": "task-NNN",
   "description": "<brief description>",
-  "daytime_created": "<ISO timestamp>",
+  "daytime_created": "<actual wall-clock time — run: python -c \"from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))\" — do NOT estimate>",
   "daytime_comments": "<any extra context not in the spec>",
   "depends_on": null,
   "status": "todo"

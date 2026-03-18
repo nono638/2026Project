@@ -100,3 +100,18 @@ Total download: ~12GB
 | OPENAI_API_KEY | RAGAS query generation | https://platform.openai.com |
 | GOOGLE_API_KEY | Google text embedder | https://aistudio.google.com |
 | GOOGLE_CLOUD_PROJECT | Google multimodal embedder | https://console.cloud.google.com |
+| GEMINI_API_KEY | LLM scorer (Gemini provider) | https://aistudio.google.com |
+
+## Change Log
+
+### 2026-03-17 — Installed google-genai 1.67.0
+- **Why:** New unified Google GenAI SDK needed for LLMScorer Gemini adapter (task-017) and embedder migration (task-016). Replaces deprecated google-generativeai.
+- **Requested by:** daytime session (pre-experiment hardening)
+- **Import name:** `from google import genai`
+- **Notes:** Old `google-generativeai==0.8.6` still installed — will be removed after embedder migration (task-016). Both coexist for now (different import paths: `google.generativeai` vs `google.genai`).
+
+### 2026-03-17 — Installed rank-bm25 0.2.2
+- **Why:** BM25 sparse retrieval for hybrid search (task-019). Pure Python BM25Okapi implementation, same library used by LangChain and LlamaIndex internally.
+- **Requested by:** task-019 (hybrid retrieval)
+- **Import name:** `from rank_bm25 import BM25Okapi`
+- **Notes:** Only dependency is numpy (already installed). Supports BM25Okapi, BM25L, BM25Plus variants — we use Okapi (industry default).

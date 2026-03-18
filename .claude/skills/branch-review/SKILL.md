@@ -114,7 +114,9 @@ user and leave it.
 ## Step 5 — Update tracker
 
 For each task whose branch was merged, ensure `tracker.json` has `"daytime_reviewed"` set
-to the current ISO timestamp if it wasn't already set during session opening.
+to the actual wall-clock time. Get the real time by running:
+`python -c "from datetime import datetime; print(datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))"`
+Do NOT estimate or fabricate timestamps. Skip if already set during session opening.
 
 ---
 
