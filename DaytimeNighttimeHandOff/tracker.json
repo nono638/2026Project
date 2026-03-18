@@ -315,7 +315,14 @@
     "daytime_created": "2026-03-17T21:53:01",
     "daytime_comments": "Touches all 5 strategy files + run_experiment.py. Mechanical refactor — same pattern applied 5 times. No new dependencies (ollama and openai already installed). OpenAI-compatible adapter covers LM Studio, vLLM, llama.cpp server.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-18T00:10:21"
+    "status": "done",
+    "nighttime_started": "2026-03-18T00:10:21",
+    "nighttime_completed": "2026-03-18T00:18:32",
+    "nighttime_comments": "LLM protocol + OllamaLLM + OpenAICompatibleLLM adapters. All 5 strategies refactored. 19 tests pass.",
+    "branch": "night/task-020-llm-protocol",
+    "commit_sha": "d2c5e734ae48247daf31163c79badfec7645513a",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["openai==2.29.0 was not installed in venv despite being in requirements.txt"]
   }
 ]
