@@ -13,9 +13,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ollama import Client
-
 if TYPE_CHECKING:
+    from src.protocols import LLM
     from src.retriever import Retriever
 
 
@@ -33,9 +32,13 @@ class MultiQueryRAG:
     then generates an answer from the merged context.
     """
 
-    def __init__(self) -> None:
-        """Initialize the Ollama client for generation."""
-        self._client = Client()
+    def __init__(self, llm: LLM) -> None:
+        """Initialize with an LLM backend for generation.
+
+        Args:
+            llm: An LLM instance for text generation.
+        """
+        self._llm = llm
 
     @property
     def name(self) -> str:
@@ -48,16 +51,15 @@ class MultiQueryRAG:
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             The model's generated answer.
         """
         # Step 1: Generate alternative phrasings
-        rephrase_response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": REPHRASE_PROMPT.format(query=query)}],
-        ).message.content
+        rephrase_response = self._llm.generate(
+            model, REPHRASE_PROMPT.format(query=query)
+        )
 
         alt_queries = [
             line.strip()
@@ -93,8 +95,4 @@ class MultiQueryRAG:
             f"Answer:"
         )
 
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.message.content
+        return self._llm.generate(model, prompt)
