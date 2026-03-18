@@ -251,7 +251,8 @@
     "commit_sha": "cafbdeda93943826e9458e4060ebb990893137e0",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["datasets==4.7.0 was not installed in venv despite being in requirements.txt"]
+    "flags": ["datasets==4.7.0 was not installed in venv despite being in requirements.txt"],
+    "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
     "task_id": "task-016",
@@ -267,7 +268,8 @@
     "commit_sha": "a2c45b0ce80946039a5b92b4abf2e7cd2992e998",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["google-genai was not installed in venv despite being in requirements.txt"]
+    "flags": ["google-genai was not installed in venv despite being in requirements.txt"],
+    "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
     "task_id": "task-017",
@@ -283,7 +285,8 @@
     "commit_sha": "681c06ab5c4e502c9b258f8a9210fc8eefceda0c",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["TestGoogleProvider::test_score_returns_dict has extraneous @patch decorator causing TypeError — test bug, not impl bug"]
+    "flags": ["TestGoogleProvider::test_score_returns_dict has extraneous @patch decorator causing TypeError — test bug, not impl bug"],
+    "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
     "task_id": "task-018",
@@ -299,7 +302,8 @@
     "commit_sha": "ab917bb32740b56b7745896fc969405788960e0c",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Branch merges task-017 and task-020 — merge those first during morning review", "tabulate package may need to be installed for report.md generation"]
+    "flags": ["Branch merges task-017 and task-020 — merge those first during morning review", "tabulate package may need to be installed for report.md generation"],
+    "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
     "task_id": "task-019",
@@ -315,7 +319,8 @@
     "commit_sha": "cd813ea5e0b79b1e416addc63443dce62bf32d0e",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
     "task_id": "task-020",
@@ -331,6 +336,24 @@
     "commit_sha": "d2c5e734ae48247daf31163c79badfec7645513a",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["openai==2.29.0 was not installed in venv despite being in requirements.txt"]
+    "flags": ["openai==2.29.0 was not installed in venv despite being in requirements.txt"],
+    "daytime_reviewed": "2026-03-18T00:54:34"
+  },
+  {
+    "task_id": "task-021",
+    "description": "Consolidate nighttime tests into main tests/ directory",
+    "daytime_created": "2026-03-18T01:14:02",
+    "daytime_comments": "9 test files in WrittenByNighttime need copying to tests/. 4 duplicate class names need renaming. Add pytest testpaths config. Check task-012 and task-016 for redundancy with existing tests.",
+    "depends_on": null,
+    "status": "in_progress",
+    "nighttime_started": "2026-03-18T01:26:25"
+  },
+  {
+    "task_id": "task-022",
+    "description": "Expose CLI flags for chunker, embedder, dataset, retrieval mode, and LLM backend in run_experiment.py",
+    "daytime_created": "2026-03-18T01:14:02",
+    "daytime_comments": "All components already importable. Only modifies scripts/run_experiment.py. Must preserve default behavior when no new flags provided.",
+    "depends_on": ["task-021"],
+    "status": "todo"
   }
 ]
