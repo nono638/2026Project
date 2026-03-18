@@ -495,6 +495,18 @@ after time away, run the project-snapshot skill: read `.claude/skills/project-sn
 
 ---
 
+## BASH RULES
+
+- **Never combine `cd` with other commands** using `&&`, `;`, or `||`. This triggers a
+  security prompt that stalls progress.
+- For git commands: use `git -C <path>` instead of `cd <path> && git ...`
+- For other tools: use absolute paths, or make separate sequential Bash calls.
+- Prefer dedicated tools (Read, Grep, Glob) over Bash equivalents.
+- **If this rule doesn't prevent the problem:** escalate to a pre-Bash hook that rejects
+  compound commands containing `cd`. See `feedback_parallel_bash.md` in memory.
+
+---
+
 ## DIRECTORY RULES
 
 - **Read**: anywhere in the project

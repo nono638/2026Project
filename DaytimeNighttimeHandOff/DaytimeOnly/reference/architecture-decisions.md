@@ -52,6 +52,24 @@
 **Rationale:** Users care about "is the 60-second answer meaningfully better than the 5-second answer?" This is central to the Explorer findings gallery. Without timing data, we can show quality differences but not the time-quality tradeoff curve.
 **Alternatives considered:** Estimate latency from model size — rejected, real measurements are easy and far more credible.
 
+## Infrastructure: RunPod GPU + three-tier demo architecture — 2026-03-18
+**Decision:** Use RunPod as the GPU compute provider. Architecture has three pieces:
+1. **Website frontend** (free hosting, Render/Vercel) — static findings gallery showing pre-computed experiment results. Always on, no GPU.
+2. **GPU machine** (RunPod, ~$0.17/hr on-demand) — runs Ollama models. Used for experiments (burst) and live demo inference (on-demand). Managed via RunPod Python SDK + REST API.
+3. **Traffic cop / proxy** (free tier hosting) — sits between website and GPU. Auto-starts RunPod pod when a demo request arrives, auto-stops after 15 min idle. Shows remaining budget on the website. When budget exhausted, demo degrades to gallery-only.
+
+**Key RunPod details:**
+- Prepaid model — deposit credits, auto-stops at $0. No surprise bills.
+- REST API supports GPU fallback lists (`gpuTypeIds` array, `gpuTypePriority: "availability"`) — RunPod picks from available GPUs.
+- Stable HTTP proxy URLs: `https://{POD_ID}-{PORT}.proxy.runpod.net` (survives restarts).
+- Network volumes ($0.07/GB/month) persist data across pod termination — allows terminate/recreate pattern for GPU flexibility.
+- Python SDK: `pip install runpod` — `runpod.create_pod()`, `runpod.stop_pod()`, `runpod.terminate_pod()`.
+
+**Budget:** ~$50 target, $150 hard ceiling. Experiments ~$2-5, demo usage pennies per session.
+
+**Rationale:** No local GPU available. RunPod chosen over Vast.ai (more reliable networking, built-in Ollama template, stable URLs) and Modal (pod model simpler for Ollama than serverless). Prepaid model eliminates cost risk. Three-tier architecture means the GPU only runs when needed — demo costs $0 when nobody's using it.
+**Alternatives considered:** (A) Vast.ai — cheaper ($0.04-0.08/hr) but community hardware, less reliable networking. (B) Modal serverless — scales to zero but can't run raw Ollama, requires custom handler wrapper. (C) Google Colab — can't serve persistent endpoints. (D) Lambda Labs — minimum $0.80/hr, overkill.
+
 ## Multiple query generators by design, not one framework — 2026-03-16
 **Decision:** Build multiple QueryGenerator implementations: RAGAS (synthetic with evolution), TemplateQueryGenerator (entity extraction + templates), BEIRQuerySet (existing benchmarks), HumanQuerySet (hand-curated CSV). The system is not "a RAGAS project" — RAGAS is one option.
 **Rationale:** Different generators have different strengths. RAGAS gives citable synthetic queries. Templates give uniformity. BEIR gives human-written gold standard. Human-curated gives a validation anchor. Running the same experiment across generator types tests whether your RAG ranking is robust to query source — itself a research finding. Upstream datasets should also be adaptable (Wikipedia now, Gutenberg or domain-specific later).

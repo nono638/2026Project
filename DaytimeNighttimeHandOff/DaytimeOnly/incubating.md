@@ -35,11 +35,11 @@
 **Context:** Google's `multimodalembedding@001` on Vertex AI puts text, image, and video into a shared 1408-dim embedding space. Interesting to benchmark on text-only despite ~32 token limit. BUT requires a paid GCP Vertex AI account (~$0.0001/prediction) — the $20/month Gemini subscription doesn't cover it. Spec was written (see architecture-decisions.md) but removed from task-006 to avoid GCP billing setup.
 **Next trigger:** User sets up GCP billing, or free Vertex AI access becomes available, or multimodal becomes a priority worth paying for.
 
-## Findings gallery website
+## Findings gallery website + live demo
 **Captured:** 2026-03-17
-**Last reviewed:** 2026-03-17
-**Context:** A web-facing presentation of pre-computed experiment results. Interactive visualizations showing when small models beat large ones, time-quality tradeoff curves, the impact of changing one variable in isolation. Target audience: curious learners, not just engineers. This is what makes RAGBench a portfolio piece, not just a class project. Could be a static site generated from ExperimentResult data, or a simple React/Streamlit app.
-**Next trigger:** Experiment 1 results exist and have interesting findings worth presenting. MVP demo approaching.
+**Last reviewed:** 2026-03-18
+**Context:** Two-part website: (1) Static findings gallery showing pre-computed experiment results — interactive visualizations, time-quality tradeoffs, when small models beat large ones. Free hosting (Render/Vercel). (2) Live "try it yourself" demo limited to 1B/4B models for speed and cost. Backed by RunPod GPU that auto-starts on request and auto-stops after idle. Budget-aware UI shows remaining credits, degrades to gallery-only when exhausted. Architecture decision captured in reference/architecture-decisions.md.
+**Next trigger:** Experiment 1 results exist and have interesting findings worth presenting. MVP demo approaching (March 30).
 
 ## Constraint-aware analysis API
 **Captured:** 2026-03-17
@@ -57,11 +57,8 @@
 ## LLM Protocol: abstract generation backend — PROMOTED 2026-03-17
 **Promoted to:** task-020
 
-## CLI: expose chunker/embedder/dataset selection
-**Captured:** 2026-03-17
-**Last reviewed:** 2026-03-17
-**Context:** `run_experiment.py` hardcodes chunker and embedder choices. Users can pick models and strategies via `--models` and `--strategies`, but can't select chunkers (`--chunkers fixed,recursive`) or embedders (`--embedder google`) or built-in datasets (`--dataset hotpotqa`). These are all wired up internally via Protocols but not exposed in the CLI.
-**Next trigger:** After experiments run and the tool is being positioned for external users. Low priority for our own research since we control the code.
+## CLI: expose chunker/embedder/dataset selection — PROMOTED 2026-03-18
+**Promoted to:** task-022 (done)
 
 ## User documentation: README, tutorial, output guide
 **Captured:** 2026-03-17
