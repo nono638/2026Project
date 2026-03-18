@@ -78,11 +78,38 @@ class Scorer(Protocol):
 
     @property
     def name(self) -> str:
-        """Unique identifier (e.g., 'claude:claude-sonnet-4-20250514')."""
+        """Unique identifier (e.g., 'anthropic:claude-sonnet-4-20250514')."""
         ...
 
     def score(self, query: str, context: str, answer: str) -> dict[str, float]:
         """Score a generated answer. Returns dict of metric_name -> score (1-5)."""
+        ...
+
+
+@runtime_checkable
+class LLM(Protocol):
+    """Interface for text generation backends (Ollama, LM Studio, OpenAI, etc.).
+
+    Strategies use this instead of hardcoding ollama.Client(), allowing
+    any generation backend that speaks the same generate(model, prompt) API.
+    """
+
+    @property
+    def name(self) -> str:
+        """Backend identifier (e.g., 'ollama', 'openai-compat:localhost:1234')."""
+        ...
+
+    def generate(self, model: str, prompt: str) -> str:
+        """Generate a text response for the given prompt.
+
+        Args:
+            model: Model identifier (e.g., 'qwen3:4b' for Ollama,
+                   'local-model' for LM Studio).
+            prompt: The complete prompt text.
+
+        Returns:
+            The model's generated text response.
+        """
         ...
 
 

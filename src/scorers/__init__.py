@@ -1,4 +1,4 @@
 """Scorer implementations."""
-from src.scorers.claude import ClaudeScorer
+from src.scorers.llm import LLMScorer, ScorerError
 
-__all__ = ["ClaudeScorer"]
+__all__ = ["LLMScorer", "ScorerError"]

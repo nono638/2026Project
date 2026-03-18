@@ -14,9 +14,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ollama import Client
-
 if TYPE_CHECKING:
+    from src.protocols import LLM
     from src.retriever import Retriever
 
 
@@ -38,9 +37,13 @@ class CorrectiveRAG:
     many chunks are discarded. Based on Shi et al. (2024, arXiv:2401.15884).
     """
 
-    def __init__(self) -> None:
-        """Initialize the Ollama client for generation."""
-        self._client = Client()
+    def __init__(self, llm: LLM) -> None:
+        """Initialize with an LLM backend for generation.
+
+        Args:
+            llm: An LLM instance for text generation.
+        """
+        self._llm = llm
 
     @property
     def name(self) -> str:
@@ -53,19 +56,16 @@ class CorrectiveRAG:
         Args:
             query: The user's question.
             retrieved: List of retrieval result dicts with 'text' key.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             List of chunk texts rated as "relevant" or "partially relevant".
         """
         relevant: list[str] = []
         for r in retrieved:
-            rating = self._client.chat(
-                model=model,
-                messages=[{"role": "user", "content": RELEVANCE_PROMPT.format(
-                    query=query, chunk=r["text"]
-                )}],
-            ).message.content.strip().lower()
+            rating = self._llm.generate(
+                model, RELEVANCE_PROMPT.format(query=query, chunk=r["text"])
+            ).strip().lower()
 
             # Keep anything that isn't explicitly "irrelevant"
             if "irrelevant" not in rating:
@@ -78,7 +78,7 @@ class CorrectiveRAG:
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             The model's generated answer.
@@ -91,10 +91,9 @@ class CorrectiveRAG:
 
         # Step 4: If fewer than 2 chunks survive, reformulate and retry
         if len(relevant_chunks) < 2:
-            reformulated = self._client.chat(
-                model=model,
-                messages=[{"role": "user", "content": REFORMULATE_PROMPT.format(query=query)}],
-            ).message.content.strip()
+            reformulated = self._llm.generate(
+                model, REFORMULATE_PROMPT.format(query=query)
+            ).strip()
 
             # Second retrieval with reformulated query
             retrieved2 = retriever.retrieve(reformulated)
@@ -117,8 +116,4 @@ class CorrectiveRAG:
             f"Answer:"
         )
 
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.message.content
+        return self._llm.generate(model, prompt)
