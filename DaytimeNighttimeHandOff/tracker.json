@@ -291,8 +291,15 @@
     "daytime_created": "2026-03-17T16:21:12",
     "daytime_comments": "Write the script only — user runs it later when Ollama is set up. Judges: Gemini Flash, Gemini Pro, Claude Haiku, Claude Sonnet, Claude Opus. Includes --skip-generation flag for re-scoring without re-generating. NOTE: task-020 changes NaiveRAG to require llm parameter — construct as NaiveRAG(llm=OllamaLLM()) not NaiveRAG().",
     "depends_on": ["task-017", "task-020"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-18T00:21:37"
+    "status": "done",
+    "nighttime_started": "2026-03-18T00:21:37",
+    "nighttime_completed": "2026-03-18T00:27:03",
+    "nighttime_comments": "Experiment 0 script with 5 LLM judges, gold correctness metrics, and markdown report. 13 tests pass. Branch merges task-017 + task-020.",
+    "branch": "night/task-018-experiment-zero",
+    "commit_sha": "ab917bb32740b56b7745896fc969405788960e0c",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Branch merges task-017 and task-020 — merge those first during morning review", "tabulate package may need to be installed for report.md generation"]
   },
   {
     "task_id": "task-019",
