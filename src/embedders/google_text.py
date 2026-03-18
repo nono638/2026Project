@@ -1,7 +1,10 @@
 """Embedding via Google's text-embedding-005 model.
 
-Uses the google-generativeai SDK (free tier available via Google AI Studio).
+Uses the google-genai SDK (free tier available via Google AI Studio).
 768 dimensions, up to 2048 tokens context.
+
+Migrated from deprecated google-generativeai SDK to google-genai in task-016.
+The new SDK uses a Client instance pattern instead of module-level configuration.
 
 Docs: https://ai.google.dev/gemini-api/docs/embeddings
 """
@@ -13,9 +16,10 @@ import time
 
 import numpy as np
 
-# google-generativeai is deprecated in favor of google.genai, but the spec
-# explicitly requires this SDK. Flag for morning review if migration is needed.
-import google.generativeai as genai
+# New google-genai SDK replaces deprecated google-generativeai.
+# Uses Client instance pattern instead of module-level genai.configure().
+from google import genai
+from google.genai import types
 
 
 class GoogleTextEmbedder:
@@ -52,8 +56,8 @@ class GoogleTextEmbedder:
             )
         self._model = model
         self._task_type = task_type
-        # Configure the SDK with the API key once at init time
-        genai.configure(api_key=resolved_key)
+        # New SDK uses Client instance instead of module-level genai.configure()
+        self._client = genai.Client(api_key=resolved_key)
 
     @property
     def name(self) -> str:
@@ -62,7 +66,6 @@ class GoogleTextEmbedder:
         Strips the 'models/' prefix to match the naming pattern of other
         embedders (e.g., 'ollama:mxbai-embed-large', 'hf:all-MiniLM-L6-v2').
         """
-        # Extract model name after "models/" prefix
         model_name = self._model.removeprefix("models/")
         return f"google:{model_name}"
 
@@ -74,8 +77,9 @@ class GoogleTextEmbedder:
     def embed(self, texts: list[str]) -> np.ndarray:
         """Embed texts using Google's text-embedding-005.
 
-        Calls genai.embed_content for each text individually because the SDK's
-        batch behavior varies across versions. Single-text calls are reliable.
+        Calls client.models.embed_content for each text individually because
+        the SDK's batch behavior varies across versions. Single-text calls
+        are reliable.
 
         Args:
             texts: List of strings to embed.
@@ -131,22 +135,22 @@ class GoogleTextEmbedder:
             Exception: If the API call fails twice (after one retry).
         """
         try:
-            result = genai.embed_content(
+            result = self._client.models.embed_content(
                 model=self._model,
-                content=text,
-                task_type=task_type,
+                contents=text,
+                config=types.EmbedContentConfig(task_type=task_type),
             )
-            return result["embedding"]
+            return result.embeddings[0].values
         except Exception as e:
             # Simple retry with 1-second sleep for rate limiting.
             # No exponential backoff per spec — single retry is sufficient
             # for the free tier's rate limits during experiment runs.
             if "rate" in str(e).lower() or "429" in str(e):
                 time.sleep(1)
-                result = genai.embed_content(
+                result = self._client.models.embed_content(
                     model=self._model,
-                    content=text,
-                    task_type=task_type,
+                    contents=text,
+                    config=types.EmbedContentConfig(task_type=task_type),
                 )
-                return result["embedding"]
+                return result.embeddings[0].values
             raise
