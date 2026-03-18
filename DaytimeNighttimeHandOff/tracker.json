@@ -259,7 +259,8 @@
     "daytime_created": "2026-03-17T15:23:11",
     "daytime_comments": "Fixes task-006 deprecation flag. google-genai==1.67.0 already installed. After migration, remove google-generativeai from requirements.txt.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T23:41:32"
   },
   {
     "task_id": "task-017",
