@@ -361,6 +361,7 @@
     "daytime_created": "2026-03-18T01:14:02",
     "daytime_comments": "All components already importable. Only modifies scripts/run_experiment.py. Must preserve default behavior when no new flags provided.",
     "depends_on": ["task-021"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-18T01:37:00"
   }
 ]
