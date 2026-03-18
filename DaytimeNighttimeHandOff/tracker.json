@@ -361,7 +361,14 @@
     "daytime_created": "2026-03-18T01:14:02",
     "daytime_comments": "All components already importable. Only modifies scripts/run_experiment.py. Must preserve default behavior when no new flags provided.",
     "depends_on": ["task-021"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-18T01:37:00"
+    "status": "done",
+    "nighttime_started": "2026-03-18T01:37:00",
+    "nighttime_completed": "2026-03-18T01:43:10",
+    "nighttime_comments": "Added 6 CLI flags (--chunkers, --embedder, --dataset, --retrieval-mode, --llm-backend, --llm-base-url) with validation. Built-in dataset loading with query export.",
+    "branch": "night/task-022-cli-flags",
+    "commit_sha": "b6680aa143796980073e3fe783573cf7843a8453",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Experiment() constructor requires scorer param — script doesn't configure one (pre-existing issue)"]
   }
 ]
