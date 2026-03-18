@@ -387,6 +387,15 @@
     "commit_sha": "af9468c294db6183b1119de6eb42843fa9a9382e",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-18T14:12:05"
+  },
+  {
+    "task_id": "task-024",
+    "description": "Deploy script (setup_pod.py) + --ollama-host flag on experiment scripts and OllamaEmbedder",
+    "daytime_created": "2026-03-18T16:45:38",
+    "daytime_comments": "Bridges the gap between 'RunPod account exists' and 'Experiment 0 runs'. setup_pod.py creates pod with ollama/ollama image, pulls models via HTTP API (no SSH), verifies. --ollama-host flag threads remote URL through OllamaLLM and OllamaEmbedder. Uses stream:true for model pulls to avoid Cloudflare 100s timeout.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
