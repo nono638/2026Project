@@ -54,7 +54,8 @@ class Retriever:
             List of dicts with 'text', 'score', 'index' keys,
             sorted by descending similarity.
         """
-        k = top_k or self._top_k
+        # Use `is not None` — `or` treats 0 as falsy, silently ignoring top_k=0
+        k = top_k if top_k is not None else self._top_k
 
         # Empty index returns no results
         if self._index.ntotal == 0:
