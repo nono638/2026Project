@@ -21,9 +21,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ollama import Client
-
 if TYPE_CHECKING:
+    from src.protocols import LLM
     from src.retriever import Retriever
 
 
@@ -62,9 +61,13 @@ class SelfRAG:
     Implements the Strategy protocol from src.protocols.
     """
 
-    def __init__(self) -> None:
-        """Initialize the Ollama client for generation."""
-        self._client = Client()
+    def __init__(self, llm: LLM) -> None:
+        """Initialize with an LLM backend for generation.
+
+        Args:
+            llm: An LLM instance for text generation.
+        """
+        self._llm = llm
 
     @property
     def name(self) -> str:
@@ -77,24 +80,21 @@ class SelfRAG:
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             The model's final answer after self-critique.
         """
         # Step 1: Does the model think it needs retrieval?
-        decision = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": RETRIEVAL_DECISION_PROMPT.format(query=query)}],
-        ).message.content.strip().lower()
+        decision = self._llm.generate(
+            model, RETRIEVAL_DECISION_PROMPT.format(query=query)
+        ).strip().lower()
 
         if "no" in decision:
             # Generate without retrieval
-            response = self._client.chat(
-                model=model,
-                messages=[{"role": "user", "content": f"Answer this question:\n{query}\n\nAnswer:"}],
+            return self._llm.generate(
+                model, f"Answer this question:\n{query}\n\nAnswer:"
             )
-            return response.message.content
 
         # Step 2: Retrieve
         retrieved = retriever.retrieve(query)
@@ -102,12 +102,9 @@ class SelfRAG:
         # Step 3: Evaluate relevance of each chunk
         relevant_chunks: list[str] = []
         for r in retrieved:
-            rating = self._client.chat(
-                model=model,
-                messages=[{"role": "user", "content": RELEVANCE_PROMPT.format(
-                    query=query, chunk=r["text"]
-                )}],
-            ).message.content.strip().lower()
+            rating = self._llm.generate(
+                model, RELEVANCE_PROMPT.format(query=query, chunk=r["text"])
+            ).strip().lower()
 
             if "irrelevant" not in rating:
                 relevant_chunks.append(r["text"])
@@ -119,19 +116,13 @@ class SelfRAG:
         context = "\n\n".join(relevant_chunks)
 
         # Step 4: Generate
-        answer = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": GENERATE_PROMPT.format(
-                context=context, query=query
-            )}],
-        ).message.content
+        answer = self._llm.generate(
+            model, GENERATE_PROMPT.format(context=context, query=query)
+        )
 
         # Step 5: Self-critique
-        final = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": CRITIQUE_PROMPT.format(
-                query=query, context=context, answer=answer
-            )}],
-        ).message.content
+        final = self._llm.generate(
+            model, CRITIQUE_PROMPT.format(query=query, context=context, answer=answer)
+        )
 
         return final

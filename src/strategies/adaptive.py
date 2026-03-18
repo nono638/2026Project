@@ -15,9 +15,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ollama import Client
-
 if TYPE_CHECKING:
+    from src.protocols import LLM
     from src.retriever import Retriever
 
 
@@ -37,9 +36,13 @@ class AdaptiveRAG:
     Based on Jeong et al. (2024, NAACL).
     """
 
-    def __init__(self) -> None:
-        """Initialize the Ollama client for generation."""
-        self._client = Client()
+    def __init__(self, llm: LLM) -> None:
+        """Initialize with an LLM backend for generation.
+
+        Args:
+            llm: An LLM instance for text generation.
+        """
+        self._llm = llm
 
     @property
     def name(self) -> str:
@@ -51,15 +54,14 @@ class AdaptiveRAG:
 
         Args:
             query: The user's question.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             One of "simple", "moderate", "complex".
         """
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": CLASSIFY_PROMPT.format(query=query)}],
-        ).message.content.strip().lower()
+        response = self._llm.generate(
+            model, CLASSIFY_PROMPT.format(query=query)
+        ).strip().lower()
 
         # Parse classification, default to moderate if unparseable
         for level in ("simple", "moderate", "complex"):
@@ -72,16 +74,14 @@ class AdaptiveRAG:
 
         Args:
             query: The user's question.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             The model's generated answer.
         """
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": f"Answer this question:\n{query}\n\nAnswer:"}],
+        return self._llm.generate(
+            model, f"Answer this question:\n{query}\n\nAnswer:"
         )
-        return response.message.content
 
     def _moderate_path(self, query: str, retriever: Retriever, model: str) -> str:
         """Standard retrieve + generate (same as NaiveRAG).
@@ -89,7 +89,7 @@ class AdaptiveRAG:
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             The model's generated answer.
@@ -104,11 +104,7 @@ class AdaptiveRAG:
             f"Answer:"
         )
 
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.message.content
+        return self._llm.generate(model, prompt)
 
     def _complex_path(self, query: str, retriever: Retriever, model: str) -> str:
         """Two-pass retrieval with iterative refinement.
@@ -119,7 +115,7 @@ class AdaptiveRAG:
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             The model's generated answer.
@@ -128,44 +124,37 @@ class AdaptiveRAG:
         retrieved1 = retriever.retrieve(query)
         context1 = "\n\n".join(r["text"] for r in retrieved1)
 
-        intermediate = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": (
-                f"Based on this context, give a preliminary answer to the question. "
-                f"Note what information might still be missing.\n\n"
-                f"Context:\n{context1}\n\n"
-                f"Question: {query}\n\n"
-                f"Preliminary answer:"
-            )}],
-        ).message.content
+        intermediate = self._llm.generate(
+            model,
+            f"Based on this context, give a preliminary answer to the question. "
+            f"Note what information might still be missing.\n\n"
+            f"Context:\n{context1}\n\n"
+            f"Question: {query}\n\n"
+            f"Preliminary answer:",
+        )
 
         # Second pass: use intermediate answer to formulate follow-up
-        followup = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": (
-                f"Based on this preliminary answer, what follow-up question would help "
-                f"complete the answer?\n\n"
-                f"Original question: {query}\n"
-                f"Preliminary answer: {intermediate}\n\n"
-                f"Follow-up question:"
-            )}],
-        ).message.content.strip()
+        followup = self._llm.generate(
+            model,
+            f"Based on this preliminary answer, what follow-up question would help "
+            f"complete the answer?\n\n"
+            f"Original question: {query}\n"
+            f"Preliminary answer: {intermediate}\n\n"
+            f"Follow-up question:",
+        ).strip()
 
         retrieved2 = retriever.retrieve(followup)
         context2 = "\n\n".join(r["text"] for r in retrieved2)
 
         # Final answer combining both contexts
         combined_context = f"{context1}\n\n---\n\n{context2}"
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": (
-                f"Answer the following question using only the provided context.\n\n"
-                f"Context:\n{combined_context}\n\n"
-                f"Question: {query}\n\n"
-                f"Answer:"
-            )}],
+        return self._llm.generate(
+            model,
+            f"Answer the following question using only the provided context.\n\n"
+            f"Context:\n{combined_context}\n\n"
+            f"Question: {query}\n\n"
+            f"Answer:",
         )
-        return response.message.content
 
     def run(self, query: str, retriever: Retriever, model: str) -> str:
         """Run Adaptive RAG: classify complexity, then route accordingly.
@@ -173,7 +162,7 @@ class AdaptiveRAG:
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
-            model: Ollama model name.
+            model: Model name for generation.
 
         Returns:
             The model's generated answer.

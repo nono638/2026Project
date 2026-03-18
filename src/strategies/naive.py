@@ -11,9 +11,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ollama import Client
-
 if TYPE_CHECKING:
+    from src.protocols import LLM
     from src.retriever import Retriever
 
 
@@ -24,9 +23,13 @@ class NaiveRAG:
     No special logic. Raw model capability is the only variable.
     """
 
-    def __init__(self) -> None:
-        """Initialize the Ollama client for generation."""
-        self._client = Client()
+    def __init__(self, llm: LLM) -> None:
+        """Initialize with an LLM backend for generation.
+
+        Args:
+            llm: An LLM instance for text generation.
+        """
+        self._llm = llm
 
     @property
     def name(self) -> str:
@@ -39,7 +42,7 @@ class NaiveRAG:
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
-            model: Ollama model name (e.g., 'qwen3:0.6b').
+            model: Model name (e.g., 'qwen3:0.6b').
 
         Returns:
             The model's generated answer string.
@@ -54,8 +57,4 @@ class NaiveRAG:
             f"Answer:"
         )
 
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response.message.content
+        return self._llm.generate(model, prompt)

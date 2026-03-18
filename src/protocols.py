@@ -87,6 +87,33 @@ class Scorer(Protocol):
 
 
 @runtime_checkable
+class LLM(Protocol):
+    """Interface for text generation backends (Ollama, LM Studio, OpenAI, etc.).
+
+    Strategies use this instead of hardcoding ollama.Client(), allowing
+    any generation backend that speaks the same generate(model, prompt) API.
+    """
+
+    @property
+    def name(self) -> str:
+        """Backend identifier (e.g., 'ollama', 'openai-compat:localhost:1234')."""
+        ...
+
+    def generate(self, model: str, prompt: str) -> str:
+        """Generate a text response for the given prompt.
+
+        Args:
+            model: Model identifier (e.g., 'qwen3:4b' for Ollama,
+                   'local-model' for LM Studio).
+            prompt: The complete prompt text.
+
+        Returns:
+            The model's generated text response.
+        """
+        ...
+
+
+@runtime_checkable
 class QueryGenerator(Protocol):
     """Interface for evaluation query generation backends.
 

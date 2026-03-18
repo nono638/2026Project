@@ -137,6 +137,10 @@ def build_components(
     from src.chunkers import SemanticChunker, FixedSizeChunker, RecursiveChunker
     from src.embedders import OllamaEmbedder
     from src.strategies import NaiveRAG, SelfRAG, MultiQueryRAG, CorrectiveRAG, AdaptiveRAG
+    from src.llms import OllamaLLM
+
+    # Single LLM backend shared by all strategies
+    llm = OllamaLLM()
 
     strategy_map = {
         "naive": NaiveRAG,
@@ -165,7 +169,7 @@ def build_components(
     strategies = []
     for name in strategy_names:
         if name in strategy_map:
-            strategies.append(strategy_map[name]())
+            strategies.append(strategy_map[name](llm=llm))
         else:
             print(f"WARNING: Unknown strategy '{name}', skipping")
 
