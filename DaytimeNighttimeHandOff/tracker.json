@@ -299,8 +299,15 @@
     "daytime_created": "2026-03-17T21:04:35",
     "daytime_comments": "Upgrades Retriever to hybrid by default. RRF at k=60 avoids weight-tuning. rank-bm25==0.2.2 already installed. No changes to strategies or downstream code.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-18T00:02:14"
+    "status": "done",
+    "nighttime_started": "2026-03-18T00:02:14",
+    "nighttime_completed": "2026-03-18T00:04:33",
+    "nighttime_comments": "Hybrid retrieval with BM25Okapi + RRF fusion. 3 modes: hybrid/dense/sparse. Experiment passes through retrieval_mode. 24 tests pass.",
+    "branch": "night/task-019-hybrid-retrieval",
+    "commit_sha": "cd813ea5e0b79b1e416addc63443dce62bf32d0e",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-020",
