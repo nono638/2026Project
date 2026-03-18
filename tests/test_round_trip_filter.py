@@ -131,7 +131,7 @@ class TestRoundTripFilter:
         # Query about physics but source_doc_title says Cooking → should fail
         query = _q("What is quantum entanglement?", source="Cooking")
 
-        f = RoundTripFilter(chunker, embedder, top_k=2)
+        f = RoundTripFilter(chunker, embedder, top_k=1)
         result = f.filter([query], [doc_cooking, doc_physics])
         assert len(result) == 0
 

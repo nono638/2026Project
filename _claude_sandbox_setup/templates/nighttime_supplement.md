@@ -353,6 +353,16 @@ This project is running without a human watching. Follow these rules:
 
 ---
 
+## BASH RULES
+
+- **Never combine `cd` with other commands** using `&&`, `;`, or `||`. This triggers a
+  security prompt that stalls unattended execution.
+- For git commands: use `git -C <path>` instead of `cd <path> && git ...`
+- For other tools: use absolute paths, or make separate sequential Bash calls.
+- Prefer dedicated tools (Read, Grep, Glob) over Bash equivalents.
+
+---
+
 ## GIT BEHAVIOR (NIGHTTIME OVERRIDE)
 
 Nighttime mode uses **branch-per-task** workflow. This overrides the "don't create branches"

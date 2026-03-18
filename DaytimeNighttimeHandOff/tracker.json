@@ -353,7 +353,8 @@
     "commit_sha": "b5ca1c79576196ac01e6fffd6480339aee061c94",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["5 pre-existing test failures need fixing (ClaudeScorer refs, spacy/typer import, strategy llm arg, round-trip filter)"]
+    "flags": ["5 pre-existing test failures need fixing (ClaudeScorer refs, spacy/typer import, strategy llm arg, round-trip filter)"],
+    "daytime_reviewed": "2026-03-18T09:47:41"
   },
   {
     "task_id": "task-022",
@@ -369,6 +370,15 @@
     "commit_sha": "b6680aa143796980073e3fe783573cf7843a8453",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Experiment() constructor requires scorer param — script doesn't configure one (pre-existing issue)"]
+    "flags": ["Experiment() constructor requires scorer param — script doesn't configure one (pre-existing issue)"],
+    "daytime_reviewed": "2026-03-18T09:47:41"
+  },
+  {
+    "task_id": "task-023",
+    "description": "RunPod management module: create/terminate pods, GPU fallback, balance query, wait-for-ready",
+    "daytime_created": "2026-03-18T12:38:28",
+    "daytime_comments": "Deployment infrastructure only — lives in deploy/, does not touch src/. Uses RunPod REST API (not GraphQL SDK) for pod lifecycle, GraphQL only for balance queries. All API details and URLs are in the spec. requests library already installed.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

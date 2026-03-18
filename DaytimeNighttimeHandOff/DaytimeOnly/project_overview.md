@@ -68,7 +68,8 @@ low extrinsic) or terse but correct (low intrinsic, high extrinsic).
 
 RAGBench ships with gold-standard dataset loaders so users can calibrate their pipeline
 before running on their own data. Primary: HotpotQA (113K multi-hop Wikipedia Q&A pairs
-with gold answers and difficulty labels). Secondary: the project's Wikipedia sample with
+with gold answers and difficulty labels). Secondary: SQuAD 2.0 (simple factoid Q&A,
+easy baseline for calibration). Tertiary: the project's Wikipedia sample with
 template-generated queries (no gold answers — intrinsic only).
 
 ### "Best" is user-defined
@@ -84,27 +85,36 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 ### Done
 - [x] Core framework: protocols, retriever, experiment runner (tasks 001-005)
 - [x] Query generation and filtering pipeline (tasks 007-009, 011)
-- [x] Google text embedder (task 006)
+- [x] Google text embedder, migrated to google-genai SDK (tasks 006, 016)
 - [x] Portable setup scripts (task 010)
-- [x] ClaudeScorer: LLM-as-judge (task 012)
-- [x] Integration tests + E2E smoke tests (246 tests passing)
-
-### Next — Pre-experiment Hardening (queued for tonight)
-- [ ] SQuAD 2.0 dataset loader (task-015)
-- [ ] Migrate Google embedder to google-genai SDK (task-016)
-- [ ] Refactor ClaudeScorer → LLMScorer with provider adapters (task-017)
+- [x] LLMScorer: provider-agnostic LLM-as-judge with Anthropic + Google adapters (tasks 012, 017)
+- [x] HotpotQA dataset loader (task 013)
+- [x] SQuAD 2.0 dataset loader (task 015)
+- [x] Experiment timing: strategy/scorer/total latency columns + analysis (task 014)
+- [x] Hybrid retrieval: dense + BM25 with RRF fusion, 3 modes (task 019)
+- [x] LLM Protocol: abstract generation with Ollama + OpenAI-compatible adapters (task 020)
+- [x] Experiment 0 script written: scorer validation ready to run (task 018)
+- [x] All 20 tasks complete, all tests passing
+- [x] Tests consolidated into main `tests/` directory (task 021)
+- [x] CLI flags for chunker/embedder/dataset/retrieval-mode/llm-backend (task 022)
 
 ### Next — Experiments (requires GPU machine + Ollama)
-- [ ] Experiment 0: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 5 LLM judges (Gemini Flash, Gemini Pro, Claude Haiku, Claude Sonnet, Claude Opus). Measures inter-scorer agreement and correlation with gold answers. ~$1.10 total.
+- [ ] Experiment 0: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 5 LLM judges. Script ready (`scripts/run_experiment_0.py`).
 - [ ] Experiment 1: Strategy × Model Size — 5 strategies × 6 models = 30 configs. Held constant: Recursive chunker (500/100), mxbai-embed-large.
 - [ ] Experiment 2: Chunking × Model Size — 4 chunkers × 4 Qwen3 models = 16 configs. Held constant: NaiveRAG strategy, mxbai-embed-large.
+
+### Next — Infrastructure
+- [ ] Set up RunPod account, deploy GPU pod with Ollama
+- [ ] RunPod management layer: auto-start/stop, GPU fallback, budget display
+- [ ] Deploy experiment scripts to RunPod, pull models
 
 ### Next — Model & Endpoint
 - [ ] Train meta-learner on experiment results
 - [ ] FastAPI recommendation endpoint
 
 ### Next — Product
-- [ ] Findings gallery: website with key visualizations and insights
+- [ ] Findings gallery: static website with pre-computed visualizations (free hosting)
+- [ ] Live demo: "try it yourself" with 1B/4B models, budget-aware, auto-start/stop GPU
 - [ ] Builder docs: how to run your own experiments
 - [ ] Constraint-aware analysis: best config within latency/cost/size budgets
 
@@ -123,7 +133,7 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - Pluggable 4-axis experiment system: chunkers, embedders, strategies, models
 - Pluggable query generation (RAGAS, templates, human-curated, BEIR benchmarks)
 - Query validation pipeline (heuristic, round-trip, cross-encoder, distribution analysis)
-- Built-in gold-standard dataset loaders (HotpotQA, with room for more)
+- Built-in gold-standard dataset loaders (HotpotQA, SQuAD 2.0, with room for more)
 - ExperimentResult with analysis/visualization (heatmaps, comparisons, export)
 - Timing and cost tracking as first-class output dimensions
 - Dual evaluation: intrinsic (scorer vs context) + extrinsic (vs gold answers when available)
@@ -139,11 +149,18 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - Secondary corpus: SQuAD 2.0 (simple factoid, easy baseline) + Wikipedia sample
 - Scoring: LLMScorer — provider-agnostic (Anthropic or Google), choice informed by Experiment 0
 - Meta-learner: XGBoost predicting optimal configuration
-- FastAPI recommendation endpoint, deployed on Render
+- FastAPI recommendation endpoint
+
+**Infrastructure:**
+- RunPod GPU (prepaid, ~$0.17/hr on-demand) for experiments and live demo inference
+- Three-tier demo: free static frontend + traffic cop (auto-start/stop GPU) + RunPod backend
+- Live demo limited to 1B/4B models for speed and cost; gallery shows full results from all models
+- Budget-aware: website shows remaining credits, degrades to gallery-only when exhausted
 
 **Deliverables:**
 - Python package: the experiment engine (Builder audience)
 - Findings gallery: website with pre-computed insights and visualizations (Explorer audience)
+- Live demo: "try it yourself" with small models (budget-capped)
 - Academic paper: experiments, methodology, results
 
 ### Out of Scope
@@ -217,3 +234,7 @@ Validated Queries × (Chunker × Embedder × Strategy × Model) → Answers
 | 2026-03-17 | SQuAD 2.0 as secondary gold dataset | Easy-baseline calibration alongside HotpotQA | Add SQuAD loader |
 | 2026-03-17 | Hybrid retrieval (dense + BM25 + RRF) as default | Dense-only misses keyword matches; hybrid is production standard; NDCG +26-31% | Retriever upgrade, held constant for experiments |
 | 2026-03-17 | LLM Protocol: Ollama + OpenAI-compatible | Strategies hardcoded Ollama; users need LM Studio/vLLM/OpenAI support | Refactor all 5 strategies to accept LLM interface |
+| 2026-03-18 | All 20 tasks merged to main | Pipeline fully built: hybrid retrieval, LLM protocol, LLMScorer, SQuAD, timing, experiment 0 script | Ready for experiments once Ollama is set up |
+| 2026-03-18 | All 22 tasks merged, 369 tests passing | Test consolidation + CLI flags complete | Housekeeping done |
+| 2026-03-18 | RunPod as GPU provider, three-tier demo architecture | No local GPU; RunPod is prepaid (no cost risk), has API for auto-start/stop | Infrastructure setup needed before experiments |
+| 2026-03-18 | Live demo limited to 1B/4B models | Fast responses for demo UX + cost control; gallery shows full results | Demo and gallery are separate concerns |

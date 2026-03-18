@@ -49,6 +49,11 @@ VALID_EMBEDDERS = {"ollama", "huggingface", "google"}
 VALID_DATASETS = {"hotpotqa", "squad"}
 VALID_RETRIEVAL_MODES = {"hybrid", "dense", "sparse"}
 VALID_LLM_BACKENDS = {"ollama", "openai-compat"}
+VALID_SCORER_PROVIDERS = {"anthropic", "google"}
+DEFAULT_SCORER_MODELS = {
+    "google": "gemini-2.0-flash",
+    "anthropic": "claude-haiku-4-5-20251001",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -163,6 +168,17 @@ Examples:
         default=None,
         help="Base URL for openai-compat backend (default: http://localhost:1234/v1). Ignored unless --llm-backend is openai-compat.",
     )
+    parser.add_argument(
+        "--scorer",
+        type=str,
+        default="google:gemini-2.0-flash",
+        help=(
+            "Scorer as provider:model. "
+            f"Providers: {', '.join(sorted(VALID_SCORER_PROVIDERS))}. "
+            "Default: google:gemini-2.0-flash. "
+            "Requires GOOGLE_API_KEY or ANTHROPIC_API_KEY env var."
+        ),
+    )
 
     args = parser.parse_args()
     _validate_args(args)
@@ -219,6 +235,20 @@ def _validate_args(args: argparse.Namespace) -> None:
     # Warn if --llm-base-url provided without openai-compat
     if args.llm_base_url and llm_backend != "openai-compat":
         print("WARNING: --llm-base-url is ignored unless --llm-backend is openai-compat")
+
+    # Validate --scorer
+    if ":" not in args.scorer:
+        print(f"ERROR: --scorer must be provider:model (e.g., google:gemini-2.0-flash). Got: '{args.scorer}'")
+        sys.exit(1)
+    scorer_provider = args.scorer.split(":", 1)[0]
+    if scorer_provider not in VALID_SCORER_PROVIDERS:
+        print(f"ERROR: Unknown scorer provider '{scorer_provider}'. Valid: {', '.join(sorted(VALID_SCORER_PROVIDERS))}")
+        sys.exit(1)
+    # Check for required API key
+    key_env = {"google": "GOOGLE_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
+    if not os.environ.get(key_env[scorer_provider]):
+        print(f"ERROR: --scorer {scorer_provider} requires {key_env[scorer_provider]} environment variable.")
+        sys.exit(1)
 
 
 def find_corpus(corpus_arg: str | None) -> Path | None:
@@ -321,6 +351,20 @@ def _build_chunkers(args: argparse.Namespace) -> list:
     else:
         # Default: semantic, fixed, recursive (original behavior)
         return [SemanticChunker(), FixedSizeChunker(), RecursiveChunker()]
+
+
+def _build_scorer(args: argparse.Namespace):
+    """Build the scorer from --scorer flag.
+
+    Args:
+        args: Parsed command-line arguments.
+
+    Returns:
+        An LLMScorer instance.
+    """
+    from src.scorers import LLMScorer
+    provider, model = args.scorer.split(":", 1)
+    return LLMScorer(provider=provider, model=model)
 
 
 def build_components(
@@ -466,6 +510,7 @@ def main() -> None:
 
     # Build components
     chunkers, embedders, strategies, models = build_components(args)
+    scorer = _build_scorer(args)
 
     # Get retrieval mode
     retrieval_mode = getattr(args, "retrieval_mode", "hybrid")
@@ -474,6 +519,7 @@ def main() -> None:
     print(f"Embedders:      {[e.name for e in embedders]}")
     print(f"Strategies:     {[s.name for s in strategies]}")
     print(f"Models:         {models}")
+    print(f"Scorer:         {scorer.name}")
     print(f"Retrieval mode: {retrieval_mode}")
     total_configs = len(chunkers) * len(embedders) * len(strategies) * len(models)
     print(f"Total configurations: {total_configs}")
@@ -497,6 +543,7 @@ def main() -> None:
         embedders=embedders,
         strategies=strategies,
         models=models,
+        scorer=scorer,
         retrieval_mode=retrieval_mode,
     )
 
