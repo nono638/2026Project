@@ -315,6 +315,7 @@
     "daytime_created": "2026-03-17T21:53:01",
     "daytime_comments": "Touches all 5 strategy files + run_experiment.py. Mechanical refactor — same pattern applied 5 times. No new dependencies (ollama and openai already installed). OpenAI-compatible adapter covers LM Studio, vLLM, llama.cpp server.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-18T00:10:21"
   }
 ]
