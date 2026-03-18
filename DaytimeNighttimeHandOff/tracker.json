@@ -243,8 +243,15 @@
     "daytime_created": "2026-03-17T14:58:15",
     "daytime_comments": "Same pattern as HotpotQA loader. Easy-baseline gold dataset for calibration. Skips unanswerable questions. Stratifies by article title (442 unique articles).",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-17T23:28:25"
+    "status": "done",
+    "nighttime_started": "2026-03-17T23:28:25",
+    "nighttime_completed": "2026-03-17T23:39:56",
+    "nighttime_comments": "SQuAD 2.0 loader with stratified sampling by article title. 21 tests pass.",
+    "branch": "night/task-015-squad-loader",
+    "commit_sha": "cafbdeda93943826e9458e4060ebb990893137e0",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["datasets==4.7.0 was not installed in venv despite being in requirements.txt"]
   },
   {
     "task_id": "task-016",
