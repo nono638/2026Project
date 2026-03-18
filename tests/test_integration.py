@@ -38,7 +38,7 @@ class TestImportHealth:
         from src.strategies import CorrectiveRAG, AdaptiveRAG
 
     def test_import_scorers(self):
-        from src.scorers import ClaudeScorer
+        from src.scorers import LLMScorer
 
     def test_import_query_pipeline(self):
         from src.document import Document, load_corpus_from_csv, sample_corpus
@@ -91,12 +91,12 @@ class TestProtocolCompliance:
         assert isinstance(e, Embedder), "HuggingFaceEmbedder doesn't satisfy Embedder"
 
     def test_scorer_protocol_shape(self):
-        """ClaudeScorer satisfies Scorer protocol (checked structurally, not instantiated
-        because it hits the Anthropic API on init)."""
-        from src.scorers.claude import ClaudeScorer
+        """LLMScorer satisfies Scorer protocol (checked structurally, not instantiated
+        because it hits external APIs on init)."""
+        from src.scorers.llm import LLMScorer
         # Check the class has the required methods/properties
-        assert hasattr(ClaudeScorer, "name")
-        assert hasattr(ClaudeScorer, "score")
+        assert hasattr(LLMScorer, "name")
+        assert hasattr(LLMScorer, "score")
 
 
 # ---------------------------------------------------------------------------

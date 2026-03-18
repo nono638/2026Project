@@ -130,9 +130,13 @@ class TestProtocolCompliance:
 
     def test_all_strategies_protocol(self) -> None:
         """All strategies should satisfy the Strategy protocol."""
-        assert isinstance(MultiQueryRAG(), Strategy)
-        assert isinstance(CorrectiveRAG(), Strategy)
-        assert isinstance(AdaptiveRAG(), Strategy)
+        # Strategies require an LLM instance after task-020 refactored them
+        from unittest.mock import MagicMock
+        mock_llm = MagicMock()
+        mock_llm.name = "mock:llm"
+        assert isinstance(MultiQueryRAG(llm=mock_llm), Strategy)
+        assert isinstance(CorrectiveRAG(llm=mock_llm), Strategy)
+        assert isinstance(AdaptiveRAG(llm=mock_llm), Strategy)
 
     def test_huggingface_embedder_protocol(self) -> None:
         """HuggingFaceEmbedder should satisfy the Embedder protocol."""
