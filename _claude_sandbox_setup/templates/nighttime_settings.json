@@ -67,7 +67,24 @@
       "Bash(rm *.txt)",
       "Bash(rm *.json)",
       "Bash(rm *.csv)",
-      "Bash(rm *.log)"
+      "Bash(rm *.log)",
+      "Bash(pwd)",
+      "Bash(pwd *)",
+      "Bash(date)",
+      "Bash(date *)",
+      "Bash(which *)",
+      "Bash(command *)",
+      "Bash(diff *)",
+      "Bash(printf *)",
+      "Bash(tr *)",
+      "Bash(cut *)",
+      "Bash(tee *)",
+      "Bash(xargs *)",
+      "Bash(seq *)",
+      "Bash(realpath *)",
+      "Bash(basename *)",
+      "Bash(dirname *)",
+      "Bash(env *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -153,6 +170,10 @@
           {
             "type": "command",
             "command": "python \".claude/hooks/staging_guard.py\""
+          },
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/compound_command_guard.py\""
           }
         ]
       },

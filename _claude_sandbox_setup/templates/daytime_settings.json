@@ -74,7 +74,26 @@
       "Bash(rm *.txt)",
       "Bash(rm *.json)",
       "Bash(rm *.csv)",
-      "Bash(rm *.log)"
+      "Bash(rm *.log)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(pwd)",
+      "Bash(pwd *)",
+      "Bash(date)",
+      "Bash(date *)",
+      "Bash(which *)",
+      "Bash(command *)",
+      "Bash(diff *)",
+      "Bash(printf *)",
+      "Bash(tr *)",
+      "Bash(cut *)",
+      "Bash(tee *)",
+      "Bash(xargs *)",
+      "Bash(seq *)",
+      "Bash(realpath *)",
+      "Bash(basename *)",
+      "Bash(dirname *)",
+      "Bash(env *)"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -86,7 +105,6 @@
       "Bash(format *)",
       "Bash(git push --force*)",
       "Bash(git push -f *)",
-      "Bash(git push*)",
       "Bash(git reset --hard*)",
       "Bash(git clean -f*)",
       "Bash(git checkout -- .)",
@@ -109,8 +127,6 @@
       "Bash(powershell*Format-Volume*)",
       "Bash(powershell*Clear-Disk*)",
       "Bash(powershell*Set-ExecutionPolicy*)",
-      "Bash(curl *)",
-      "Bash(wget *)",
       "Bash(Invoke-WebRequest*)",
       "Bash(Invoke-RestMethod*)",
       "Bash(powershell*Invoke-WebRequest*)",
@@ -143,6 +159,15 @@
           {
             "type": "command",
             "command": "python \".claude/hooks/directory_guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \".claude/hooks/compound_command_guard.py\""
           }
         ]
       }
