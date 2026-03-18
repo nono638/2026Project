@@ -78,7 +78,7 @@ class Scorer(Protocol):
 
     @property
     def name(self) -> str:
-        """Unique identifier (e.g., 'claude:claude-sonnet-4-20250514')."""
+        """Unique identifier (e.g., 'anthropic:claude-sonnet-4-20250514')."""
         ...
 
     def score(self, query: str, context: str, answer: str) -> dict[str, float]:
