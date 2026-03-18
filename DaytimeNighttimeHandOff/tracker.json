@@ -275,7 +275,8 @@
     "daytime_created": "2026-03-17T15:23:11",
     "daytime_comments": "Provider-agnostic scoring. Adapter factory pattern — each provider is a small callable. Anthropic + Google initially, extensible to OpenAI/Ollama. No backwards-compat alias for ClaudeScorer.",
     "depends_on": ["task-016"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T23:53:33"
   },
   {
     "task_id": "task-018",
