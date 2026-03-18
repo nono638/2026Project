@@ -35,6 +35,7 @@ class Experiment:
         strategies: list[Strategy],
         scorer: Scorer,
         top_k: int = 5,
+        retrieval_mode: str = "hybrid",
     ) -> None:
         """Initialize the experiment with component lists.
 
@@ -45,10 +46,17 @@ class Experiment:
             strategies: List of Strategy implementations to test.
             scorer: A single Scorer implementation for evaluating answers.
             top_k: Number of chunks to retrieve per query.
+            retrieval_mode: Retrieval mode — "hybrid", "dense", or "sparse".
 
         Raises:
             TypeError: If any component doesn't implement its Protocol.
+            ValueError: If retrieval_mode is invalid.
         """
+        if retrieval_mode not in ("hybrid", "dense", "sparse"):
+            raise ValueError(
+                f"Invalid retrieval_mode '{retrieval_mode}'. "
+                "Must be one of: ('hybrid', 'dense', 'sparse')"
+            )
         # Validate protocols at init time for clear error messages
         for c in chunkers:
             if not isinstance(c, Chunker):
@@ -68,6 +76,7 @@ class Experiment:
         self._strategies = strategies
         self._scorer = scorer
         self._top_k = top_k
+        self._retrieval_mode = retrieval_mode
         self._documents: list[dict] = []
         self._queries: list[dict] = []
 
@@ -119,7 +128,8 @@ class Experiment:
                     cache_key = (doc_hash, chunker.name, embedder.name)
                     if cache_key not in index_cache:
                         index_cache[cache_key] = Retriever(
-                            chunks, embedder, self._top_k
+                            chunks, embedder, self._top_k,
+                            mode=self._retrieval_mode,
                         )
                     retriever = index_cache[cache_key]
 
