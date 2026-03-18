@@ -379,7 +379,14 @@
     "daytime_created": "2026-03-18T12:38:28",
     "daytime_comments": "Deployment infrastructure only — lives in deploy/, does not touch src/. Uses RunPod REST API (not GraphQL SDK) for pod lifecycle, GraphQL only for balance queries. All API details and URLs are in the spec. requests library already installed.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-18T13:04:43"
+    "status": "done",
+    "nighttime_started": "2026-03-18T13:04:43",
+    "nighttime_completed": "2026-03-18T13:11:11",
+    "nighttime_comments": "RunPodManager with create/terminate/get/list pods, wait_for_ready, get_balance, get_spend_per_hour. 16 tests pass.",
+    "branch": "night/task-023-runpod-manager",
+    "commit_sha": "af9468c294db6183b1119de6eb42843fa9a9382e",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   }
 ]
