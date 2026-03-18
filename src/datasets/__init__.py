@@ -8,5 +8,6 @@ into RAGBench's Document + Query format.
 from __future__ import annotations
 
 from src.datasets.hotpotqa import load_hotpotqa, sample_hotpotqa
+from src.datasets.squad import load_squad, sample_squad
 
-__all__ = ["load_hotpotqa", "sample_hotpotqa"]
+__all__ = ["load_hotpotqa", "sample_hotpotqa", "load_squad", "sample_squad"]
