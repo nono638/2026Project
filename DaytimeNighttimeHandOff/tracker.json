@@ -243,7 +243,8 @@
     "daytime_created": "2026-03-17T14:58:15",
     "daytime_comments": "Same pattern as HotpotQA loader. Easy-baseline gold dataset for calibration. Skips unanswerable questions. Stratifies by article title (442 unique articles).",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-17T23:28:25"
   },
   {
     "task_id": "task-016",
