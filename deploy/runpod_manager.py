@@ -92,8 +92,7 @@ class RunPodManager:
             image_name: Docker image to run.
             ports: Ports to expose. Defaults to Ollama (11434) + FastAPI (8000).
             volume_gb: Volume size in GB. Defaults to 20.
-            env: Environment variables as a flat dict. Converted to RunPod's
-                list-of-dicts format: [{"key": k, "value": v}, ...].
+            env: Environment variables as a flat dict (e.g., {"KEY": "value"}).
             gpu_types: Ordered GPU fallback list. Overrides constructor default.
 
         Returns:
@@ -105,9 +104,6 @@ class RunPodManager:
         gpu_list = gpu_types or self._default_gpu_types
         port_list = ports or DEFAULT_PORTS
 
-        # Convert flat dict to RunPod's env format
-        env_list = [{"key": k, "value": v} for k, v in env.items()] if env else []
-
         body = {
             "name": name,
             "imageName": image_name,
@@ -116,8 +112,8 @@ class RunPodManager:
             "gpuCount": 1,
             "volumeInGb": volume_gb,
             "ports": port_list,
-            "cloudType": "ALL",  # Search both secure and community cloud
-            "env": env_list,
+            "cloudType": "COMMUNITY",
+            "env": env or {},
         }
 
         logger.info("Creating pod '%s' with GPU fallback: %s", name, gpu_list)
@@ -242,33 +238,45 @@ class RunPodManager:
         self,
         pod_id: str,
         timeout_s: int = 300,
-        poll_interval_s: int = 5,
+        poll_interval_s: int = 10,
     ) -> bool:
         """Poll until pod is running and ready.
 
-        Checks that desiredStatus is RUNNING and runtime is populated,
-        indicating the pod is actually serving requests.
+        Uses the GraphQL API to check for the runtime field, which is only
+        populated once the container is actually serving. The REST API does
+        not expose this field.
 
         Args:
             pod_id: RunPod pod ID.
             timeout_s: Maximum seconds to wait. Defaults to 300 (5 min).
-            poll_interval_s: Seconds between polls. Defaults to 5.
+            poll_interval_s: Seconds between polls. Defaults to 10.
 
         Returns:
             True if pod became ready within timeout, False otherwise.
         """
         logger.info("Waiting for pod %s to be ready (timeout=%ds)", pod_id, timeout_s)
         elapsed = 0
+        query = (
+            '{ pod(input: {podId: "' + pod_id + '"}) {'
+            "  id desiredStatus runtime { uptimeInSeconds }"
+            "} }"
+        )
 
         while elapsed < timeout_s:
-            pod = self.get_pod(pod_id)
-            if pod is None:
-                logger.warning("Pod %s disappeared while waiting", pod_id)
-                return False
+            try:
+                data = self._graphql_query(query)
+                pod = data.get("pod")
+                if pod is None:
+                    logger.warning("Pod %s disappeared while waiting", pod_id)
+                    return False
 
-            if pod.get("desiredStatus") == "RUNNING" and pod.get("runtime") is not None:
-                logger.info("Pod %s is ready", pod_id)
-                return True
+                runtime = pod.get("runtime")
+                if pod.get("desiredStatus") == "RUNNING" and runtime is not None:
+                    logger.info("Pod %s is ready (uptime: %ss)",
+                                pod_id, runtime.get("uptimeInSeconds", "?"))
+                    return True
+            except RunPodError as exc:
+                logger.debug("GraphQL poll error (retrying): %s", exc)
 
             time.sleep(poll_interval_s)
             elapsed += poll_interval_s

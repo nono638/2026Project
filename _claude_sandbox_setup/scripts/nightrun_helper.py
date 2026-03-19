@@ -123,8 +123,14 @@ def show_summary(tracker_path: str, session_start_iso: str | None = None) -> Non
 
 
 def print_timestamp() -> None:
-    """Print the current UTC time as an ISO timestamp for session tracking."""
-    print(datetime.now(timezone.utc).isoformat())
+    """Print the current local time as an ISO timestamp for session tracking.
+
+    Uses local time (naive) to match the convention used by the nighttime
+    instance when writing nighttime_completed timestamps to tracker.json.
+    Using UTC here caused _completed_this_session() to miscompare against
+    local-time completion stamps, resulting in 'Done tonight: 0'.
+    """
+    print(datetime.now().isoformat(timespec="seconds"))
 
 
 # ---------------------------------------------------------------------------
