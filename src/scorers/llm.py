@@ -166,6 +166,7 @@ class LLMScorer:
         provider: str,
         model: str,
         api_key: str | None = None,
+        cost_guard: Any | None = None,
     ) -> None:
         """Initialize with provider and model.
 
@@ -176,12 +177,16 @@ class LLMScorer:
             provider: LLM provider name ("anthropic" or "google").
             model: Model ID (e.g., "claude-sonnet-4-20250514", "gemini-2.5-flash").
             api_key: API key. If None, the provider SDK resolves from env vars.
+            cost_guard: Optional CostGuard instance for tracking API spend.
+                        If provided, record_call() is invoked after each successful
+                        API call. CostLimitExceeded propagates to the caller.
 
         Raises:
             ScorerError: If the provider is unknown or client initialization fails.
         """
         self._provider = provider
         self._model = model
+        self._cost_guard = cost_guard
         self._last_reasoning: dict[str, str] | None = None
 
         try:
@@ -230,6 +235,10 @@ class LLMScorer:
             raise ScorerError(
                 f"{self._provider} API call failed: {exc}"
             ) from exc
+
+        # Track API spend if a cost guard is attached
+        if self._cost_guard is not None:
+            self._cost_guard.record_call(self._provider, self._model)
 
         scores = self._parse_response(text)
 
