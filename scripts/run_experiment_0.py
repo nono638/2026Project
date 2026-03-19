@@ -156,6 +156,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--ollama-host", type=str, default=None,
                         help="Ollama server URL (default: localhost:11434). "
                              "Use RunPod proxy URL for remote GPU.")
+    parser.add_argument("--max-cost", type=float, default=5.0,
+                        help="Maximum estimated API spend in USD before aborting (default: $5.00)")
     return parser.parse_args()
 
 
@@ -228,12 +230,14 @@ def generate_answers(
 def score_all_answers(
     answers: list[dict],
     output_dir: Path,
+    cost_guard: object | None = None,
 ) -> pd.DataFrame:
     """Score each answer with all available LLM judges.
 
     Args:
         answers: List of dicts from generate_answers().
         output_dir: Directory for output files.
+        cost_guard: Optional CostGuard instance for tracking API spend.
 
     Returns:
         DataFrame with all base columns + scorer columns.
@@ -244,7 +248,7 @@ def score_all_answers(
     scorers = []
     for config in JUDGE_CONFIGS:
         try:
-            scorer = LLMScorer(**config)
+            scorer = LLMScorer(**config, cost_guard=cost_guard)
             scorers.append(scorer)
             logger.info("Initialized scorer: %s", scorer.name)
         except (ScorerError, Exception) as exc:
@@ -438,6 +442,7 @@ def main() -> None:
     print(f"  Seed:              {args.seed}")
     print(f"  Output:            {output_dir}")
     print(f"  Skip generation:   {args.skip_generation}")
+    print(f"  Max API cost:      ${args.max_cost:.2f}")
     print()
 
     # Step 1: Load HotpotQA
@@ -477,11 +482,25 @@ def main() -> None:
         answers = answers_df.to_dict("records")
         logger.info("Loaded %d answers.", len(answers))
 
-    # Step 4: Score all answers with 5 judges
-    logger.info("Scoring with %d judges...", len(JUDGE_CONFIGS))
-    results_df = score_all_answers(answers, output_dir)
+    # Step 4: Score all answers with judges (with cost guard)
+    from src.cost_guard import CostGuard, CostLimitExceeded
 
-    # Save raw scores
+    cost_guard = CostGuard(max_cost_usd=args.max_cost)
+    logger.info("Scoring with %d judges (cost limit: $%.2f)...",
+                len(JUDGE_CONFIGS), args.max_cost)
+
+    cost_limit_hit = False
+    try:
+        results_df = score_all_answers(answers, output_dir, cost_guard=cost_guard)
+    except CostLimitExceeded as exc:
+        logger.error("COST LIMIT REACHED: %s", exc)
+        logger.error("Saving partial results...")
+        cost_limit_hit = True
+        # Partial results — score_all_answers doesn't return on exception,
+        # so we build a minimal DataFrame from the raw answers
+        results_df = pd.DataFrame(answers)
+
+    # Save raw scores (full or partial)
     results_df.to_csv(raw_scores_path, index=False)
     logger.info("Saved raw scores to %s", raw_scores_path)
 
@@ -500,6 +519,11 @@ def main() -> None:
 
     # Print report to stdout
     print("\n" + report)
+
+    # Print cost summary
+    print(f"\nAPI cost summary: {cost_guard.summary()} (limit: ${args.max_cost:.2f})")
+    if cost_limit_hit:
+        print("WARNING: Cost limit was reached — results are partial.")
 
     print("\n" + "=" * 60)
     print("Experiment 0 complete.")
