@@ -23,18 +23,15 @@
 
 ## Active
 
-## Document characterization features for meta-learner
+## Document characterization features for meta-learner — PROMOTED 2026-03-19
+**Promoted to:** Implemented directly during daytime session (commit 47f9f5b). Five features added to `src/features.py`, 13 tests in `tests/test_doc_features.py`.
+
+## Configurable feature groups for meta-learner training
 **Captured:** 2026-03-19
 **Last reviewed:** 2026-03-19
-**Context:** The current meta-learner uses 6 features (query_length, num_named_entities, doc_length, doc_vocab_entropy, mean/var_retrieval_score). The doc-level features are shallow — just length and vocab entropy. The hypothesis is that document content characteristics predict which RAG config works best: entity-dense legal text needs different chunking/strategy than narrative prose or poetry. No published research does this (see reference/research.md "Document Characterization for RAG Configuration Selection"). Candidate features:
-1. **NER density** — distinct entities per 1000 tokens (spaCy NER). High = structured/factual, low = narrative/abstract.
-2. **NER repetition ratio** — total NER mentions / distinct entities. High = document revisits same entities (good for RAG — retrieval finds relevant chunks). Low = many one-off mentions (harder to retrieve coherently).
-3. **Topic density** — topics per 1000 tokens via TopicRank or LDA. High = covers many subjects (harder retrieval), low = focused (easier).
-4. **Embedding cluster count** — KNN/spectral clustering on chunk embeddings, count clusters. Measures semantic diversity within the document.
-5. **Semantic coherence** — average cosine similarity between consecutive chunk embeddings. High = smooth flow (narrative), low = jumpy (reference material).
-These go into `src/features.py` alongside existing features, become columns in experiment results, and feed the meta-learner. The key question: do these features actually predict which strategy/model/chunker wins?
-**Next trigger:** Experiment 0 results exist. Ready to enrich the feature vector before Experiments 1 and 2.
-**Blocked by:** Nothing — could be implemented now, but experiments need to run to validate predictive value.
+**Context:** The meta-learner's feature vector now has 11 features across 4 logical groups: query (2), doc-basic (2), doc-content (5, the new NER/topic/coherence features), retrieval (2). Not all users will want all groups — some may view document "peeking" as non-standard, and multimodal inputs would make text-based NER/topic features irrelevant (images/video have no NER). Decision: always compute all features during experiments (data is cheap, rerunning isn't), but make the meta-learner training step configurable about which feature groups to include. This also enables the research comparison: "doc characterization features improved accuracy by X%." XGBoost handles missing values natively, so a single model could even handle mixed text/multimodal inputs where content features are NaN.
+**Next trigger:** Meta-learner training code is being written.
+**Blocked by:** Nothing — but no value in building this until the training pipeline exists.
 
 ## Multimodal embedding support
 **Captured:** 2026-03-16
