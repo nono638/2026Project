@@ -1,16 +1,25 @@
-"""Experiment 0: Scorer Validation — compare 5 LLM judges.
+"""Experiment 0: Scorer Validation — compare up to 6 LLM judges (4 Gemini + 2 Claude).
 
 Generates 50 RAG answers using NaiveRAG + Qwen3 4B on HotpotQA, then scores
-each answer with 5 LLM judges (Gemini Flash, Gemini Pro, Claude Haiku,
-Claude Sonnet, Claude Opus). Produces a comparison report showing:
+each answer with up to 6 LLM judges. Gemini judges run via free Google AI Studio;
+Anthropic judges are optional and skipped if ANTHROPIC_API_KEY is not set.
+
+Judges (in order):
+  - gemini-2.5-flash-lite  (cheapest baseline)
+  - gemini-2.5-flash
+  - gemini-2.5-pro
+  - claude-haiku-4-5        (optional)
+  - claude-sonnet-4         (optional)
+
+Produces a comparison report showing:
 - Per-judge mean scores
 - Inter-scorer correlation matrix (Pearson on quality)
 - Each judge's correlation with gold F1
 - Cost breakdown
 
 This is the methodological safety net — it tells us whether cheap scorers
-(Gemini Flash) give meaningfully different results than expensive ones
-(Claude Opus).
+(Gemini Flash-Lite, Flash) give meaningfully different results than expensive
+ones (Gemini Pro, Claude).
 
 Usage:
     python scripts/run_experiment_0.py                          # full run
@@ -52,11 +61,13 @@ logger = logging.getLogger(__name__)
 # Scorer configurations — 5 LLM judges
 # ---------------------------------------------------------------------------
 JUDGE_CONFIGS = [
+    # Gemini judges (free via Google AI Studio)
+    {"provider": "google", "model": "gemini-2.5-flash-lite"},
     {"provider": "google", "model": "gemini-2.5-flash"},
     {"provider": "google", "model": "gemini-2.5-pro"},
+    # Anthropic judges (optional — skipped if ANTHROPIC_API_KEY not set)
     {"provider": "anthropic", "model": "claude-haiku-4-5-20251001"},
     {"provider": "anthropic", "model": "claude-sonnet-4-20250514"},
-    {"provider": "anthropic", "model": "claude-opus-4-6"},
 ]
 
 
@@ -130,7 +141,7 @@ def parse_args() -> argparse.Namespace:
         Parsed argument namespace.
     """
     parser = argparse.ArgumentParser(
-        description="Experiment 0: Scorer Validation — compare 5 LLM judges on HotpotQA.",
+        description="Experiment 0: Scorer Validation — compare up to 6 LLM judges on HotpotQA.",
     )
     parser.add_argument("--n", type=int, default=50,
                         help="Number of HotpotQA examples (default: 50)")
@@ -218,7 +229,7 @@ def score_all_answers(
     answers: list[dict],
     output_dir: Path,
 ) -> pd.DataFrame:
-    """Score each answer with all 5 LLM judges.
+    """Score each answer with all available LLM judges.
 
     Args:
         answers: List of dicts from generate_answers().
@@ -243,6 +254,16 @@ def score_all_answers(
     if not scorers:
         logger.error("No scorers available. Check API keys.")
         sys.exit(1)
+
+    # Report which scorers were initialized vs skipped
+    initialized_names = [s.name for s in scorers]
+    all_names = [f"{c['provider']}:{c['model']}" for c in JUDGE_CONFIGS]
+    skipped_names = [n for n in all_names if n not in initialized_names]
+    logger.info("Initialized %d/%d judges: %s",
+                len(scorers), len(JUDGE_CONFIGS), ", ".join(initialized_names))
+    if skipped_names:
+        logger.info("Skipped %d judges (missing API keys): %s",
+                     len(skipped_names), ", ".join(skipped_names))
 
     # Build result rows
     rows = []
@@ -364,11 +385,11 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
 
     # Rough per-call cost estimates (input + output for ~500 token prompt)
     cost_estimates = {
+        "google:gemini-2.5-flash-lite": 0.00005,
         "google:gemini-2.5-flash": 0.0001,
         "google:gemini-2.5-pro": 0.001,
         "anthropic:claude-haiku-4-5-20251001": 0.001,
         "anthropic:claude-sonnet-4-20250514": 0.005,
-        "anthropic:claude-opus-4-6": 0.025,
     }
 
     n_examples = len(df)
@@ -388,8 +409,8 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
     # Recommendation
     lines.append("\n## Recommendation\n")
     lines.append("*Review the correlation matrix and gold-F1 correlations above.*")
-    lines.append("If cheap scorers (Gemini Flash) correlate highly with expensive ones")
-    lines.append("(Claude Opus), use the cheap scorer for Experiments 1 & 2 to save cost.")
+    lines.append("If cheap scorers (Gemini Flash-Lite, Flash) correlate highly with expensive ones")
+    lines.append("(Gemini Pro, Claude), use the cheap scorer for Experiments 1 & 2 to save cost.")
     lines.append("If correlations are low, investigate which scorer best predicts gold F1.\n")
 
     return "\n".join(lines)
