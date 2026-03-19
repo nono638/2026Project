@@ -20,14 +20,17 @@ class OllamaEmbedder:
     Implements the Embedder protocol from src.protocols.
     """
 
-    def __init__(self, model: str = "mxbai-embed-large") -> None:
-        """Initialize with the Ollama model name.
+    def __init__(self, model: str = "mxbai-embed-large", host: str | None = None) -> None:
+        """Initialize with the Ollama model name and optional remote host.
 
         Args:
             model: Name of the Ollama embedding model to use.
+            host: Ollama server URL. None uses the default localhost:11434.
+                  Pass a RunPod proxy URL for remote GPU embeddings.
         """
         self._model = model
-        self._client = Client()
+        # Match the pattern used by OllamaLLM — pass host only when specified
+        self._client = Client(host=host) if host else Client()
         self._dimension: int | None = None
 
     @property

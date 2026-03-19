@@ -169,6 +169,15 @@ Examples:
         help="Base URL for openai-compat backend (default: http://localhost:1234/v1). Ignored unless --llm-backend is openai-compat.",
     )
     parser.add_argument(
+        "--ollama-host",
+        type=str,
+        default=None,
+        help=(
+            "Ollama server URL (default: localhost:11434). "
+            "Use RunPod proxy URL for remote GPU."
+        ),
+    )
+    parser.add_argument(
         "--scorer",
         type=str,
         default="google:gemini-2.0-flash",
@@ -297,9 +306,9 @@ def _build_llm(args: argparse.Namespace):
             kwargs["base_url"] = args.llm_base_url
         return OpenAICompatibleLLM(**kwargs)
     else:
-        # Default: Ollama
+        # Default: Ollama — pass host for remote Ollama support
         from src.llms import OllamaLLM
-        return OllamaLLM()
+        return OllamaLLM(host=getattr(args, "ollama_host", None))
 
 
 def _build_embedder(args: argparse.Namespace):
@@ -318,9 +327,9 @@ def _build_embedder(args: argparse.Namespace):
         from src.embedders import GoogleTextEmbedder
         return GoogleTextEmbedder()
     else:
-        # Default: Ollama
+        # Default: Ollama — pass host for remote Ollama support
         from src.embedders import OllamaEmbedder
-        return OllamaEmbedder()
+        return OllamaEmbedder(host=getattr(args, "ollama_host", None))
 
 
 def _build_chunkers(args: argparse.Namespace) -> list:
