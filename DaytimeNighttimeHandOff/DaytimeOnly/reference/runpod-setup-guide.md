@@ -4,7 +4,7 @@ This guide walks you through everything from creating a RunPod account to having
 Experiment 0 results on your screen. No prior cloud GPU experience required.
 
 **Time estimate:** ~30 minutes of your time (plus ~40-60 minutes of automated experiment
-runtime). **Cost estimate:** ~$1.80 total ($0.15 GPU + $1.60 LLM scoring APIs).
+runtime). **Cost estimate:** ~$0.60 total ($0.27 GPU + $0.30 LLM scoring APIs via Gemini).
 
 ---
 
@@ -68,8 +68,8 @@ surprise bill.
 4. Enter the amount:
    - **Minimum deposit: $10.** This is enough to try things out.
    - **Recommended for RAGBench: $25.** This gives you roughly:
-     - ~150 hours on an RTX A4000 ($0.17/hr)
-     - ~70 hours on an RTX 4090 ($0.34/hr)
+     - ~90 hours on an RTX A5000 ($0.27/hr)
+     - ~40 hours on an RTX 4090 ($0.59/hr)
      - Plenty for Experiments 0, 1, and 2 plus demo time
    - You can always add more later.
 5. Complete the payment.
@@ -252,7 +252,7 @@ Verifying Ollama is serving...
   Pod is ready for experiments!
   Pod ID:     abc123xyz
   Ollama URL: https://abc123xyz-11434.proxy.runpod.net
-  Spend rate: $0.17/hr
+  Spend rate: ~$0.27/hr
   Balance:    $24.95
 ========================================
 
@@ -276,8 +276,8 @@ The script:
 
 ### If it fails
 
-- **"No GPUs available"** — all A4000s are sold out. Wait 10 minutes and retry, or the
-  script will fall back to RTX 3090 or RTX 4090 automatically.
+- **"No GPUs available"** — all A5000s are sold out. Wait 10 minutes and retry, or the
+  script will fall back to RTX 4000 Ada, A4000, or RTX 4090 automatically.
 - **"Timeout waiting for pod"** — the pod is slow to start. Check
   https://console.runpod.io/pods — if it shows "Pending", just wait.
 - **"Model pull failed"** — the pod is running but model download failed. Re-run the
@@ -359,8 +359,8 @@ Replace `abc123xyz` with your actual pod ID.
 2. **Generates 50 RAG answers** using Qwen3-4B on your RunPod GPU (~15-20 minutes)
    - Progress shows as `[1/50]`, `[2/50]`, etc.
    - Each query: chunks the document, embeds it, retrieves relevant chunks, generates answer
-3. **Scores all 50 answers with 5 judges** (~20-40 minutes)
-   - Gemini Flash, Gemini Pro, Claude Haiku, Claude Sonnet, Claude Opus
+3. **Scores all 50 answers with up to 6 judges** (~20-40 minutes)
+   - Gemini Flash-Lite, Flash, Pro + optional Claude Haiku, Sonnet
    - Each judge rates faithfulness, relevance, and conciseness (1-5)
    - Progress shows as each judge starts/finishes
 4. **Writes results** to `results/experiment_0/`
@@ -410,8 +410,8 @@ After the experiment completes, you'll find three files in `results/experiment_0
 
 ### What you're looking for
 
-- **High correlation (r > 0.8) between Gemini Flash and Claude Opus** means the cheap
-  judge is reliable → use Gemini Flash for Experiments 1 & 2 and save ~$50.
+- **High correlation (r > 0.8) between Gemini Flash-Lite and Gemini Pro** means the cheap
+  judge is reliable → use Gemini Flash-Lite for Experiments 1 & 2 (essentially free).
 - **Low correlation (r < 0.6)** means cheap judges disagree with expensive ones →
   investigate which one best predicts gold F1 and use that.
 - **Gold F1 correlation** tells you which judge most accurately predicts factual
@@ -462,11 +462,13 @@ Bookmark this page.
 
 | GPU | VRAM | ~Cost/hr | Good for |
 |-----|------|----------|----------|
-| RTX A4000 | 16 GB | $0.17 | Cheapest. Runs all Qwen3 models up to 8B. |
-| RTX 3090 | 24 GB | $0.22 | Good fallback. More VRAM headroom. |
-| RTX 4090 | 24 GB | $0.34 | Fastest consumer GPU. Widely available. |
-| L4 | 24 GB | $0.24 | Data center GPU, very efficient. |
-| A40 | 48 GB | $0.39 | Overkill for our models, but good for large batches. |
+| RTX 2000 Ada | 16 GB | $0.24 | Cheapest listed (March 2026). |
+| RTX 4000 Ada | 20 GB | $0.26 | Good middle ground. |
+| RTX A5000 | 24 GB | $0.27 | Cheapest 24GB option. Runs all Qwen3 models up to 8B. |
+| L4 | 24 GB | $0.39 | Data center GPU, efficient. |
+| A40 | 48 GB | $0.40 | Overkill for our models ($0.20/hr with savings plan). |
+| RTX 3090 | 24 GB | $0.46 | Consumer GPU, more VRAM headroom. |
+| RTX 4090 | 24 GB | $0.59 | Fastest consumer GPU. Widely available last resort. |
 
 ### Storage pricing
 
@@ -480,14 +482,14 @@ Bookmark this page.
 
 | Experiment | ~Time | ~GPU cost | ~API scoring cost | ~Total |
 |------------|-------|-----------|-------------------|--------|
-| Exp 0: Scorer validation (50 queries × 5 judges) | ~1 hr | ~$0.15 | ~$1.60 | **~$1.80** |
-| Exp 1: Strategy × Model (30 configs × 100 queries) | ~6-10 hrs | ~$1-2 | TBD* | **~$2-4** |
-| Exp 2: Chunking × Model (16 configs × 100 queries) | ~3-5 hrs | ~$0.50-1 | TBD* | **~$1-3** |
-| **Total estimate** | | | | **~$5-9** |
+| Exp 0: Scorer validation (50 queries × 6 judges) | ~1 hr | ~$0.27 | ~$0.30 | **~$0.60** |
+| Exp 1: Strategy × Model (30 configs × 100 queries) | ~6-10 hrs | ~$1.60-2.70 | TBD* | **~$2-5** |
+| Exp 2: Chunking × Model (16 configs × 100 queries) | ~3-5 hrs | ~$0.80-1.35 | TBD* | **~$1-3** |
+| **Total estimate** | | | | **~$4-9** |
 
-*Exp 1 & 2 scoring cost depends on which judge Exp 0 recommends. If Gemini Flash works
-(~$0.0001/call), scoring is basically free. If we need Claude Opus (~$0.025/call),
-scoring alone costs ~$75 for 3,000 configs. This is exactly why we run Exp 0 first.
+*Exp 1 & 2 scoring cost depends on which judge Exp 0 recommends. If Gemini Flash-Lite
+(~$0.00005/call) or Flash (~$0.0001/call) works, scoring is basically free. If we need
+Gemini Pro (~$0.001/call), scoring costs ~$3 for 3,000 configs. This is why we run Exp 0 first.
 
 $25 in RunPod credits is comfortable for GPU time. API scoring costs depend on the
 Exp 0 outcome — budget accordingly.
@@ -501,7 +503,7 @@ than 10 minutes of runtime. So you literally cannot run out of money without war
 
 ## 13. Important Safety Rules
 
-1. **Always terminate pods when you're done.** A forgotten RTX 4090 pod costs $8/day.
+1. **Always terminate pods when you're done.** A forgotten RTX 4090 pod costs ~$14/day.
    Our code uses terminate+recreate (not stop+resume) to avoid this.
 
 2. **Check your balance before starting experiments.** Use `mgr.get_balance()` or check
@@ -527,8 +529,8 @@ than 10 minutes of runtime. So you literally cannot run out of money without war
 ## 14. Troubleshooting
 
 ### "No GPUs available"
-Some GPU types sell out. Our code has a fallback list (A4000 → 3090 → 4090). If all
-three are sold out, wait 10-30 minutes and try again. You can also check availability
+Some GPU types sell out. Our code has a fallback list (A5000 → 4000 Ada → A4000 → 4090).
+If all are sold out, wait 10-30 minutes and try again. You can also check availability
 on the deploy page: https://console.runpod.io/pods
 
 ### "401 Unauthorized"
