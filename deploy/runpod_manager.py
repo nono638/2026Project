@@ -24,11 +24,13 @@ logger = logging.getLogger(__name__)
 RUNPOD_REST_BASE = "https://rest.runpod.io/v1"
 RUNPOD_GRAPHQL_URL = "https://api.runpod.io/graphql"
 
-# Ordered by price — cheapest viable first, widely-available last
+# Ordered by price — cheapest viable first, widely-available last resort
+# Pricing as of March 2026 on RunPod Community Cloud
 DEFAULT_GPU_TYPES = [
-    "NVIDIA RTX A4000",        # 16GB, ~$0.17/hr — cheapest viable
-    "NVIDIA GeForce RTX 3090", # 24GB, ~$0.22/hr — good fallback
-    "NVIDIA GeForce RTX 4090", # 24GB, ~$0.34/hr — widely available
+    "NVIDIA RTX A5000",                 # 24GB, ~$0.27/hr — cheapest 24GB option
+    "NVIDIA RTX 4000 Ada Generation",   # 20GB, ~$0.26/hr — good fallback (exact ID may vary)
+    "NVIDIA RTX A4000",                 # 16GB — may still be available, cheapest if so
+    "NVIDIA GeForce RTX 4090",          # 24GB, ~$0.59/hr — widely available last resort
 ]
 
 DEFAULT_PORTS = ["11434/http", "8000/http"]  # Ollama + FastAPI
