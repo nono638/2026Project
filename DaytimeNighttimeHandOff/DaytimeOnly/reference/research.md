@@ -882,3 +882,281 @@ terminate + create new pod (with network volume for data persistence).
 - REST API blog post: https://www.runpod.io/blog/runpod-rest-api-gpu-management
 - Serverless endpoint config: https://docs.runpod.io/serverless/endpoints/endpoint-configurations
 - runpodctl GPU issues: https://github.com/runpod/runpodctl/issues/189
+
+## Document Characterization for RAG Configuration Selection — 2026-03-19
+
+> **Summary:** The idea of analyzing document-level features (topic density, NER density,
+> semantic clustering, etc.) BEFORE running a RAG pipeline to predict optimal configuration
+> is a genuinely novel intersection. No single paper does exactly this. However, several
+> closely related research threads exist that collectively validate the approach and provide
+> building blocks. The strongest prior art is METIS (Microsoft, 2025) and RAGSmith (2025),
+> which optimize RAG configuration but focus on query-side complexity, not document-side
+> features. The gap — using document-level metrics to predict RAG configuration — is real
+> and publishable.
+
+### 1. RAG Configuration Adaptation Systems (closest prior art)
+
+**METIS: Fast Quality-Aware RAG Systems with Configuration Adaptation**
+- Authors: Microsoft Research
+- Venue: ACM SOSP 2025 (top systems conference)
+- Year: 2025
+- Key finding: First RAG system that jointly schedules queries and adapts RAG configurations
+  (number of retrieved chunks, synthesis method) per-query. Uses "query profiles" to filter
+  out undesirable configurations. Reduces latency 1.64-2.54x without quality loss.
+- **Relevance:** METIS adapts based on QUERY complexity (simple yes/no vs. deep "why"
+  questions), NOT document properties. The document corpus is treated as fixed. This is the
+  gap — what if you also profiled the documents?
+- Paper: https://arxiv.org/abs/2412.10543
+- Published version: https://dl.acm.org/doi/10.1145/3731569.3764855
+
+**RAGSmith: A Framework for Finding the Optimal Composition of RAG Methods Across Datasets**
+- Year: 2025
+- Key finding: Treats RAG design as architecture search over 9 technique families and
+  46,080 feasible pipeline configurations. Uses evolutionary (genetic) search to find optimal
+  RAG configuration per dataset. Finds configurations that outperform naive RAG by +3.8% avg
+  (up to +12.5% retrieval, +7.5% generation). Key insight: "failure modes are domain-specific —
+  informality/coreference in chat logs, long-tail jargon in biomed, morphology in Turkish,
+  hierarchical structure in manuals."
+- **Relevance:** RAGSmith optimizes per DATASET but through brute-force search, not by
+  analyzing document features. The paper explicitly acknowledges that optimal configuration
+  is corpus-dependent but doesn't predict it from document characteristics — it discovers it
+  empirically. A document characterization approach could shortcut this search.
+- Paper: https://arxiv.org/abs/2511.01386
+
+**Adaptive-RAG: Learning to Adapt Retrieval-Augmented LLMs through Question Complexity**
+- Authors: Jeong et al.
+- Venue: NAACL 2024
+- Key finding: Trains a query complexity classifier (small LM) to route queries to one of
+  three strategies: no retrieval (simple), single-step RAG (moderate), multi-step iterative
+  RAG (complex). Labels derived from actual model outcomes.
+- **Relevance:** Purely query-side adaptation. The classifier looks at the question, not the
+  documents. Document-side complexity is not considered.
+- Paper: https://arxiv.org/abs/2403.14403
+- Published version: https://aclanthology.org/2024.naacl-long.389/
+
+### 2. Document Routing and Expert Selection (document-aware systems)
+
+**MODE: Mixture of Document Experts for RAG**
+- Author: Rahul Anand
+- Year: 2025
+- Key finding: Replaces fine-grained vector search with cluster-and-route mechanism.
+  Documents are organized into semantically coherent clusters ("document experts") using
+  hierarchical clustering on embeddings. Queries routed to the best cluster via centroid
+  matching. Retrieval cost O(Md) where M = number of clusters, independent of corpus size.
+  Matches or exceeds traditional RAG quality on HotpotQA and SQuAD.
+- **Relevance:** This IS document-aware — it clusters documents by topic and routes queries
+  to topic clusters. But it doesn't characterize documents for configuration selection; it
+  characterizes them for retrieval routing. The clustering analysis (semantic coherence of
+  clusters, cluster count) could be repurposed as document-level features.
+- Paper: https://arxiv.org/abs/2509.00100
+- Code: https://github.com/rahulanand1103/mode
+
+**ExpertRAG: Efficient RAG with Mixture of Experts**
+- Year: 2025
+- Key finding: Integrates MoE architecture with RAG. Dynamic retrieval gating mechanism
+  decides whether to retrieve or rely on parametric knowledge, per-query. Different experts
+  handle different topical domains — a science question routes to a "science expert" and
+  triggers retrieval from scientific literature, while commonsense queries use general expert
+  without retrieval.
+- **Relevance:** Expert routing is topic-aware but the routing is query-driven. The document
+  corpus is pre-organized but not characterized for configuration prediction.
+- Paper: https://arxiv.org/abs/2504.08744
+
+**MixRAG: Mixture-of-Experts Retrieval-Augmented Generation**
+- Year: 2025
+- Key finding: Multiple specialized graph retrievers with a dynamic routing controller for
+  diverse query intents in textual graph understanding.
+- Paper: https://arxiv.org/abs/2509.21391
+
+### 3. Entity Density as a Document Metric
+
+**From Sparse to Dense: GPT-4 Summarization with Chain of Density Prompting**
+- Authors: Griffin Adams et al. (Columbia, Salesforce, MIT)
+- Year: 2023
+- Key finding: Entity density (entities per token) used as a proxy for summary informativeness.
+  Iteratively adds entities to summaries without increasing length. Human annotations show
+  optimal density matches human-written summaries — too sparse is uninformative, too dense is
+  hard to follow.
+- **Relevance:** Directly validates entity density as a measurable, meaningful text metric.
+  Could be applied to RAG source documents: high entity density documents may need different
+  chunking (smaller chunks to avoid entity overflow) or different retrieval strategies
+  (entity-aware retrieval). This paper operationalizes the metric.
+- Paper: https://pmc.ncbi.nlm.nih.gov/articles/PMC11419567/
+- Code: https://github.com/richawo/chain-of-density
+
+### 4. Topic Modeling for Document Characterization
+
+**TopicRank: Graph-Based Topic Ranking for Keyphrase Extraction**
+- Authors: Bougouin, Boudin, Daille
+- Venue: IJCNLP 2013
+- Key finding: Clusters candidate keyphrases into topics using hierarchical agglomerative
+  clustering, then ranks topics via graph-based methods. The number and distribution of
+  topic clusters characterizes document structure.
+- **Relevance:** TopicRank provides a method to count/characterize topics within a document.
+  Topic count per N tokens = topic density. This is a direct building block for document
+  characterization. TopicLPRank (2022) improves it with position information.
+- Paper: https://aclanthology.org/I13-1062/
+
+**Topic-Enriched Embeddings to Improve Retrieval Precision in RAG Systems**
+- Year: 2025
+- Key finding: Integrates TF-IDF, LSA (dimensionality-reduced semantic structure), and LDA
+  (probabilistic topic mixtures) into sentence embeddings. Topic enrichment improves both
+  clustering coherence and retrieval effectiveness (Precision@k, Recall@k, F1).
+- **Relevance:** Directly connects topic analysis to RAG retrieval quality. Shows that topic
+  information is useful signal for RAG, not just for document characterization.
+- Paper: https://arxiv.org/abs/2601.00891
+
+### 5. Embedding-Based Document Diversity Analysis
+
+**Clustering for RAG Chunking**
+- Multiple sources (Towards Data Science, Rohan Paul, etc.)
+- Key approaches: K-means on chunk embeddings, spectral clustering using cosine similarity
+  matrices, hierarchical agglomerative clustering. Cluster count and cluster spread measure
+  semantic diversity within a document.
+- **Relevance:** The techniques for clustering chunk embeddings already exist. The novel step
+  is using cluster statistics (count, variance, inter-cluster distance) as document-level
+  features that predict RAG configuration needs.
+
+**RAGxplorer: Visualizing Document Chunks in the Embedding Space**
+- Source: OpenAI Community
+- Key idea: Visualization tool for chunk embeddings. Shows how document chunks distribute
+  in embedding space — tight clusters vs. scattered distributions.
+- **Relevance:** Visual validation of the concept. Documents with tight embedding clusters
+  (homogeneous content) likely behave differently under RAG than documents with scattered
+  embeddings (diverse content).
+
+### 6. Query Performance Prediction (related IR tradition)
+
+**Query Performance Prediction (QPP)**
+- Extensive IR research tradition (20+ years)
+- Key concepts: Pre-retrieval predictors (AvgIDF, MaxIDF, SCQ — analyze query + collection
+  statistics before retrieval), post-retrieval predictors (WIG, NQC, UQC — analyze score
+  distributions after retrieval). Both predict retrieval effectiveness without relevance
+  judgments.
+- **Relevance:** QPP is the closest methodological analog. It predicts performance from
+  statistical features of queries and collections. The document characterization idea
+  extends this: use statistical features of documents (not queries) to predict optimal
+  configuration (not just performance). QPP could be adapted from "predict if this query
+  will work" to "predict which RAG config works best for this document set."
+- Key references:
+  - Carmel & Yom-Tov (2010). "Estimating the Query Difficulty for Information Retrieval."
+  - Hauff et al. (2008). Pre-retrieval predictors survey. CIKM.
+  - Survey: https://www.sciencedirect.com/science/article/abs/pii/S0306437905000955
+
+### 7. Self-RAG and Corrective RAG (adaptive retrieval decisions)
+
+**Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection**
+- Authors: Asai et al.
+- Year: 2023
+- Key finding: Trains LLM to decide when to retrieve (on-demand), generate, and self-critique
+  using special "reflection tokens." Can retrieve multiple times or skip retrieval entirely.
+- **Relevance:** Adaptation happens at inference time based on generation quality, not
+  document properties. But the principle — that different situations need different retrieval
+  strategies — is directly relevant.
+- Paper: https://openreview.net/forum?id=hSyW5go0v8
+
+**Corrective RAG (CRAG)**
+- Key finding: Lightweight retrieval evaluator (fine-tuned T5-large) scores document relevance
+  and triggers corrective actions: Correct, Incorrect, or Ambiguous. Falls back to web search
+  when retrieval quality is low.
+- **Relevance:** Document-level quality scoring exists but is applied post-retrieval, not
+  pre-pipeline. The idea of scoring documents BEFORE choosing a RAG configuration is the gap.
+
+### 8. Document Complexity and Text Difficulty Metrics (NLP/education research)
+
+**Text Difficulty Prediction Research**
+- Key finding from multiple papers: Document difficulty can be predicted using features
+  including: non-narrativity, referential cohesion, situation model cohesion, syntactic
+  complexity, word abstractness, academic vocabulary frequency, concreteness, word familiarity.
+  These explain ~23-34% of variance in readability, with NLP features improving over
+  traditional readability formulas.
+- **Relevance:** These text difficulty features are well-validated and could serve as
+  additional document characterization features. A document that is "difficult" by these
+  metrics may need different RAG treatment (more context, bigger model, different chunking).
+- Key reference: "Text-based Question Difficulty Prediction: A Systematic Review" (Springer,
+  2023). https://link.springer.com/article/10.1007/s40593-023-00362-1
+
+### 9. Chunking Adaptation Based on Document Properties
+
+**Dynamic/Adaptive Chunking**
+- Multiple industry sources (NVIDIA, Databricks, Microsoft, etc.)
+- Key finding: Some systems dynamically allocate chunk sizes (200-800 tokens) based on
+  content analysis. Benchmarks suggest up to 40% improvement in retrieval accuracy vs.
+  fixed-size chunking. Document structure analysis identifies whether layout-aware chunking
+  (structured docs) or semantic chunking (narrative content) works better.
+- **Relevance:** This is the closest existing practice to the document characterization idea,
+  but it operates at the chunk level, not the document level, and adapts only chunking
+  strategy, not full RAG configuration.
+
+**Chunk Twice, Embed Once (Chemistry-Aware RAG)**
+- Year: 2025
+- Key finding: Domain-specific chunking for chemistry documents. Systematic study of
+  segmentation and representation trade-offs.
+- **Relevance:** Domain-specific document properties drive different chunking strategies.
+  Validates that document type matters for RAG configuration.
+- Paper: https://arxiv.org/abs/2506.17277
+
+### 10. RAPTOR: Document Structure as Retrieval Feature
+
+**RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval**
+- Authors: Sarthi et al. (Stanford)
+- Year: 2024
+- Key finding: Recursively clusters chunks, generates summaries, builds tree hierarchy.
+  Retrieval at different tree levels handles different query types (detail vs. thematic).
+  20% improvement on QuALITY benchmark with GPT-4.
+- **Relevance:** RAPTOR implicitly characterizes document structure by building a tree.
+  Documents with deep trees have hierarchical content; shallow trees have flat content.
+  Tree depth/breadth could be document features.
+- Paper: https://arxiv.org/abs/2401.18059
+
+### 11. R2AG: Using Retrieval Information to Improve Generation
+
+**R2AG: Incorporating Retrieval Information into Retrieval Augmented Generation**
+- Venue: EMNLP 2024 Findings
+- Key finding: Captures retrieval features (relevance scores, precedent similarity,
+  neighbor similarity) and feeds them to the generator via a R2-Former module. Reduces
+  irrelevant retrievals by 15% with only 0.8% inference time increase.
+- **Relevance:** Uses retrieval-time document features to improve generation. Not
+  pre-pipeline document characterization, but demonstrates that document-level signals
+  (similarity patterns, relevance distributions) carry useful information for RAG.
+- Paper: https://aclanthology.org/2024.findings-emnlp.678/
+- Code: https://github.com/YeFD/RRAG
+
+### Synthesis: The Research Gap
+
+**What exists:**
+- Query-side complexity classification for RAG strategy selection (Adaptive-RAG, METIS)
+- Per-dataset RAG configuration search via brute force (RAGSmith)
+- Document clustering for retrieval routing (MODE, ExpertRAG)
+- Entity density as a text metric (Chain of Density)
+- Topic modeling for keyphrase/topic extraction (TopicRank)
+- Embedding clustering for chunk organization
+- Query performance prediction from collection statistics (QPP tradition)
+- Text difficulty metrics from education/readability research
+- Adaptive chunking based on content analysis
+
+**What does NOT exist (the gap):**
+- A system that computes document-level features (topic density, NER density, embedding
+  cluster count/variance, readability metrics) and uses those features to PREDICT which
+  RAG configuration (chunk size, retrieval strategy, model size, reranking approach) will
+  perform best — BEFORE running the pipeline.
+- A predictive model that maps document characteristics to RAG configuration parameters.
+- Empirical evidence for which document features are most predictive of RAG performance
+  under different configurations.
+
+**Why this is novel:**
+- METIS and Adaptive-RAG adapt on the query side, not the document side.
+- RAGSmith finds optimal configs empirically per dataset but doesn't predict from features.
+- MODE clusters documents but for routing, not configuration selection.
+- QPP predicts performance but doesn't recommend configuration changes.
+- The gap is the PREDICTION step: document features → optimal RAG config.
+
+**Candidate document-level features (from this research):**
+1. Topic density (topics per N tokens, via TopicRank or LDA)
+2. Entity density (entities per token, via NER, validated by Chain of Density)
+3. Embedding cluster count/variance (via KNN/spectral clustering on chunk embeddings)
+4. Readability metrics (Flesch-Kincaid, plus NLP-augmented features)
+5. Vocabulary diversity (type-token ratio, hapax legomena ratio)
+6. Structural complexity (heading depth, table count, list density)
+7. Cross-reference density (citation/reference frequency)
+8. Semantic coherence (average cosine similarity between consecutive chunks)

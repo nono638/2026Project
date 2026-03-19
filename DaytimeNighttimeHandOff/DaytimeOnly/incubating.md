@@ -23,6 +23,19 @@
 
 ## Active
 
+## Document characterization features for meta-learner
+**Captured:** 2026-03-19
+**Last reviewed:** 2026-03-19
+**Context:** The current meta-learner uses 6 features (query_length, num_named_entities, doc_length, doc_vocab_entropy, mean/var_retrieval_score). The doc-level features are shallow — just length and vocab entropy. The hypothesis is that document content characteristics predict which RAG config works best: entity-dense legal text needs different chunking/strategy than narrative prose or poetry. No published research does this (see reference/research.md "Document Characterization for RAG Configuration Selection"). Candidate features:
+1. **NER density** — distinct entities per 1000 tokens (spaCy NER). High = structured/factual, low = narrative/abstract.
+2. **NER repetition ratio** — total NER mentions / distinct entities. High = document revisits same entities (good for RAG — retrieval finds relevant chunks). Low = many one-off mentions (harder to retrieve coherently).
+3. **Topic density** — topics per 1000 tokens via TopicRank or LDA. High = covers many subjects (harder retrieval), low = focused (easier).
+4. **Embedding cluster count** — KNN/spectral clustering on chunk embeddings, count clusters. Measures semantic diversity within the document.
+5. **Semantic coherence** — average cosine similarity between consecutive chunk embeddings. High = smooth flow (narrative), low = jumpy (reference material).
+These go into `src/features.py` alongside existing features, become columns in experiment results, and feed the meta-learner. The key question: do these features actually predict which strategy/model/chunker wins?
+**Next trigger:** Experiment 0 results exist. Ready to enrich the feature vector before Experiments 1 and 2.
+**Blocked by:** Nothing — could be implemented now, but experiments need to run to validate predictive value.
+
 ## Multimodal embedding support
 **Captured:** 2026-03-16
 **Last reviewed:** 2026-03-16
