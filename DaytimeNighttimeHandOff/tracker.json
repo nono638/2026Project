@@ -421,7 +421,8 @@
     "commit_sha": "553e95d61bac79039f8939df1796d161e773c87a",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-19T15:45:49"
   },
   {
     "task_id": "task-026",
@@ -437,7 +438,8 @@
     "commit_sha": "64a130250bb1b11f4a67cf02fed25203629ca6cf",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["RTX 4000 Ada Generation GPU type ID string uncertain — verify at runtime"]
+    "flags": ["RTX 4000 Ada Generation GPU type ID string uncertain — verify at runtime"],
+    "daytime_reviewed": "2026-03-19T15:45:49"
   },
   {
     "task_id": "task-027",
@@ -453,6 +455,7 @@
     "commit_sha": "d528324c6c46390d3991438df20b5476b9470b2b",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Branch merges task-025 — merge task-025 first during morning review"]
+    "flags": ["Branch merges task-025 — merge task-025 first during morning review"],
+    "daytime_reviewed": "2026-03-19T15:45:49"
   }
 ]

@@ -116,6 +116,37 @@ def exact_match(prediction: str, gold: str) -> bool:
     return gold.lower() in prediction.lower()
 
 
+def compute_bertscores(predictions: list[str], golds: list[str]) -> list[float]:
+    """Compute BERTScore F1 between each prediction-gold pair.
+
+    Uses RoBERTa-large, the standard BERTScore model for English. Runs
+    locally — no API calls. The model (~1.4GB) downloads on first run.
+
+    Token-level semantic matching is more appropriate than word-overlap F1
+    for evaluating generated text against short gold answers, because it
+    captures meaning rather than exact word choice.
+
+    Reference: Zhang et al., "BERTScore: Evaluating Text Generation with
+    BERT", ICLR 2020. https://arxiv.org/abs/1904.09675
+
+    Args:
+        predictions: List of RAG-generated answers.
+        golds: List of gold reference answers.
+
+    Returns:
+        List of BERTScore F1 values (0.0 to 1.0), one per pair.
+    """
+    from bert_score import score
+
+    _, _, f1 = score(
+        cands=predictions,
+        refs=golds,
+        lang="en",
+        verbose=True,
+    )
+    return f1.tolist()
+
+
 def _safe_scorer_name(name: str) -> str:
     """Convert scorer name to a safe column prefix.
 
@@ -308,7 +339,19 @@ def score_all_answers(
 
         rows.append(row)
 
-    return pd.DataFrame(rows)
+    result_df = pd.DataFrame(rows)
+
+    # Compute BERTScore in batch (loads model once, much faster than per-row)
+    logger.info("Computing BERTScore (local model, no API cost)...")
+    try:
+        preds = result_df["rag_answer"].fillna("").tolist()
+        golds = result_df["gold_answer"].fillna("").tolist()
+        result_df["gold_bertscore"] = compute_bertscores(preds, golds)
+        logger.info("BERTScore computed for %d examples.", len(result_df))
+    except Exception as exc:
+        logger.error("BERTScore computation failed: %s", exc)
+
+    return result_df
 
 
 # ---------------------------------------------------------------------------
@@ -365,22 +408,31 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
     else:
         lines.append("*Insufficient scorers for correlation matrix.*\n")
 
-    # Correlation with gold F1
-    lines.append("\n## Correlation with Gold F1\n")
-    lines.append("| Judge | Pearson r |")
-    lines.append("|-------|-----------|")
-
+    # Correlation with gold metrics
+    gold_metrics = []
+    if "gold_bertscore" in df.columns:
+        gold_metrics.append(("gold_bertscore", "BERTScore"))
     if "gold_f1" in df.columns:
+        gold_metrics.append(("gold_f1", "F1 (word overlap)"))
+
+    if gold_metrics:
+        header_cols = " | ".join(label for _, label in gold_metrics)
+        lines.append(f"\n## Correlation with Gold Metrics\n")
+        lines.append(f"| Judge | {header_cols} |")
+        lines.append("|-------" + "|----------" * len(gold_metrics) + "|")
+
         for name in scorers_used:
             col = quality_cols.get(name)
             if col and col in df.columns:
-                # Drop NaN rows for this scorer before computing correlation
-                valid = df[[col, "gold_f1"]].dropna()
-                if len(valid) > 2:
-                    r = valid[col].corr(valid["gold_f1"])
-                    lines.append(f"| {name} | {r:.3f} |")
-                else:
-                    lines.append(f"| {name} | N/A (too few valid scores) |")
+                row_parts = [f"| {name} "]
+                for gold_col, _ in gold_metrics:
+                    valid = df[[col, gold_col]].dropna()
+                    if len(valid) > 2:
+                        r = valid[col].corr(valid[gold_col])
+                        row_parts.append(f"| {r:.3f} ")
+                    else:
+                        row_parts.append("| N/A ")
+                lines.append("".join(row_parts) + "|")
 
     # Estimated cost breakdown
     lines.append("\n## Estimated Cost Breakdown\n")
@@ -408,14 +460,16 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
         em_rate = df["gold_exact_match"].mean()
         f1_mean = df["gold_f1"].mean()
         lines.append(f"- Exact match rate: {em_rate:.1%}")
-        lines.append(f"- Mean F1: {f1_mean:.3f}")
+        lines.append(f"- Mean word-overlap F1: {f1_mean:.3f}")
+    if "gold_bertscore" in df.columns:
+        bs_mean = df["gold_bertscore"].mean()
+        lines.append(f"- Mean BERTScore F1: {bs_mean:.3f}")
 
     # Recommendation
     lines.append("\n## Recommendation\n")
-    lines.append("*Review the correlation matrix and gold-F1 correlations above.*")
-    lines.append("If cheap scorers (Gemini Flash-Lite, Flash) correlate highly with expensive ones")
-    lines.append("(Gemini Pro, Claude), use the cheap scorer for Experiments 1 & 2 to save cost.")
-    lines.append("If correlations are low, investigate which scorer best predicts gold F1.\n")
+    lines.append("*Review the correlation matrix and gold metric correlations above.*")
+    lines.append("BERTScore (semantic) is more reliable than word-overlap F1 for generated text.")
+    lines.append("Pick the cheapest judge with high BERTScore correlation for Experiments 1 & 2.\n")
 
     return "\n".join(lines)
 
