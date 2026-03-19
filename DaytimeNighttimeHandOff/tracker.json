@@ -445,7 +445,14 @@
     "daytime_created": "2026-03-19T14:17:40",
     "daytime_comments": "User has limited credits and is a novice with cloud APIs. Default $5 ceiling. Saves partial results on abort. Simple hardcoded cost table that errs high.",
     "depends_on": ["task-025"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-19T15:21:11"
+    "status": "done",
+    "nighttime_started": "2026-03-19T15:21:11",
+    "nighttime_completed": "2026-03-19T15:25:53",
+    "nighttime_comments": "CostGuard class, LLMScorer integration, --max-cost flag, try/except for partial results. 5 new tests + 28 existing pass.",
+    "branch": "night/task-027-api-cost-guard",
+    "commit_sha": "d528324c6c46390d3991438df20b5476b9470b2b",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Branch merges task-025 — merge task-025 first during morning review"]
   }
 ]
