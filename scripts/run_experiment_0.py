@@ -142,6 +142,9 @@ def parse_args() -> argparse.Namespace:
                         help="Output directory (default: results/experiment_0)")
     parser.add_argument("--skip-generation", action="store_true",
                         help="Load previously generated answers instead of re-running NaiveRAG")
+    parser.add_argument("--ollama-host", type=str, default=None,
+                        help="Ollama server URL (default: localhost:11434). "
+                             "Use RunPod proxy URL for remote GPU.")
     return parser.parse_args()
 
 
@@ -153,6 +156,7 @@ def generate_answers(
     documents: list,
     queries: list,
     model: str,
+    ollama_host: str | None = None,
 ) -> list[dict]:
     """Generate RAG answers for each (document, query) pair using NaiveRAG.
 
@@ -160,6 +164,7 @@ def generate_answers(
         documents: List of Document objects from HotpotQA.
         queries: List of Query objects (parallel to documents).
         model: Ollama model name for generation.
+        ollama_host: Ollama server URL, or None for localhost.
 
     Returns:
         List of dicts with example_id, question, gold_answer, rag_answer, doc_text.
@@ -171,10 +176,11 @@ def generate_answers(
     from src.retriever import Retriever
 
     # Set up pipeline components — held constant across all examples
-    llm = OllamaLLM()
+    # Pass host to both LLM and embedder for remote Ollama support
+    llm = OllamaLLM(host=ollama_host)
     strategy = NaiveRAG(llm=llm)
     chunker = RecursiveChunker(500, 100)
-    embedder = OllamaEmbedder()
+    embedder = OllamaEmbedder(host=ollama_host)
 
     results = []
     total = len(documents)
@@ -422,10 +428,11 @@ def main() -> None:
         docs, queries = sample_hotpotqa(docs, queries, n=args.n, seed=args.seed)
         logger.info("Loaded %d examples.", len(docs))
 
-        # Step 2: Check Ollama is running
+        # Step 2: Check Ollama is running (use remote host if specified)
         try:
             from ollama import Client
-            Client().list()
+            client = Client(host=args.ollama_host) if args.ollama_host else Client()
+            client.list()
         except Exception as exc:
             print(f"\nERROR: Cannot connect to Ollama: {exc}")
             print("Please start Ollama and try again.")
@@ -433,7 +440,7 @@ def main() -> None:
 
         # Step 3: Generate answers
         logger.info("Generating answers with NaiveRAG + %s...", args.model)
-        answers = generate_answers(docs, queries, args.model)
+        answers = generate_answers(docs, queries, args.model, ollama_host=args.ollama_host)
 
         # Save raw answers for --skip-generation reruns
         answers_df = pd.DataFrame(answers)
