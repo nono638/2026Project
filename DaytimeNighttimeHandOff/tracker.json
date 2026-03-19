@@ -396,6 +396,7 @@
     "daytime_created": "2026-03-18T16:45:38",
     "daytime_comments": "Bridges the gap between 'RunPod account exists' and 'Experiment 0 runs'. setup_pod.py creates pod with ollama/ollama image, pulls models via HTTP API (no SSH), verifies. --ollama-host flag threads remote URL through OllamaLLM and OllamaEmbedder. Uses stream:true for model pulls to avoid Cloudflare 100s timeout.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-18T22:16:20"
   }
 ]
