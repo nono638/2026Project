@@ -433,8 +433,8 @@ def build_components(
 def _load_builtin_dataset(
     dataset_name: str,
     sample_n: int,
-) -> tuple[list, list]:
-    """Load a built-in dataset and return (corpus_dicts, query_dicts).
+) -> tuple[list, list, list]:
+    """Load a built-in dataset and return (corpus_dicts, query_dicts, queries).
 
     Built-in datasets return (Document, Query) objects. These are converted
     to the dict format that Experiment.load_corpus expects.
@@ -444,7 +444,7 @@ def _load_builtin_dataset(
         sample_n: Number of examples to sample. 0 means use default (50).
 
     Returns:
-        Tuple of (corpus_dicts, query_dicts).
+        Tuple of (corpus_dicts, query_dicts, original Query objects).
     """
     from src.document import documents_to_dicts
 

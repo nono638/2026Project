@@ -322,7 +322,12 @@ class RunPodManager:
         data = self._graphql_query(
             "query { myself { currentSpendPerHr clientBalance } }"
         )
-        balance = data["myself"]["clientBalance"]
+        try:
+            balance = data["myself"]["clientBalance"]
+        except (KeyError, TypeError) as exc:
+            raise RunPodError(
+                f"Unexpected GraphQL response structure: {data}"
+            ) from exc
         logger.info("Account balance: $%.2f", balance)
         return float(balance)
 
@@ -338,6 +343,11 @@ class RunPodManager:
         data = self._graphql_query(
             "query { myself { currentSpendPerHr clientBalance } }"
         )
-        rate = data["myself"]["currentSpendPerHr"]
+        try:
+            rate = data["myself"]["currentSpendPerHr"]
+        except (KeyError, TypeError) as exc:
+            raise RunPodError(
+                f"Unexpected GraphQL response structure: {data}"
+            ) from exc
         logger.info("Current spend rate: $%.2f/hr", rate)
         return float(rate)

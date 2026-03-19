@@ -67,10 +67,6 @@ class MultiQueryRAG:
             if line.strip()
         ]
 
-        # Edge case: if model fails to generate distinct phrasings, use original only
-        if not alt_queries:
-            alt_queries = []
-
         all_queries = [query] + alt_queries[:3]  # Original + up to 3 alternatives
 
         # Step 2: Retrieve for each query
