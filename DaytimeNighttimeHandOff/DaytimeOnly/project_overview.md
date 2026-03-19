@@ -119,7 +119,7 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - [ ] Constraint-aware analysis: best config within latency/cost/size budgets
 
 ### Milestones
-- [ ] MVP demo (March 30th)
+- [ ] MVP demo (April 7th)
 - [ ] Final demo (May 11th)
 - [ ] Writeup/whitepaper (May 15th)
 

@@ -49,7 +49,7 @@
 **Captured:** 2026-03-17
 **Last reviewed:** 2026-03-18
 **Context:** Two-part website: (1) Static findings gallery showing pre-computed experiment results — interactive visualizations, time-quality tradeoffs, when small models beat large ones. Free hosting (Render/Vercel). (2) Live "try it yourself" demo limited to 1B/4B models for speed and cost. Backed by RunPod GPU that auto-starts on request and auto-stops after idle. Budget-aware UI shows remaining credits, degrades to gallery-only when exhausted. Architecture decision captured in reference/architecture-decisions.md.
-**Next trigger:** Experiment 1 results exist and have interesting findings worth presenting. MVP demo approaching (March 30).
+**Next trigger:** Experiment 1 results exist and have interesting findings worth presenting. MVP demo approaching (April 7).
 
 ## Constraint-aware analysis API
 **Captured:** 2026-03-17
@@ -74,7 +74,7 @@
 **Captured:** 2026-03-17
 **Last reviewed:** 2026-03-17
 **Context:** No README.md, no getting-started tutorial, no explanation of output columns, no API docs for the FastAPI endpoint. Code has good docstrings but nothing user-facing. A researcher who isn't us can't use RAGBench without reading source code. Needs: README with quick-start, output format spec (what each CSV column means), and a "run your first experiment" walkthrough.
-**Next trigger:** MVP demo approaching (March 30th) or when positioning for external users. Could be part of the findings gallery effort.
+**Next trigger:** MVP demo approaching (April 7th) or when positioning for external users. Could be part of the findings gallery effort.
 
 ## Reranker protocol
 **Captured:** 2026-03-17

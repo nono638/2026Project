@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
+.env
 
 # Runtime configuration — managed by dayrun/nightrun launchers, not source-controlled
 .claude/active_mode.md

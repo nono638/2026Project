@@ -406,5 +406,29 @@
     "attempted_approaches": [],
     "flags": [],
     "daytime_reviewed": "2026-03-19T09:22:52"
+  },
+  {
+    "task_id": "task-025",
+    "description": "Expand Experiment 0 to all-Gemini judges (4 Gemini + 2 optional Claude)",
+    "daytime_created": "2026-03-19T14:17:40",
+    "daytime_comments": "User only has Google API key, no Anthropic. Add gemini-2.5-flash-lite as cheapest baseline judge. Drop Claude Opus. Script already skips missing-key judges but needs more Gemini options for meaningful correlation.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-026",
+    "description": "Update GPU fallback list and pricing in runpod_manager.py and setup guide",
+    "daytime_created": "2026-03-19T14:17:40",
+    "daytime_comments": "Prices have increased since original guide. A4000 may not be available. User saw A5000 at $0.27/hr as cheapest. Update defaults and all pricing references.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-027",
+    "description": "API cost guard — track estimated spend, abort if ceiling exceeded",
+    "daytime_created": "2026-03-19T14:17:40",
+    "daytime_comments": "User has limited credits and is a novice with cloud APIs. Default $5 ceiling. Saves partial results on abort. Simple hardcoded cost table that errs high.",
+    "depends_on": ["task-025"],
+    "status": "todo"
   }
 ]
