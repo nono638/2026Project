@@ -292,14 +292,18 @@ class TestMissingApiKey:
     """Tests for missing RUNPOD_API_KEY."""
 
     def test_missing_api_key_exits(self) -> None:
-        """Missing API key should print clear error and exit 1."""
-        with patch.dict("os.environ", {}, clear=True):
-            # Remove RUNPOD_API_KEY if it exists
-            import os
-            env_copy = {k: v for k, v in os.environ.items() if k != "RUNPOD_API_KEY"}
-            with patch.dict("os.environ", env_copy, clear=True):
+        """Missing API key should print clear error and exit 1.
+
+        Must mock load_dotenv because _load_env() calls it internally,
+        which would re-populate RUNPOD_API_KEY from the .env file even
+        after we clear os.environ.
+        """
+        from deploy.setup_pod import _load_env
+
+        # Prevent .env file from repopulating the cleared environment
+        with patch("dotenv.load_dotenv", return_value=None):
+            with patch.dict("os.environ", {}, clear=True):
                 with pytest.raises(SystemExit) as exc_info:
-                    from deploy.setup_pod import _load_env
                     _load_env()
 
                 assert exc_info.value.code == 1
