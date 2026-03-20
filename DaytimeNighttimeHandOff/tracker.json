@@ -464,7 +464,14 @@
     "daytime_created": "2026-03-19T17:43:17",
     "daytime_comments": "Reads results/experiment_N/ CSVs, generates PNGs (300 DPI) + index.html. Experiment 0 visuals: correlation heatmap, judge-vs-gold scatter, score distributions, BERTScore histogram. Explainer shows one real data row through the RAG pipeline. Pure matplotlib, no seaborn. IBM colorblind palette. Cross-experiment skeleton ready for exp 1+2.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-19T20:46:23"
+    "status": "done",
+    "nighttime_started": "2026-03-19T20:46:23",
+    "nighttime_completed": "2026-03-19T20:59:13",
+    "nighttime_comments": "scripts/generate_visuals.py with explainer, heatmap, scatter, distributions, BERTScore histogram, HTML gallery. 12 tests pass.",
+    "branch": "night/task-028-visualization-pipeline",
+    "commit_sha": "0e5b1ccbfd135bff9a6f46f482b79eb2fcab9da0",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   }
 ]
