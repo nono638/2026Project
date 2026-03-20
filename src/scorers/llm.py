@@ -167,6 +167,7 @@ class LLMScorer:
         model: str,
         api_key: str | None = None,
         cost_guard: Any | None = None,
+        max_retries: int = 3,
     ) -> None:
         """Initialize with provider and model.
 
@@ -180,6 +181,8 @@ class LLMScorer:
             cost_guard: Optional CostGuard instance for tracking API spend.
                         If provided, record_call() is invoked after each successful
                         API call. CostLimitExceeded propagates to the caller.
+            max_retries: Number of retries for transient API errors (503, 429).
+                         0 means no retries (1 attempt only). Default 3.
 
         Raises:
             ScorerError: If the provider is unknown or client initialization fails.
@@ -187,6 +190,7 @@ class LLMScorer:
         self._provider = provider
         self._model = model
         self._cost_guard = cost_guard
+        self._max_retries = max_retries
         self._last_reasoning: dict[str, str] | None = None
 
         try:
@@ -229,12 +233,7 @@ class LLMScorer:
 
         prompt = self._build_prompt(query, context, answer)
 
-        try:
-            text = self._call_llm(prompt)
-        except Exception as exc:
-            raise ScorerError(
-                f"{self._provider} API call failed: {exc}"
-            ) from exc
+        text = self._call_with_retry(prompt)
 
         # Track API spend if a cost guard is attached
         if self._cost_guard is not None:
@@ -276,6 +275,61 @@ class LLMScorer:
             )
             for item in items
         ]
+
+    def _call_with_retry(self, prompt: str) -> str:
+        """Call _call_llm with retry on transient API errors.
+
+        Retries on 503 (overloaded), 429 (rate limit), connection errors,
+        and timeouts. Non-retryable errors (auth, invalid model) fail
+        immediately. Uses exponential backoff: 2^attempt + uniform jitter.
+
+        Why substring matching: both Anthropic and Google SDKs raise different
+        exception types, but they all include the HTTP status code in the
+        message string. Substring matching is the simplest cross-provider
+        approach.
+
+        Args:
+            prompt: The prompt string to send to the LLM.
+
+        Returns:
+            The LLM response text.
+
+        Raises:
+            ScorerError: If all attempts fail or error is non-retryable.
+        """
+        import random
+        import time
+
+        max_attempts = self._max_retries + 1  # 1 initial + N retries
+        for attempt in range(max_attempts):
+            try:
+                return self._call_llm(prompt)
+            except Exception as exc:
+                exc_str = str(exc).lower()
+                # Only retry known transient error patterns
+                retryable = any(
+                    s in exc_str
+                    for s in (
+                        "503", "429", "overloaded", "rate",
+                        "unavailable", "temporarily", "connection", "timeout",
+                    )
+                )
+
+                if not retryable or attempt == max_attempts - 1:
+                    raise ScorerError(
+                        f"{self._provider} API call failed: {exc}"
+                    ) from exc
+
+                # Exponential backoff: 1s, 2s, 4s + jitter
+                wait = (2 ** attempt) + random.uniform(0, 1)
+                logger.warning(
+                    "Retryable error from %s (attempt %d/%d), waiting %.1fs: %s",
+                    self.name, attempt + 1, max_attempts, wait, exc,
+                )
+                time.sleep(wait)
+
+        # Unreachable, but satisfies type checker
+        raise ScorerError(f"{self._provider} API call failed: all retries exhausted")  # pragma: no cover
 
     def _build_prompt(self, query: str, context: str, answer: str) -> str:
         """Build the scoring prompt.
