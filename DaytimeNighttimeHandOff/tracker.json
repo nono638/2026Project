@@ -549,7 +549,14 @@
     "daytime_created": "2026-03-20T15:22:57",
     "daytime_comments": "TimedRetriever wrapper pattern — no changes to Retriever, protocols, or strategies. Keep existing latency columns unchanged for backwards compat.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-20T16:17:24"
+    "status": "done",
+    "nighttime_started": "2026-03-20T16:17:24",
+    "nighttime_completed": "2026-03-20T16:27:21",
+    "nighttime_comments": "Added _TimedRetriever wrapper, 3 new latency columns, updated latency_report(). 13 task tests + 485 project tests pass.",
+    "branch": "night/task-033-granular-latency",
+    "commit_sha": "1e1a00e99c17b15c42782ec012bc54f7b193b740",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Pre-existing env issue: typer and textstat not importable despite being in requirements.txt — force-reinstalled both"]
   }
 ]
