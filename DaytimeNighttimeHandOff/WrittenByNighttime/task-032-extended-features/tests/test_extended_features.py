@@ -201,8 +201,9 @@ class TestQueryDocLexicalOverlap:
     def test_full_overlap(self, embedder):
         """Query identical to document should give 1.0."""
         text = "hello world"
-        retriever = _make_retriever(text * 10, embedder, chunk_size=50)
-        features = extract_features("hello world", text * 10, retriever)
+        doc = " ".join([text] * 10)
+        retriever = _make_retriever(doc, embedder, chunk_size=50)
+        features = extract_features("hello world", doc, retriever)
         assert features["query_doc_lexical_overlap"] == 1.0
 
     def test_partial_overlap(self, embedder):
@@ -218,9 +219,10 @@ class TestQueryDocLexicalOverlap:
     def test_case_insensitive(self, embedder):
         """Overlap should be case-insensitive."""
         text = "Python Programming Language"
-        retriever = _make_retriever(text * 10, embedder, chunk_size=50)
+        doc = " ".join([text] * 10)
+        retriever = _make_retriever(doc, embedder, chunk_size=50)
         features = extract_features(
-            "python programming language", text * 10, retriever
+            "python programming language", doc, retriever
         )
         assert features["query_doc_lexical_overlap"] == 1.0
 

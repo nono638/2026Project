@@ -770,40 +770,57 @@ def _chart_inter_judge_correlation(
     return fig
 
 
-def _extract_article_titles(doc_text: str) -> str:
+def _extract_article_titles(doc_text: str) -> list[str]:
     """Extract article titles from doc_text markdown headers.
 
     Doc text contains concatenated passages with ``## Title`` headers.
-    Returns comma-separated titles, or empty string if none found.
+    Returns list of titles found.
     """
     import re
-    titles = re.findall(r"^## (.+)$", str(doc_text), re.MULTILINE)
-    return ", ".join(titles) if titles else ""
+    return re.findall(r"^## (.+)$", str(doc_text), re.MULTILINE)
 
 
-def _first_sentence(doc_text: str) -> str:
-    """Return the first non-header sentence from doc_text."""
-    import re
+def _truncate_on_word_boundary(text: str, max_len: int) -> str:
+    """Truncate text at a word boundary, adding ellipsis if shortened."""
+    if len(text) <= max_len:
+        return text
+    truncated = text[:max_len].rsplit(" ", 1)[0]
+    return truncated + "..."
+
+
+def _article_excerpt(doc_text: str, max_len: int = 200) -> str:
+    """Return a substantive excerpt from doc_text, skipping headers/dividers.
+
+    Collects body text (not ## headers or --- dividers) until max_len is
+    reached, then truncates on a word boundary.
+    """
+    lines = []
+    total = 0
     for line in str(doc_text).split("\n"):
         line = line.strip()
-        if line and not line.startswith("#") and not line.startswith("---"):
-            # Take up to first period that ends a sentence
-            match = re.match(r"(.+?\.)\s", line)
-            return match.group(1) if match else line[:150]
-    return ""
+        if not line or line.startswith("#") or line.startswith("---"):
+            continue
+        lines.append(line)
+        total += len(line)
+        if total >= max_len:
+            break
+    excerpt = " ".join(lines)
+    return _truncate_on_word_boundary(excerpt, max_len)
 
 
 def _chart_biggest_disagreements(
     df: pd.DataFrame,
     judges: list[dict[str, Any]],
     answers_df: pd.DataFrame | None = None,
+    model_name: str = "Qwen3 4B",
 ) -> str:
-    """HTML table of top 10 examples with highest judge variance (#12).
+    """HTML table of top 10 examples with highest judge score variance (#12).
 
     Args:
         df: Scores DataFrame.
         judges: List of valid judge info dicts.
-        answers_df: Optional answers DataFrame with doc_text column.
+        answers_df: Optional answers DataFrame with doc_text and rag_answer.
+        model_name: Display name for the RAG generation model.
 
     Returns:
         HTML string with table.
@@ -812,29 +829,37 @@ def _chart_biggest_disagreements(
     df = df.copy()
     df["quality_variance"] = df[quality_cols].var(axis=1)
 
-    # Merge doc_text from answers if available
-    if answers_df is not None and "doc_text" in answers_df.columns:
-        df = df.merge(
-            answers_df[["example_id", "doc_text"]],
-            on="example_id",
-            how="left",
-        )
+    # Merge doc_text and rag_answer from answers if available
+    if answers_df is not None:
+        merge_cols = ["example_id"]
+        if "doc_text" in answers_df.columns:
+            merge_cols.append("doc_text")
+        if "rag_answer" not in df.columns and "rag_answer" in answers_df.columns:
+            merge_cols.append("rag_answer")
+        df = df.merge(answers_df[merge_cols], on="example_id", how="left")
 
     top10 = df.nlargest(min(10, len(df)), "quality_variance")
 
     rows_html = ""
     for _, row in top10.iterrows():
-        # Article titles and context snippet from doc_text
         doc_text = str(row.get("doc_text", ""))
-        titles = html_module.escape(_extract_article_titles(doc_text))
-        snippet = html_module.escape(_first_sentence(doc_text))
+        titles = _extract_article_titles(doc_text)
+        titles_display = html_module.escape(", ".join(titles)) if titles else "—"
+        excerpt = html_module.escape(_article_excerpt(doc_text))
 
-        # Full question for hover, truncated for display
+        # Full doc_text for hover (first 800 chars, word-boundary truncated)
+        hover_doc = html_module.escape(
+            _truncate_on_word_boundary(doc_text.replace("\n", " "), 800)
+        )
+
+        # Full question — no truncation in cell, full text in hover
         full_q = html_module.escape(str(row["question"]))
-        display_q = full_q if len(full_q) <= 80 else full_q[:77] + "..."
 
-        # Full doc_text preview for hover (first 500 chars)
-        hover_doc = html_module.escape(doc_text[:500])
+        # RAG answer — truncated in cell, full in hover
+        full_answer = html_module.escape(str(row.get("rag_answer", "")))
+        display_answer = html_module.escape(
+            _truncate_on_word_boundary(str(row.get("rag_answer", "")), 150)
+        )
 
         scores = " | ".join(
             f'{j["display_name"]}: {row.get(f"{j["prefix"]}_quality", float("nan")):.1f}'
@@ -846,17 +871,19 @@ def _chart_biggest_disagreements(
         var_val = f'{row["quality_variance"]:.2f}'
         rows_html += (
             f"<tr>"
-            f'<td title="{hover_doc}">{titles or "—"}</td>'
-            f'<td title="{hover_doc}">{snippet or "—"}</td>'
-            f'<td title="{full_q}">{display_q}</td>'
+            f'<td title="{hover_doc}">{titles_display}</td>'
+            f'<td title="{hover_doc}">{excerpt or "—"}</td>'
+            f'<td title="{full_q}">{full_q}</td>'
+            f'<td title="{full_answer}">{display_answer}</td>'
             f"<td>{scores}</td><td>{em}</td><td>{bert}</td><td>{var_val}</td>"
             f"</tr>\n"
         )
 
+    rag_col_name = html_module.escape(f"RAG Answer ({model_name})")
     return f"""
     <h3>Where do judges disagree most?</h3>
     <table class="data-table">
-        <tr><th>Articles</th><th>Context</th><th>Question</th><th>Judge Scores</th><th>Exact Match</th><th>BERTScore</th><th>Variance</th></tr>
+        <tr><th>Article(s)</th><th>Excerpt</th><th>Question</th><th>{rag_col_name}</th><th>Judge Scores</th><th>Exact Match</th><th>BERTScore</th><th>Judge Score Variance</th></tr>
         {rows_html}
     </table>
     """
@@ -1102,6 +1129,7 @@ def generate_dashboard(
     answers_path: Path | str,
     output_path: Path | str,
     skip_enrichment: bool = False,
+    model_name: str = "Qwen3 4B",
 ) -> None:
     """Generate the complete Experiment 0 dashboard HTML.
 
@@ -1110,6 +1138,7 @@ def generate_dashboard(
         answers_path: Path to raw_answers.csv.
         output_path: Path for output HTML file.
         skip_enrichment: If True, skip HotpotQA metadata enrichment.
+        model_name: Display name for the RAG generation model.
     """
     scores_path = Path(scores_path)
     answers_path = Path(answers_path)
@@ -1163,7 +1192,7 @@ def generate_dashboard(
     # Section 4: Judge Agreement
     parts.append("<h2>Section 4: Judge Agreement</h2>")
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_inter_judge_correlation(scores_df, judges))}</div>')
-    parts.append(f'<div class="chart-container">{_chart_biggest_disagreements(scores_df, judges, answers_df)}</div>')
+    parts.append(f'<div class="chart-container">{_chart_biggest_disagreements(scores_df, judges, answers_df, model_name)}</div>')
 
     # Section 5: Gold Answer Analysis
     parts.append("<h2>Section 5: Gold Answer Analysis</h2>")
@@ -1220,6 +1249,10 @@ def main() -> None:
         "--output", type=str, default="visuals/experiment_0.html",
         help="Output HTML path (default: visuals/experiment_0.html)",
     )
+    parser.add_argument(
+        "--model", type=str, default="Qwen3 4B",
+        help="Display name for the RAG generation model (default: Qwen3 4B)",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
@@ -1229,6 +1262,7 @@ def main() -> None:
         answers_path=Path("results/experiment_0/raw_answers.csv"),
         output_path=Path(args.output),
         skip_enrichment=args.skip_enrichment,
+        model_name=args.model,
     )
 
 
