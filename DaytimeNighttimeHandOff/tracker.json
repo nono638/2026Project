@@ -481,7 +481,8 @@
     "daytime_created": "2026-03-19T22:46:13",
     "daytime_comments": "Gemini 2.5 Pro hit 503 on ~50% of calls during Experiment 0. Simple retry with backoff in score() method. max_retries=3 default. No new deps.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-19T23:40:18"
   },
   {
     "task_id": "task-030",
