@@ -31,6 +31,61 @@ from src.metadata import (
 )
 
 
+class _TimedRetriever:
+    """Transparent wrapper that accumulates wall-clock time spent in retrieve().
+
+    Used by Experiment.run() to measure retrieval latency without modifying
+    the Retriever class itself. The wrapper delegates all attribute access to
+    the inner retriever so strategies can access .chunks, ._embedder, etc.
+
+    Why a wrapper instead of modifying Retriever: timing is an experiment-runner
+    concern, not a retriever concern. Keeping it here avoids polluting the
+    Retriever interface and makes the instrumentation easy to remove.
+    """
+
+    def __init__(self, retriever: Retriever) -> None:
+        """Wrap a Retriever to accumulate timing on retrieve() calls.
+
+        Args:
+            retriever: The real Retriever instance to delegate to.
+        """
+        self._inner = retriever
+        self._accumulated_s: float = 0.0
+
+    @property
+    def retrieval_ms(self) -> float:
+        """Total accumulated retrieval time in milliseconds."""
+        return self._accumulated_s * 1000
+
+    def reset(self) -> None:
+        """Reset accumulated retrieval time to zero."""
+        self._accumulated_s = 0.0
+
+    def retrieve(self, query: str, top_k: int | None = None) -> list[dict]:
+        """Delegate to inner retriever while timing the call.
+
+        Args:
+            query: The query string to retrieve for.
+            top_k: Optional override for number of results.
+
+        Returns:
+            List of retrieved chunk dicts from the inner retriever.
+        """
+        t0 = time.perf_counter()
+        result = self._inner.retrieve(query, top_k=top_k)
+        t1 = time.perf_counter()
+        self._accumulated_s += (t1 - t0)
+        return result
+
+    def __getattr__(self, name: str):
+        """Delegate attribute access to inner retriever for transparency.
+
+        Strategies may access retriever.chunks or other attributes — this
+        ensures the wrapper is invisible to downstream code.
+        """
+        return getattr(self._inner, name)
+
+
 class Experiment:
     """Runs a cartesian-product experiment across all component combinations.
 
@@ -185,10 +240,15 @@ class Experiment:
                         retrieved = retriever.retrieve(query["text"])
 
                         # Optional reranking stage: re-score and truncate
+                        # Time reranking separately — tells users if reranking
+                        # is a significant cost vs retrieval and generation
                         if self._reranker is not None:
+                            rerank_t0 = time.perf_counter()
                             reranked = self._reranker.rerank(
                                 query["text"], retrieved, self._reranker_top_k
                             )
+                            rerank_t1 = time.perf_counter()
+                            reranking_latency_ms = (rerank_t1 - rerank_t0) * 1000
                             # Compute rerank feature columns from reranked output
                             rerank_scores = [r["rerank_score"] for r in reranked]
                             if rerank_scores:
@@ -205,6 +265,9 @@ class Experiment:
                         else:
                             mean_rerank = None
                             var_rerank = None
+                            # None (not 0.0) distinguishes "not configured" from
+                            # "configured but instant" — matches mean_rerank_score pattern
+                            reranking_latency_ms = None
                             final_chunks = retrieved
 
                         # Extract features using final chunks (reranked or original)
@@ -213,17 +276,32 @@ class Experiment:
                             retrieved=final_chunks,
                         )
 
+                        # Wrap retriever for per-call retrieval timing —
+                        # strategies call retriever.retrieve() internally, and
+                        # this wrapper accumulates that time transparently
+                        timed_retriever = _TimedRetriever(retriever)
+
                         for strategy in self._strategies:
                             for model in self._models:
                                 count += 1
 
+                                # Reset retrieval timer before each strategy call
+                                # so we measure only this (strategy, model) pair
+                                timed_retriever.reset()
+
                                 # Time strategy execution — perf_counter for monotonic, sub-μs resolution
                                 t0 = time.perf_counter()
                                 answer = strategy.run(
-                                    query["text"], retriever, model
+                                    query["text"], timed_retriever, model
                                 )
                                 t1 = time.perf_counter()
                                 strategy_latency_ms = (t1 - t0) * 1000
+
+                                # Granular breakdown: retrieval vs generation
+                                retrieval_latency_ms = timed_retriever.retrieval_ms
+                                # Generation ≈ strategy time minus retrieval time
+                                # Includes LLM inference + prompt construction + filtering
+                                generation_latency_ms = strategy_latency_ms - retrieval_latency_ms
 
                                 # Time scorer execution separately — users need to know
                                 # where latency comes from (generation vs evaluation)
@@ -254,6 +332,9 @@ class Experiment:
                                     "quality": sum(scores.values()) / len(scores) if scores else 0,
                                     **features,
                                     "strategy_latency_ms": strategy_latency_ms,
+                                    "retrieval_latency_ms": retrieval_latency_ms,
+                                    "generation_latency_ms": generation_latency_ms,
+                                    "reranking_latency_ms": reranking_latency_ms,
                                     "scorer_latency_ms": scorer_latency_ms,
                                     "total_latency_ms": total_latency_ms,
                                     "timestamp": datetime.now().isoformat(),
@@ -529,15 +610,34 @@ class ExperimentResult:
     def latency_report(self) -> pd.DataFrame:
         """Mean/std/min/max latency grouped by (strategy, model), sorted fastest-first.
 
+        Includes all available latency columns: total, strategy, retrieval,
+        generation, reranking, and scorer. Reranking is excluded when all
+        values are None (no reranker configured).
+
         Returns:
             Grouped DataFrame with latency statistics, or empty DataFrame if no data.
         """
         if self.df.empty or "total_latency_ms" not in self.df.columns:
             return pd.DataFrame()
 
-        report = self.df.groupby(["strategy", "model"])["total_latency_ms"].agg(
+        # Include all latency columns present in the data
+        latency_cols = [
+            col for col in [
+                "total_latency_ms",
+                "strategy_latency_ms",
+                "retrieval_latency_ms",
+                "generation_latency_ms",
+                "reranking_latency_ms",
+                "scorer_latency_ms",
+            ]
+            if col in self.df.columns
+            # Skip columns where every value is None (e.g. reranking with no reranker)
+            and self.df[col].notna().any()
+        ]
+
+        report = self.df.groupby(["strategy", "model"])[latency_cols].agg(
             ["mean", "std", "min", "max"]
-        ).round(1).sort_values("mean", ascending=True)
+        ).round(1).sort_values(("total_latency_ms", "mean"), ascending=True)
         return report
 
     def time_vs_quality(self) -> pd.DataFrame:
