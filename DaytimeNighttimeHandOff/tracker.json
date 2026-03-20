@@ -549,6 +549,7 @@
     "daytime_created": "2026-03-20T15:22:57",
     "daytime_comments": "TimedRetriever wrapper pattern — no changes to Retriever, protocols, or strategies. Keep existing latency columns unchanged for backwards compat.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-20T16:17:24"
   }
 ]
