@@ -516,5 +516,13 @@
     "daytime_comments": "Optional pipeline stage between retrieval and generation. Two cross-encoder models (22M vs 278M params). Renames top_k to retrieval_top_k. Adds reranker_top_k, mean_rerank_score, var_rerank_score. No new pip dependencies — sentence-transformers CrossEncoder already available. BGE model is ~1.1GB download on first use.",
     "depends_on": null,
     "status": "todo"
+  },
+  {
+    "task_id": "task-032",
+    "description": "Extended features: context window, readability, embedding spread, query-doc similarity/overlap",
+    "daytime_created": "2026-03-20T13:05:32",
+    "daytime_comments": "6 new columns: llm_context_window, context_utilization_ratio (metadata via Ollama API), doc_readability_score (Flesch-Kincaid via textstat), doc_embedding_spread (intra-cluster variance), query_doc_similarity (embedding cosine), query_doc_lexical_overlap (Jaccard). textstat==0.7.13 already installed in venv.",
+    "depends_on": ["task-031"],
+    "status": "todo"
   }
 ]

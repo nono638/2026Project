@@ -115,3 +115,9 @@ Total download: ~12GB
 - **Requested by:** task-019 (hybrid retrieval)
 - **Import name:** `from rank_bm25 import BM25Okapi`
 - **Notes:** Only dependency is numpy (already installed). Supports BM25Okapi, BM25L, BM25Plus variants — we use Okapi (industry default).
+
+### 2026-03-20 — Installed textstat 0.7.13
+- **Why:** Flesch-Kincaid readability scoring for document characterization features (task-032). Provides accurate syllable counting and 10+ readability indices.
+- **Requested by:** daytime session (extended features spec)
+- **Import name:** `import textstat`
+- **Notes:** Dependencies: pyphen==0.17.2 (hyphenation), nltk (upgraded 3.9.2→3.9.3). Pure Python, no C extensions. ~177KB.
