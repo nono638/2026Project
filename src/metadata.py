@@ -157,13 +157,19 @@ def build_context_metadata(retrieved_chunks: list[dict]) -> dict:
     return {"context_char_length": total}
 
 
-def build_reranker_placeholder() -> dict:
-    """Return placeholder reranker metadata (not yet implemented).
+def build_reranker_metadata(
+    name: str | None = None, top_k: int | None = None
+) -> dict:
+    """Build reranker metadata dict.
+
+    Args:
+        name: Reranker .name property string, or None if no reranker used.
+        top_k: Reranker output top_k, or None.
 
     Returns:
-        Dict with keys: reranker_model, reranker_top_k (both None).
+        Dict with keys: reranker_model, reranker_top_k.
     """
-    return {"reranker_model": None, "reranker_top_k": None}
+    return {"reranker_model": name, "reranker_top_k": top_k}
 
 
 def build_dataset_metadata(

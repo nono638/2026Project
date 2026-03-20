@@ -87,6 +87,38 @@ class Scorer(Protocol):
 
 
 @runtime_checkable
+class Reranker(Protocol):
+    """Interface for chunk reranking backends.
+
+    Cross-encoder rerankers re-score retrieved chunks by jointly encoding
+    query-passage pairs, providing deeper semantic matching than embedding
+    similarity alone. Literature shows 10-48% retrieval precision improvement.
+    See: https://app.ailog.fr/en/blog/news/reranking-cross-encoders-study
+    """
+
+    @property
+    def name(self) -> str:
+        """Unique identifier (e.g., 'minilm:ms-marco-MiniLM-L-6-v2')."""
+        ...
+
+    def rerank(self, query: str, chunks: list[dict], top_k: int | None = None) -> list[dict]:
+        """Rerank retrieved chunks by relevance to query.
+
+        Args:
+            query: The search query text.
+            chunks: List of dicts with 'text', 'score', 'index' keys
+                    (output from Retriever.retrieve()).
+            top_k: If provided, return only the top_k highest-scoring chunks.
+                   If None, return all chunks in reranked order.
+
+        Returns:
+            List of dicts with 'text', 'score' (original), 'rerank_score',
+            'index' keys, sorted by rerank_score descending.
+        """
+        ...
+
+
+@runtime_checkable
 class LLM(Protocol):
     """Interface for text generation backends (Ollama, LM Studio, OpenAI, etc.).
 

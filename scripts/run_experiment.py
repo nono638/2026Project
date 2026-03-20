@@ -49,6 +49,7 @@ VALID_EMBEDDERS = {"ollama", "huggingface", "google"}
 VALID_DATASETS = {"hotpotqa", "squad"}
 VALID_RETRIEVAL_MODES = {"hybrid", "dense", "sparse"}
 VALID_LLM_BACKENDS = {"ollama", "openai-compat"}
+VALID_RERANKERS = {"minilm", "bge", "none"}
 VALID_SCORER_PROVIDERS = {"anthropic", "google"}
 DEFAULT_SCORER_MODELS = {
     "google": "gemini-2.0-flash",
@@ -178,6 +179,28 @@ Examples:
         ),
     )
     parser.add_argument(
+        "--reranker",
+        type=str,
+        default="none",
+        help=(
+            "Reranker to apply after retrieval. "
+            f"Valid: {', '.join(sorted(VALID_RERANKERS))}. "
+            "Default: none (no reranking)."
+        ),
+    )
+    parser.add_argument(
+        "--reranker-top-k",
+        type=int,
+        default=None,
+        help="Number of chunks to keep after reranking. Required when --reranker is not 'none'.",
+    )
+    parser.add_argument(
+        "--retrieval-top-k",
+        type=int,
+        default=5,
+        help="Number of chunks to retrieve before reranking (default: 5).",
+    )
+    parser.add_argument(
         "--scorer",
         type=str,
         default="google:gemini-2.0-flash",
@@ -244,6 +267,17 @@ def _validate_args(args: argparse.Namespace) -> None:
     # Warn if --llm-base-url provided without openai-compat
     if args.llm_base_url and llm_backend != "openai-compat":
         print("WARNING: --llm-base-url is ignored unless --llm-backend is openai-compat")
+
+    # Validate --reranker
+    reranker = getattr(args, "reranker", "none")
+    if reranker not in VALID_RERANKERS:
+        print(f"ERROR: Unknown reranker '{reranker}'. Valid options: {', '.join(sorted(VALID_RERANKERS))}")
+        sys.exit(1)
+
+    # Validate --reranker-top-k is provided when reranker is set
+    if reranker != "none" and args.reranker_top_k is None:
+        print("ERROR: --reranker-top-k is required when --reranker is not 'none'.")
+        sys.exit(1)
 
     # Validate --scorer
     if ":" not in args.scorer:
@@ -360,6 +394,29 @@ def _build_chunkers(args: argparse.Namespace) -> list:
     else:
         # Default: semantic, fixed, recursive (original behavior)
         return [SemanticChunker(), FixedSizeChunker(), RecursiveChunker()]
+
+
+def _build_reranker(args: argparse.Namespace):
+    """Build the reranker from --reranker flag.
+
+    Args:
+        args: Parsed command-line arguments.
+
+    Returns:
+        A Reranker instance, or None if --reranker is 'none'.
+    """
+    reranker_name = getattr(args, "reranker", "none")
+    if reranker_name == "none":
+        return None
+    elif reranker_name == "minilm":
+        from src.rerankers import MiniLMReranker
+        return MiniLMReranker()
+    elif reranker_name == "bge":
+        from src.rerankers import BGEReranker
+        return BGEReranker()
+    else:
+        print(f"ERROR: Unknown reranker '{reranker_name}'")
+        sys.exit(1)
 
 
 def _build_scorer(args: argparse.Namespace):
@@ -520,9 +577,12 @@ def main() -> None:
     # Build components
     chunkers, embedders, strategies, models = build_components(args)
     scorer = _build_scorer(args)
+    reranker = _build_reranker(args)
 
-    # Get retrieval mode
+    # Get retrieval mode and top_k values
     retrieval_mode = getattr(args, "retrieval_mode", "hybrid")
+    retrieval_top_k = getattr(args, "retrieval_top_k", 5)
+    reranker_top_k = getattr(args, "reranker_top_k", None)
 
     print(f"Chunkers:       {[c.name for c in chunkers]}")
     print(f"Embedders:      {[e.name for e in embedders]}")
@@ -530,6 +590,8 @@ def main() -> None:
     print(f"Models:         {models}")
     print(f"Scorer:         {scorer.name}")
     print(f"Retrieval mode: {retrieval_mode}")
+    if reranker:
+        print(f"Reranker:       {reranker.name} (top_k={reranker_top_k})")
     total_configs = len(chunkers) * len(embedders) * len(strategies) * len(models)
     print(f"Total configurations: {total_configs}")
     print()
@@ -557,6 +619,9 @@ def main() -> None:
         strategies=strategies,
         models=models,
         scorer=scorer,
+        retrieval_top_k=retrieval_top_k,
+        reranker=reranker,
+        reranker_top_k=reranker_top_k,
         retrieval_mode=retrieval_mode,
         dataset_name=getattr(args, "dataset", None),
         dataset_sample_seed=42 if getattr(args, "dataset", None) else None,

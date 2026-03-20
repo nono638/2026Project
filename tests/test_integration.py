@@ -61,6 +61,9 @@ class TestImportHealth:
     def test_import_retriever(self):
         from src.retriever import Retriever
 
+    def test_import_rerankers(self):
+        from src.rerankers import MiniLMReranker, BGEReranker
+
     def test_import_features(self):
         from src.features import extract_features
 
