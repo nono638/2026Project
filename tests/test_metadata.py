@@ -15,7 +15,7 @@ from src.metadata import (
     parse_llm_name,
     build_retrieval_metadata,
     build_context_metadata,
-    build_reranker_placeholder,
+    build_reranker_metadata,
     build_dataset_metadata,
 )
 
@@ -173,11 +173,17 @@ class TestBuildContextMetadata:
         assert result == {"context_char_length": 0}
 
 
-class TestBuildRerankerPlaceholder:
-    """Test reranker placeholder."""
+class TestBuildRerankerMetadata:
+    """Test reranker metadata builder."""
 
-    def test_returns_none_values(self):
-        result = build_reranker_placeholder()
+    def test_with_values(self):
+        """When reranker is used, should return name and top_k."""
+        result = build_reranker_metadata("minilm:ms-marco-MiniLM-L-6-v2", 3)
+        assert result == {"reranker_model": "minilm:ms-marco-MiniLM-L-6-v2", "reranker_top_k": 3}
+
+    def test_no_reranker(self):
+        """When no reranker, both fields should be None."""
+        result = build_reranker_metadata()
         assert result == {"reranker_model": None, "reranker_top_k": None}
 
 
