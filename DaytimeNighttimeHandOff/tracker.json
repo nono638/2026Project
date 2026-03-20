@@ -464,6 +464,7 @@
     "daytime_created": "2026-03-19T17:43:17",
     "daytime_comments": "Reads results/experiment_N/ CSVs, generates PNGs (300 DPI) + index.html. Experiment 0 visuals: correlation heatmap, judge-vs-gold scatter, score distributions, BERTScore histogram. Explainer shows one real data row through the RAG pipeline. Pure matplotlib, no seaborn. IBM colorblind palette. Cross-experiment skeleton ready for exp 1+2.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-19T20:46:23"
   }
 ]
