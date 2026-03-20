@@ -472,6 +472,23 @@
     "commit_sha": "0e5b1ccbfd135bff9a6f46f482b79eb2fcab9da0",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-19T22:07:21"
+  },
+  {
+    "task_id": "task-029",
+    "description": "Retry with exponential backoff for LLMScorer (503/429 resilience)",
+    "daytime_created": "2026-03-19T22:46:13",
+    "daytime_comments": "Gemini 2.5 Pro hit 503 on ~50% of calls during Experiment 0. Simple retry with backoff in score() method. max_retries=3 default. No new deps.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-030",
+    "description": "Interactive Plotly dashboard for Experiment 0 — 18 visualizations in one HTML file",
+    "daytime_created": "2026-03-19T23:05:47",
+    "daytime_comments": "Replaces static matplotlib PNGs. Pipeline walkthrough, judge vs gold (primary), score distributions, judge agreement, gold analysis, data overview. Enrich CSV with HotpotQA difficulty/type. plotly==6.6.0 already installed. Single self-contained HTML output.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

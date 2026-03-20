@@ -98,15 +98,15 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - [x] Tests consolidated into main `tests/` directory (task 021)
 - [x] CLI flags for chunker/embedder/dataset/retrieval-mode/llm-backend (task 022)
 
-### Next — Experiments (requires GPU machine + Ollama)
-- [ ] Experiment 0: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 5 LLM judges. Script ready (`scripts/run_experiment_0.py`).
+### Next — Experiments
+- [x] Experiment 0: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 6 LLM judges. Results in `results/experiment_0/`. Finding: Gemini Flash is best cost/quality scorer.
 - [ ] Experiment 1: Strategy × Model Size — 5 strategies × 6 models = 30 configs. Held constant: Recursive chunker (500/100), mxbai-embed-large.
 - [ ] Experiment 2: Chunking × Model Size — 4 chunkers × 4 Qwen3 models = 16 configs. Held constant: NaiveRAG strategy, mxbai-embed-large.
 
 ### Next — Infrastructure
-- [ ] Set up RunPod account, deploy GPU pod with Ollama
-- [ ] RunPod management layer: auto-start/stop, GPU fallback, budget display
-- [ ] Deploy experiment scripts to RunPod, pull models
+- [x] Set up RunPod account, deploy GPU pod with Ollama (used for Experiment 0 answer generation)
+- [x] RunPod management layer: auto-start/stop, GPU fallback, budget display (tasks 023-024)
+- [ ] Deploy experiment scripts to RunPod, pull models for Experiments 1 & 2
 
 ### Next — Model & Endpoint
 - [ ] Train meta-learner on experiment results
@@ -238,3 +238,6 @@ Validated Queries × (Chunker × Embedder × Strategy × Model) → Answers
 | 2026-03-18 | All 22 tasks merged, 369 tests passing | Test consolidation + CLI flags complete | Housekeeping done |
 | 2026-03-18 | RunPod as GPU provider, three-tier demo architecture | No local GPU; RunPod is prepaid (no cost risk), has API for auto-start/stop | Infrastructure setup needed before experiments |
 | 2026-03-18 | Live demo limited to 1B/4B models | Fast responses for demo UX + cost control; gallery shows full results | Demo and gallery are separate concerns |
+| 2026-03-19 | Experiment 0 complete | 6 judges scored (Flash-Lite, Flash, 2.5 Pro partial, 3.1 Pro, Haiku, Sonnet). Gemini Flash = best cost/quality. RunPod used for answer generation. | Scorer choice informed — use Flash for Exp 1 & 2 |
+| 2026-03-19 | Visualization pipeline built + run | task-028: generate_visuals.py produces PNGs + HTML gallery from experiment CSVs | Visuals ready for Exp 0; skeleton for Exp 1 & 2 |
+| 2026-03-19 | Added --judges flag to experiment scripts | Allows running specific judges by substring match, merges into existing CSV | Incremental scoring without re-running all judges |

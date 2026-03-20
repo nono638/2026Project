@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGBench — Experiment Results</title>
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; max-width: 960px;
+               margin: 0 auto; padding: 2rem; background: #fafafa; color: #222; }
+        h1 { border-bottom: 2px solid #333; padding-bottom: 0.5rem; }
+        h2 { margin-top: 2.5rem; color: #444; }
+        img { max-width: 100%; height: auto; border: 1px solid #ddd;
+              border-radius: 4px; margin: 1rem 0; }
+        .caption { color: #666; font-size: 0.9rem; margin-top: -0.5rem; }
+        .missing { color: #999; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>RAGBench — Experiment Results</h1>
+    <p>Auto-generated visualizations. Re-run <code>python scripts/generate_visuals.py</code>
+       to regenerate.</p>
+
+    <h2>How RAG Works</h2>
+    <img src="explainer_rag_pipeline.png" alt="RAG Pipeline Explainer">
+    <p class="caption">One example from HotpotQA showing each stage of the pipeline.</p>
+
+    <h2>Experiment 0: Scorer Validation</h2>
+    <img src="experiment_0/judge_correlation_heatmap.png" alt="judge_correlation_heatmap.png">
+    <p class="caption">Pearson r between each pair of LLM judges on quality scores.</p>
+    <img src="experiment_0/judge_vs_gold_scatter.png" alt="judge_vs_gold_scatter.png">
+    <p class="caption">Each judge's quality score vs BERTScore (semantic similarity to gold answer).</p>
+    <img src="experiment_0/score_distributions.png" alt="score_distributions.png">
+    <p class="caption">Distribution of quality scores per judge. Wider spread = more discriminating.</p>
+    <img src="experiment_0/bertscore_distribution.png" alt="bertscore_distribution.png">
+    <p class="caption">Distribution of BERTScore F1 across all 50 examples.</p>
+</body>
+</html>

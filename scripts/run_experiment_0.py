@@ -65,6 +65,7 @@ JUDGE_CONFIGS = [
     {"provider": "google", "model": "gemini-2.5-flash-lite"},
     {"provider": "google", "model": "gemini-2.5-flash"},
     {"provider": "google", "model": "gemini-2.5-pro"},
+    {"provider": "google", "model": "gemini-3.1-pro-preview"},
     # Anthropic judges (optional — skipped if ANTHROPIC_API_KEY not set)
     {"provider": "anthropic", "model": "claude-haiku-4-5-20251001"},
     {"provider": "anthropic", "model": "claude-sonnet-4-20250514"},
@@ -189,6 +190,9 @@ def parse_args() -> argparse.Namespace:
                              "Use RunPod proxy URL for remote GPU.")
     parser.add_argument("--max-cost", type=float, default=5.0,
                         help="Maximum estimated API spend in USD before aborting (default: $5.00)")
+    parser.add_argument("--judges", type=str, nargs="+", default=None,
+                        help="Run only these judges (substring match on model name). "
+                             "E.g. --judges pro flash-lite   or   --judges gemini-2.5-pro")
     return parser.parse_args()
 
 
@@ -262,6 +266,7 @@ def score_all_answers(
     answers: list[dict],
     output_dir: Path,
     cost_guard: object | None = None,
+    judge_filters: list[str] | None = None,
 ) -> pd.DataFrame:
     """Score each answer with all available LLM judges.
 
@@ -269,15 +274,30 @@ def score_all_answers(
         answers: List of dicts from generate_answers().
         output_dir: Directory for output files.
         cost_guard: Optional CostGuard instance for tracking API spend.
+        judge_filters: If provided, only run judges whose model name contains
+            one of these substrings (case-insensitive).
 
     Returns:
         DataFrame with all base columns + scorer columns.
     """
     from src.scorers.llm import LLMScorer, ScorerError
 
+    # Filter judge configs if --judges was specified
+    configs_to_run = JUDGE_CONFIGS
+    if judge_filters:
+        configs_to_run = [
+            c for c in JUDGE_CONFIGS
+            if any(f.lower() in c["model"].lower() for f in judge_filters)
+        ]
+        if not configs_to_run:
+            logger.error("No judges matched filters: %s", judge_filters)
+            logger.info("Available judges: %s",
+                        ", ".join(c["model"] for c in JUDGE_CONFIGS))
+            sys.exit(1)
+
     # Initialize scorers — skip any that fail (missing API key)
     scorers = []
-    for config in JUDGE_CONFIGS:
+    for config in configs_to_run:
         try:
             scorer = LLMScorer(**config, cost_guard=cost_guard)
             scorers.append(scorer)
@@ -497,6 +517,8 @@ def main() -> None:
     print(f"  Output:            {output_dir}")
     print(f"  Skip generation:   {args.skip_generation}")
     print(f"  Max API cost:      ${args.max_cost:.2f}")
+    if args.judges:
+        print(f"  Judge filter:      {', '.join(args.judges)}")
     print()
 
     # Step 1: Load HotpotQA
@@ -540,12 +562,14 @@ def main() -> None:
     from src.cost_guard import CostGuard, CostLimitExceeded
 
     cost_guard = CostGuard(max_cost_usd=args.max_cost)
-    logger.info("Scoring with %d judges (cost limit: $%.2f)...",
-                len(JUDGE_CONFIGS), args.max_cost)
+    logger.info("Scoring with judges (cost limit: $%.2f)...", args.max_cost)
 
     cost_limit_hit = False
     try:
-        results_df = score_all_answers(answers, output_dir, cost_guard=cost_guard)
+        results_df = score_all_answers(
+            answers, output_dir, cost_guard=cost_guard,
+            judge_filters=args.judges,
+        )
     except CostLimitExceeded as exc:
         logger.error("COST LIMIT REACHED: %s", exc)
         logger.error("Saving partial results...")
@@ -553,6 +577,23 @@ def main() -> None:
         # Partial results — score_all_answers doesn't return on exception,
         # so we build a minimal DataFrame from the raw answers
         results_df = pd.DataFrame(answers)
+
+    # Merge new scores into existing CSV if it exists (preserves prior judge columns)
+    if raw_scores_path.exists():
+        existing_df = pd.read_csv(raw_scores_path)
+        # Find new scorer columns (not in existing)
+        base_cols = {"example_id", "question", "gold_answer", "rag_answer",
+                     "gold_exact_match", "gold_f1", "gold_bertscore"}
+        new_scorer_cols = [c for c in results_df.columns
+                          if c not in base_cols and c not in existing_df.columns]
+        if new_scorer_cols:
+            logger.info("Merging new judge columns into existing CSV: %s",
+                        ", ".join(new_scorer_cols))
+            merge_cols = ["example_id"] + new_scorer_cols
+            existing_df = existing_df.merge(
+                results_df[merge_cols], on="example_id", how="left",
+            )
+            results_df = existing_df
 
     # Save raw scores (full or partial)
     results_df.to_csv(raw_scores_path, index=False)
