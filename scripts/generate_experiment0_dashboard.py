@@ -19,7 +19,12 @@ from __future__ import annotations
 import argparse
 import html as html_module
 import logging
+import sys
 from pathlib import Path
+
+# Ensure project root is on sys.path so src imports work
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
 from typing import Any
 
 import numpy as np
@@ -41,6 +46,7 @@ JUDGE_DISPLAY_NAMES: dict[str, str] = {
     "google_gemini_3_1_pro_preview": "Gemini 3.1 Pro",
     "anthropic_claude_haiku_4_5_20251001": "Claude Haiku",
     "anthropic_claude_sonnet_4_20250514": "Claude Sonnet",
+    "anthropic_claude_opus_4_20250514": "Claude Opus",
 }
 
 _METRICS = ("faithfulness", "relevance", "conciseness")
@@ -52,6 +58,7 @@ _COLORS = [
     "#DC267F",  # magenta
     "#FE6100",  # orange
     "#FFB000",  # gold
+    "#22A884",  # teal
 ]
 
 
@@ -763,15 +770,40 @@ def _chart_inter_judge_correlation(
     return fig
 
 
+def _extract_article_titles(doc_text: str) -> str:
+    """Extract article titles from doc_text markdown headers.
+
+    Doc text contains concatenated passages with ``## Title`` headers.
+    Returns comma-separated titles, or empty string if none found.
+    """
+    import re
+    titles = re.findall(r"^## (.+)$", str(doc_text), re.MULTILINE)
+    return ", ".join(titles) if titles else ""
+
+
+def _first_sentence(doc_text: str) -> str:
+    """Return the first non-header sentence from doc_text."""
+    import re
+    for line in str(doc_text).split("\n"):
+        line = line.strip()
+        if line and not line.startswith("#") and not line.startswith("---"):
+            # Take up to first period that ends a sentence
+            match = re.match(r"(.+?\.)\s", line)
+            return match.group(1) if match else line[:150]
+    return ""
+
+
 def _chart_biggest_disagreements(
     df: pd.DataFrame,
     judges: list[dict[str, Any]],
+    answers_df: pd.DataFrame | None = None,
 ) -> str:
     """HTML table of top 10 examples with highest judge variance (#12).
 
     Args:
         df: Scores DataFrame.
         judges: List of valid judge info dicts.
+        answers_df: Optional answers DataFrame with doc_text column.
 
     Returns:
         HTML string with table.
@@ -779,11 +811,31 @@ def _chart_biggest_disagreements(
     quality_cols = [f'{j["prefix"]}_quality' for j in judges]
     df = df.copy()
     df["quality_variance"] = df[quality_cols].var(axis=1)
+
+    # Merge doc_text from answers if available
+    if answers_df is not None and "doc_text" in answers_df.columns:
+        df = df.merge(
+            answers_df[["example_id", "doc_text"]],
+            on="example_id",
+            how="left",
+        )
+
     top10 = df.nlargest(min(10, len(df)), "quality_variance")
 
     rows_html = ""
     for _, row in top10.iterrows():
-        q = html_module.escape(str(row["question"])[:60])
+        # Article titles and context snippet from doc_text
+        doc_text = str(row.get("doc_text", ""))
+        titles = html_module.escape(_extract_article_titles(doc_text))
+        snippet = html_module.escape(_first_sentence(doc_text))
+
+        # Full question for hover, truncated for display
+        full_q = html_module.escape(str(row["question"]))
+        display_q = full_q if len(full_q) <= 80 else full_q[:77] + "..."
+
+        # Full doc_text preview for hover (first 500 chars)
+        hover_doc = html_module.escape(doc_text[:500])
+
         scores = " | ".join(
             f'{j["display_name"]}: {row.get(f"{j["prefix"]}_quality", float("nan")):.1f}'
             for j in judges
@@ -792,12 +844,19 @@ def _chart_biggest_disagreements(
         em = "Yes" if row.get("gold_exact_match") else "No"
         bert = f'{row.get("gold_bertscore", 0):.3f}'
         var_val = f'{row["quality_variance"]:.2f}'
-        rows_html += f"<tr><td>{q}</td><td>{scores}</td><td>{em}</td><td>{bert}</td><td>{var_val}</td></tr>\n"
+        rows_html += (
+            f"<tr>"
+            f'<td title="{hover_doc}">{titles or "—"}</td>'
+            f'<td title="{hover_doc}">{snippet or "—"}</td>'
+            f'<td title="{full_q}">{display_q}</td>'
+            f"<td>{scores}</td><td>{em}</td><td>{bert}</td><td>{var_val}</td>"
+            f"</tr>\n"
+        )
 
     return f"""
     <h3>Where do judges disagree most?</h3>
     <table class="data-table">
-        <tr><th>Question</th><th>Judge Scores</th><th>Exact Match</th><th>BERTScore</th><th>Variance</th></tr>
+        <tr><th>Articles</th><th>Context</th><th>Question</th><th>Judge Scores</th><th>Exact Match</th><th>BERTScore</th><th>Variance</th></tr>
         {rows_html}
     </table>
     """
@@ -1104,7 +1163,7 @@ def generate_dashboard(
     # Section 4: Judge Agreement
     parts.append("<h2>Section 4: Judge Agreement</h2>")
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_inter_judge_correlation(scores_df, judges))}</div>')
-    parts.append(f'<div class="chart-container">{_chart_biggest_disagreements(scores_df, judges)}</div>')
+    parts.append(f'<div class="chart-container">{_chart_biggest_disagreements(scores_df, judges, answers_df)}</div>')
 
     # Section 5: Gold Answer Analysis
     parts.append("<h2>Section 5: Gold Answer Analysis</h2>")

@@ -69,6 +69,7 @@ JUDGE_CONFIGS = [
     # Anthropic judges (optional — skipped if ANTHROPIC_API_KEY not set)
     {"provider": "anthropic", "model": "claude-haiku-4-5-20251001"},
     {"provider": "anthropic", "model": "claude-sonnet-4-20250514"},
+    {"provider": "anthropic", "model": "claude-opus-4-20250514"},
 ]
 
 
