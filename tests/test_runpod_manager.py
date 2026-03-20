@@ -150,10 +150,11 @@ class TestRunPodManager:
     def test_wait_for_ready_success(self, mock_sleep: MagicMock) -> None:
         """Returns True when pod becomes ready."""
         mgr = self._make_manager()
-        # First call: not ready. Second call: ready.
-        with patch.object(mgr, "get_pod", side_effect=[
-            {"id": "pod1", "desiredStatus": "CREATED", "runtime": None},
-            {"id": "pod1", "desiredStatus": "RUNNING", "runtime": {"uptimeInSeconds": 10}},
+        # wait_for_ready uses _graphql_query (not get_pod) — mock at the right level.
+        # _graphql_query returns the "data" dict; wait_for_ready looks for data["pod"].
+        with patch.object(mgr, "_graphql_query", side_effect=[
+            {"pod": {"id": "pod1", "desiredStatus": "CREATED", "runtime": None}},
+            {"pod": {"id": "pod1", "desiredStatus": "RUNNING", "runtime": {"uptimeInSeconds": 10}}},
         ]):
             result = mgr.wait_for_ready("pod1", timeout_s=30, poll_interval_s=1)
         assert result is True
@@ -162,8 +163,9 @@ class TestRunPodManager:
     def test_wait_for_ready_timeout(self, mock_sleep: MagicMock) -> None:
         """Returns False when timeout exceeded."""
         mgr = self._make_manager()
-        with patch.object(mgr, "get_pod", return_value={
-            "id": "pod1", "desiredStatus": "CREATED", "runtime": None,
+        # Mock _graphql_query (not get_pod) — wait_for_ready calls GraphQL directly
+        with patch.object(mgr, "_graphql_query", return_value={
+            "pod": {"id": "pod1", "desiredStatus": "CREATED", "runtime": None},
         }):
             result = mgr.wait_for_ready("pod1", timeout_s=3, poll_interval_s=1)
         assert result is False
@@ -204,7 +206,7 @@ class TestRunPodManager:
 
     @patch("deploy.runpod_manager.requests.post")
     def test_env_dict_converted(self, mock_post: MagicMock) -> None:
-        """Dict env is converted to RunPod's list-of-dicts format."""
+        """Dict env is passed through as a flat dict in the request body."""
         mock_post.return_value = MagicMock(
             status_code=201,
             json=MagicMock(return_value={"id": "pod789"}),
@@ -218,9 +220,10 @@ class TestRunPodManager:
 
         call_kwargs = mock_post.call_args
         body = call_kwargs.kwargs.get("json") or json.loads(call_kwargs.kwargs.get("data", "{}"))
-        env_list = body.get("env", [])
-        assert {"key": "FOO", "value": "bar"} in env_list
-        assert {"key": "BAZ", "value": "qux"} in env_list
+        env_data = body.get("env", {})
+        # create_pod sends env as a flat dict — RunPod REST API accepts this format
+        assert env_data["FOO"] == "bar"
+        assert env_data["BAZ"] == "qux"
 
     # -- default GPU types --
 
