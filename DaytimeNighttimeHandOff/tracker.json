@@ -497,7 +497,14 @@
     "daytime_created": "2026-03-19T23:05:47",
     "daytime_comments": "Replaces static matplotlib PNGs. Pipeline walkthrough, judge vs gold (primary), score distributions, judge agreement, gold analysis, data overview. Enrich CSV with HotpotQA difficulty/type. plotly==6.6.0 already installed. Single self-contained HTML output.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-19T23:50:03"
+    "status": "done",
+    "nighttime_started": "2026-03-19T23:50:03",
+    "nighttime_completed": "2026-03-19T23:58:39",
+    "nighttime_comments": "18-visualization Plotly dashboard: pipeline walkthrough, judge vs gold, distributions, agreement, gold analysis, data overview. 5 tests pass.",
+    "branch": "night/task-030-plotly-dashboard",
+    "commit_sha": "fe54d2fb3ea9e6cb07b1ef34b2876205c668c735",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["plotly was not installed in venv despite being in requirements.txt — installed plotly==6.6.0"]
   }
 ]
