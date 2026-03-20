@@ -531,6 +531,7 @@
     "daytime_created": "2026-03-20T13:05:32",
     "daytime_comments": "6 new columns: llm_context_window, context_utilization_ratio (metadata via Ollama API), doc_readability_score (Flesch-Kincaid via textstat), doc_embedding_spread (intra-cluster variance), query_doc_similarity (embedding cosine), query_doc_lexical_overlap (Jaccard). textstat==0.7.13 already installed in venv.",
     "depends_on": ["task-031"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-20T13:38:21"
   }
 ]
