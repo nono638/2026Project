@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.protocols import Chunker, Embedder, Strategy, Scorer
+from src.protocols import Chunker, Embedder, Strategy, Scorer, Reranker
 from src.retriever import Retriever
 from src.features import extract_features
 from src.metadata import (
@@ -25,7 +25,7 @@ from src.metadata import (
     parse_llm_name,
     build_retrieval_metadata,
     build_context_metadata,
-    build_reranker_placeholder,
+    build_reranker_metadata,
     build_dataset_metadata,
 )
 
@@ -44,7 +44,9 @@ class Experiment:
         models: list[str],
         strategies: list[Strategy],
         scorer: Scorer,
-        top_k: int = 5,
+        retrieval_top_k: int = 5,
+        reranker: Reranker | None = None,
+        reranker_top_k: int | None = None,
         retrieval_mode: str = "hybrid",
         dataset_name: str | None = None,
         dataset_sample_seed: int | None = None,
@@ -59,7 +61,12 @@ class Experiment:
             models: List of Ollama model names (e.g., ['qwen3:0.6b', 'qwen3:4b']).
             strategies: List of Strategy implementations to test.
             scorer: A single Scorer implementation for evaluating answers.
-            top_k: Number of chunks to retrieve per query.
+            retrieval_top_k: Number of chunks to retrieve per query.
+            reranker: Optional Reranker to re-score retrieved chunks before
+                      passing to the LLM. When None, behavior is identical to
+                      the pre-reranker pipeline.
+            reranker_top_k: Number of top chunks to keep after reranking.
+                            Required when reranker is not None.
             retrieval_mode: Retrieval mode — "hybrid", "dense", or "sparse".
             dataset_name: Name of the dataset (e.g., "hotpotqa"), or None for CSV.
             dataset_sample_seed: Random seed used for dataset sampling, or None.
@@ -68,7 +75,8 @@ class Experiment:
 
         Raises:
             TypeError: If any component doesn't implement its Protocol.
-            ValueError: If retrieval_mode is invalid.
+            ValueError: If retrieval_mode is invalid, or reranker is set
+                        without reranker_top_k.
         """
         if retrieval_mode not in ("hybrid", "dense", "sparse"):
             raise ValueError(
@@ -87,13 +95,23 @@ class Experiment:
                 raise TypeError(f"{s} does not implement the Strategy protocol")
         if not isinstance(scorer, Scorer):
             raise TypeError(f"{scorer} does not implement the Scorer protocol")
+        # Reranker validation: if provided, must implement protocol and have top_k
+        if reranker is not None:
+            if not isinstance(reranker, Reranker):
+                raise TypeError(f"{reranker} does not implement the Reranker protocol")
+            if reranker_top_k is None:
+                raise ValueError(
+                    "reranker_top_k is required when reranker is provided"
+                )
 
         self._chunkers = chunkers
         self._embedders = embedders
         self._models = models
         self._strategies = strategies
         self._scorer = scorer
-        self._top_k = top_k
+        self._retrieval_top_k = retrieval_top_k
+        self._reranker = reranker
+        self._reranker_top_k = reranker_top_k
         self._retrieval_mode = retrieval_mode
         self._dataset_name = dataset_name
         self._dataset_sample_seed = dataset_sample_seed
@@ -151,7 +169,7 @@ class Experiment:
                     cache_key = (doc_hash, chunker.name, embedder.name)
                     if cache_key not in index_cache:
                         index_cache[cache_key] = Retriever(
-                            chunks, embedder, self._top_k,
+                            chunks, embedder, self._retrieval_top_k,
                             mode=self._retrieval_mode,
                         )
                     retriever = index_cache[cache_key]
@@ -165,10 +183,33 @@ class Experiment:
                         # Retrieve once, share with features and metadata
                         retrieved = retriever.retrieve(query["text"])
 
-                        # Extract features using pre-retrieved results
+                        # Optional reranking stage: re-score and truncate
+                        if self._reranker is not None:
+                            reranked = self._reranker.rerank(
+                                query["text"], retrieved, self._reranker_top_k
+                            )
+                            # Compute rerank feature columns from reranked output
+                            rerank_scores = [r["rerank_score"] for r in reranked]
+                            if rerank_scores:
+                                mean_rerank = sum(rerank_scores) / len(rerank_scores)
+                                var_rerank = (
+                                    sum((s - mean_rerank) ** 2 for s in rerank_scores)
+                                    / len(rerank_scores)
+                                )
+                            else:
+                                mean_rerank = None
+                                var_rerank = None
+                            # Use reranked chunks for features and context
+                            final_chunks = reranked
+                        else:
+                            mean_rerank = None
+                            var_rerank = None
+                            final_chunks = retrieved
+
+                        # Extract features using final chunks (reranked or original)
                         features = extract_features(
                             query["text"], doc["text"], retriever,
-                            retrieved=retrieved,
+                            retrieved=final_chunks,
                         )
 
                         for strategy in self._strategies:
@@ -219,13 +260,18 @@ class Experiment:
                                     **parse_chunker_name(chunker.name),
                                     "num_chunks": num_chunks,
                                     **embedder_meta,
+                                    "mean_rerank_score": mean_rerank,
+                                    "var_rerank_score": var_rerank,
                                     **build_retrieval_metadata(
                                         self._retrieval_mode,
-                                        self._top_k,
+                                        self._retrieval_top_k,
                                         len(retrieved),
                                     ),
-                                    **build_context_metadata(retrieved),
-                                    **build_reranker_placeholder(),
+                                    **build_context_metadata(final_chunks),
+                                    **build_reranker_metadata(
+                                        self._reranker.name if self._reranker else None,
+                                        self._reranker_top_k,
+                                    ),
                                     **parse_scorer_name(self._scorer.name),
                                     "llm_provider": self._llm_provider,
                                     "llm_host": self._llm_host,
