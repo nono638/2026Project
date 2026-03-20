@@ -131,11 +131,15 @@ class TestE2ESmoke:
             "chunker", "embedder", "model", "strategy",
             "answer", "faithfulness", "relevance", "conciseness", "quality",
             "query_length", "doc_length", "mean_retrieval_score",
+            "doc_readability_score", "doc_embedding_spread",
+            "query_doc_similarity", "query_doc_lexical_overlap",
             # Pipeline metadata columns
             "chunk_type", "chunk_size", "chunk_overlap", "num_chunks",
             "embed_provider", "embed_model", "embed_dimension",
             "retrieval_mode", "retrieval_top_k", "num_chunks_retrieved",
-            "context_char_length", "reranker_model", "reranker_top_k",
+            "context_char_length",
+            "llm_context_window", "context_utilization_ratio",
+            "reranker_model", "reranker_top_k",
             "scorer_provider", "scorer_model",
             "dataset_name", "dataset_sample_seed",
         ]

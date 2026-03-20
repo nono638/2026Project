@@ -9,6 +9,13 @@ variable — chunker type, embedding model, retrieval mode, scorer, etc.
 
 from __future__ import annotations
 
+# Ollama client import — used for context window queries.
+# Imported at module level so tests can mock 'src.metadata.Client'.
+try:
+    from ollama import Client
+except ImportError:
+    Client = None  # type: ignore[misc,assignment]
+
 
 def parse_chunker_name(name: str) -> dict:
     """Parse a chunker .name string into structured metadata.
@@ -187,4 +194,114 @@ def build_dataset_metadata(
     return {
         "dataset_name": name,
         "dataset_sample_seed": seed,
+    }
+
+
+# Module-level cache for context window lookups — avoids repeated API calls
+# for the same model across different rows in the experiment loop.
+_context_window_cache: dict[str, int | None] = {}
+
+
+def get_llm_context_window(
+    model: str, provider: str | None = None, host: str | None = None,
+) -> int | None:
+    """Query the LLM's context window size in tokens.
+
+    For Ollama models, queries the Ollama API via client.show(). For other
+    providers, returns None (no standard API for this).
+
+    Results are cached per model name to avoid repeated API calls within
+    a single experiment run.
+
+    Args:
+        model: Model name (e.g., "qwen3:4b").
+        provider: LLM provider (e.g., "ollama"). If not "ollama", returns None.
+        host: Ollama host URL, or None for localhost default.
+
+    Returns:
+        Context window size in tokens, or None if unknown.
+    """
+    if model in _context_window_cache:
+        return _context_window_cache[model]
+
+    ctx = None
+    if provider == "ollama":
+        ctx = _query_ollama_context_window(model, host)
+
+    _context_window_cache[model] = ctx
+    return ctx
+
+
+def _query_ollama_context_window(model: str, host: str | None) -> int | None:
+    """Query Ollama API for a model's context window size.
+
+    Uses ollama.Client().show() which returns model metadata including
+    parameters. The context window is in the 'num_ctx' model parameter.
+
+    Args:
+        model: Ollama model name.
+        host: Ollama server URL, or None for default.
+
+    Returns:
+        Context window size in tokens, or None if unavailable.
+    """
+    try:
+        client = Client(host=host) if host else Client()
+        info = client.show(model)
+        # Ollama returns model info with parameter details.
+        # The context window is typically in model_info or parameters.
+        # Try multiple locations since Ollama API structure varies by version.
+        if hasattr(info, 'model_info') and info.model_info:
+            # Look for context_length or num_ctx in model_info dict
+            for key in info.model_info:
+                if 'context_length' in key.lower():
+                    return int(info.model_info[key])
+        # Fallback: check modelfile parameters
+        if hasattr(info, 'parameters') and info.parameters:
+            for line in info.parameters.split('\n'):
+                if 'num_ctx' in line:
+                    parts = line.strip().split()
+                    if len(parts) >= 2:
+                        return int(parts[-1])
+        return None
+    except Exception:
+        # Ollama not running, model not found, network error, etc.
+        return None
+
+
+def build_llm_context_metadata(
+    model: str,
+    provider: str | None = None,
+    host: str | None = None,
+    context_char_length: int = 0,
+) -> dict:
+    """Build LLM context window metadata.
+
+    Queries the model's context window size and computes a utilization ratio
+    to detect "lost in the middle" effects — when too much context is stuffed
+    into the window, answer quality degrades.
+
+    Args:
+        model: Model name.
+        provider: LLM provider string.
+        host: LLM host URL.
+        context_char_length: Total character length of retrieved context.
+
+    Returns:
+        Dict with keys: llm_context_window, context_utilization_ratio.
+    """
+    ctx_window = get_llm_context_window(model, provider, host)
+
+    if ctx_window is not None and ctx_window > 0:
+        # Rough char-to-token conversion: ~4 chars per token for English.
+        # Not perfect for all tokenizers, but close enough for a relative
+        # signal used by the meta-learner.
+        approx_tokens = context_char_length / 4
+        ratio = approx_tokens / ctx_window
+    else:
+        ratio = None
+
+    return {
+        "llm_context_window": ctx_window,
+        "context_utilization_ratio": round(ratio, 4) if ratio is not None else None,
     }

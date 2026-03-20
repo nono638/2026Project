@@ -148,6 +148,11 @@ class TestCrossComponentWiring:
         assert "mean_retrieval_score" in features
         assert "var_retrieval_score" in features
         assert "doc_vocab_entropy" in features
+        # Extended features (task-032)
+        assert "doc_readability_score" in features
+        assert "doc_embedding_spread" in features
+        assert "query_doc_similarity" in features
+        assert "query_doc_lexical_overlap" in features
         assert features["query_length"] > 0
         assert features["doc_length"] > 0
 

@@ -134,9 +134,10 @@ class TestEmbeddingFeatures:
 
         embeddings = np.array([[1.0, 0.0, 0.0, 0.0]], dtype=np.float32)
         retriever = self._make_retriever_with_embeddings(embeddings)
-        topic_count, coherence = _embedding_features(retriever)
+        topic_count, coherence, spread = _embedding_features(retriever)
         assert topic_count == 1
         assert coherence == 1.0
+        assert spread == 0.0
 
     def test_two_identical_chunks(self) -> None:
         """Two identical embeddings → 1 topic, ~1.0 coherence."""
@@ -147,7 +148,7 @@ class TestEmbeddingFeatures:
             [1.0, 0.0, 0.0, 0.0],
         ], dtype=np.float32)
         retriever = self._make_retriever_with_embeddings(embeddings)
-        topic_count, coherence = _embedding_features(retriever)
+        topic_count, coherence, spread = _embedding_features(retriever)
         assert topic_count == 1
         assert coherence == pytest.approx(1.0, abs=0.01)
 
@@ -165,7 +166,7 @@ class TestEmbeddingFeatures:
             [0.1, 0.0, 1.0, 0.0],
         ], dtype=np.float32)
         retriever = self._make_retriever_with_embeddings(embeddings)
-        topic_count, coherence = _embedding_features(retriever)
+        topic_count, coherence, spread = _embedding_features(retriever)
         assert topic_count == 2
 
     def test_coherence_decreases_with_disorder(self) -> None:
@@ -219,8 +220,8 @@ class TestEstimateTopicCount:
             c3 + rng.normal(0, 0.01, 64),
         ], dtype=np.float32)
 
-        k_uniform = _estimate_topic_count(uniform)
-        k_separated = _estimate_topic_count(separated)
+        k_uniform, _ = _estimate_topic_count(uniform)
+        k_separated, _ = _estimate_topic_count(separated)
         assert k_separated > k_uniform
 
     def test_two_chunks_returns_one(self) -> None:
@@ -230,7 +231,8 @@ class TestEstimateTopicCount:
         embeddings = np.array([
             [1.0, 0.0], [0.0, 1.0],
         ], dtype=np.float32)
-        assert _estimate_topic_count(embeddings) == 1
+        count, spread = _estimate_topic_count(embeddings)
+        assert count == 1
 
 
 class TestExtractFeaturesIntegration:
@@ -264,6 +266,8 @@ class TestExtractFeaturesIntegration:
             {"text": "chunk", "score": 0.5, "index": 0},
             {"text": "chunk", "score": 0.3, "index": 1},
         ]
+        # _query_doc_similarity calls retriever._embedder.embed() — must return numpy
+        retriever._embedder.embed.return_value = np.random.randn(1, 8).astype(np.float32)
 
         features = extract_features("test query", "some document text here", retriever)
 
@@ -272,6 +276,9 @@ class TestExtractFeaturesIntegration:
             "doc_length", "doc_vocab_entropy",
             "doc_ner_density", "doc_ner_repetition",
             "doc_topic_count", "doc_topic_density", "doc_semantic_coherence",
+            # Extended features (task-032)
+            "doc_readability_score", "doc_embedding_spread",
+            "query_doc_similarity", "query_doc_lexical_overlap",
             "mean_retrieval_score", "var_retrieval_score",
         }
         assert set(features.keys()) == expected_keys
@@ -299,6 +306,8 @@ class TestExtractFeaturesIntegration:
         retriever.retrieve.return_value = [
             {"text": "c", "score": 0.5, "index": 0},
         ]
+        # _query_doc_similarity calls retriever._embedder.embed() — must return numpy
+        retriever._embedder.embed.return_value = np.random.randn(1, 8).astype(np.float32)
 
         features = extract_features("query", "doc text", retriever)
         for key, val in features.items():
