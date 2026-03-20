@@ -68,7 +68,12 @@ def _get_spacy_nlp():
     return _spacy_nlp
 
 
-def extract_features(query: str, document: str, retriever: Retriever) -> dict[str, float]:
+def extract_features(
+    query: str,
+    document: str,
+    retriever: Retriever,
+    retrieved: list[dict] | None = None,
+) -> dict[str, float]:
     """Extract features for a (query, document) pair.
 
     Combines query-level, document-level, and retrieval-level features.
@@ -80,11 +85,15 @@ def extract_features(query: str, document: str, retriever: Retriever) -> dict[st
         document: The full document text.
         retriever: A Retriever instance (used to get retrieval scores
                    and chunk embeddings for document characterization).
+        retrieved: Pre-retrieved results from retriever.retrieve(). If
+                   provided, skips the internal retrieve() call to avoid
+                   double-retrieval in the experiment loop.
 
     Returns:
         Dict of feature name -> value.
     """
-    retrieved = retriever.retrieve(query)
+    if retrieved is None:
+        retrieved = retriever.retrieve(query)
     scores = [r["score"] for r in retrieved]
 
     # Document characterization — computed from full doc text and chunk embeddings

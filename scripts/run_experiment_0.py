@@ -242,11 +242,16 @@ def generate_answers(
             chunks = chunker.chunk(doc.text)
             retriever = Retriever(chunks, embedder)
 
+            # Retrieve once for metadata
+            retrieved = retriever.retrieve(query.text)
+
             # Generate answer
             answer = strategy.run(query.text, retriever, model)
         except Exception as exc:
             logger.error("Generation failed for example %d: %s", i, exc)
             answer = ""
+            chunks = []
+            retrieved = []
 
         results.append({
             "example_id": i,
@@ -254,6 +259,9 @@ def generate_answers(
             "gold_answer": query.reference_answer or "",
             "rag_answer": answer,
             "doc_text": doc.text,
+            "num_chunks": len(chunks),
+            "num_chunks_retrieved": len(retrieved),
+            "context_char_length": sum(len(r.get("text", "")) for r in retrieved),
         })
 
     return results
@@ -336,6 +344,24 @@ def score_all_answers(
             "rag_answer": ans["rag_answer"],
             "gold_exact_match": exact_match(ans["rag_answer"], ans["gold_answer"]),
             "gold_f1": compute_f1(ans["rag_answer"], ans["gold_answer"]),
+            # Pipeline metadata (constant for Exp 0)
+            "chunk_type": "recursive",
+            "chunk_size": 500,
+            "chunk_overlap": 100,
+            "num_chunks": ans.get("num_chunks"),
+            "embed_provider": "ollama",
+            "embed_model": "mxbai-embed-large",
+            "embed_dimension": 1024,
+            "retrieval_mode": "hybrid",
+            "retrieval_top_k": 5,
+            "num_chunks_retrieved": ans.get("num_chunks_retrieved"),
+            "context_char_length": ans.get("context_char_length"),
+            "reranker_model": None,
+            "reranker_top_k": None,
+            "llm_provider": "ollama",
+            "llm_host": "local",
+            "dataset_name": "hotpotqa",
+            "dataset_sample_seed": 42,
         }
 
         # Score with each judge
@@ -583,8 +609,16 @@ def main() -> None:
     if raw_scores_path.exists():
         existing_df = pd.read_csv(raw_scores_path)
         # Find new scorer columns (not in existing)
-        base_cols = {"example_id", "question", "gold_answer", "rag_answer",
-                     "gold_exact_match", "gold_f1", "gold_bertscore"}
+        base_cols = {
+            "example_id", "question", "gold_answer", "rag_answer",
+            "gold_exact_match", "gold_f1", "gold_bertscore",
+            # Pipeline metadata columns
+            "chunk_type", "chunk_size", "chunk_overlap", "num_chunks",
+            "embed_provider", "embed_model", "embed_dimension",
+            "retrieval_mode", "retrieval_top_k", "num_chunks_retrieved",
+            "context_char_length", "reranker_model", "reranker_top_k",
+            "llm_provider", "llm_host", "dataset_name", "dataset_sample_seed",
+        }
         new_scorer_cols = [c for c in results_df.columns
                           if c not in base_cols and c not in existing_df.columns]
         if new_scorer_cols:

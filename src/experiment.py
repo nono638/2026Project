@@ -18,6 +18,16 @@ import pandas as pd
 from src.protocols import Chunker, Embedder, Strategy, Scorer
 from src.retriever import Retriever
 from src.features import extract_features
+from src.metadata import (
+    parse_chunker_name,
+    parse_embedder_name,
+    parse_scorer_name,
+    parse_llm_name,
+    build_retrieval_metadata,
+    build_context_metadata,
+    build_reranker_placeholder,
+    build_dataset_metadata,
+)
 
 
 class Experiment:
@@ -36,6 +46,10 @@ class Experiment:
         scorer: Scorer,
         top_k: int = 5,
         retrieval_mode: str = "hybrid",
+        dataset_name: str | None = None,
+        dataset_sample_seed: int | None = None,
+        llm_provider: str | None = None,
+        llm_host: str | None = None,
     ) -> None:
         """Initialize the experiment with component lists.
 
@@ -47,6 +61,10 @@ class Experiment:
             scorer: A single Scorer implementation for evaluating answers.
             top_k: Number of chunks to retrieve per query.
             retrieval_mode: Retrieval mode — "hybrid", "dense", or "sparse".
+            dataset_name: Name of the dataset (e.g., "hotpotqa"), or None for CSV.
+            dataset_sample_seed: Random seed used for dataset sampling, or None.
+            llm_provider: LLM backend provider name (e.g., "ollama").
+            llm_host: LLM host URL, or None for local.
 
         Raises:
             TypeError: If any component doesn't implement its Protocol.
@@ -77,6 +95,10 @@ class Experiment:
         self._scorer = scorer
         self._top_k = top_k
         self._retrieval_mode = retrieval_mode
+        self._dataset_name = dataset_name
+        self._dataset_sample_seed = dataset_sample_seed
+        self._llm_provider = llm_provider
+        self._llm_host = llm_host or "local"
         self._documents: list[dict] = []
         self._queries: list[dict] = []
 
@@ -122,6 +144,7 @@ class Experiment:
             for chunker in self._chunkers:
                 # Chunk once per (doc, chunker)
                 chunks = chunker.chunk(doc["text"])
+                num_chunks = len(chunks)
 
                 for embedder in self._embedders:
                     # Build/cache retriever per (doc, chunker, embedder)
@@ -133,10 +156,19 @@ class Experiment:
                         )
                     retriever = index_cache[cache_key]
 
+                    # Pre-compute embedder metadata once per embedder
+                    embedder_meta = parse_embedder_name(
+                        embedder.name, embedder.dimension
+                    )
+
                     for query in self._queries:
-                        # Extract features once per (query, doc, retriever)
+                        # Retrieve once, share with features and metadata
+                        retrieved = retriever.retrieve(query["text"])
+
+                        # Extract features using pre-retrieved results
                         features = extract_features(
-                            query["text"], doc["text"], retriever
+                            query["text"], doc["text"], retriever,
+                            retrieved=retrieved,
                         )
 
                         for strategy in self._strategies:
@@ -183,6 +215,24 @@ class Experiment:
                                     "scorer_latency_ms": scorer_latency_ms,
                                     "total_latency_ms": total_latency_ms,
                                     "timestamp": datetime.now().isoformat(),
+                                    # Pipeline metadata
+                                    **parse_chunker_name(chunker.name),
+                                    "num_chunks": num_chunks,
+                                    **embedder_meta,
+                                    **build_retrieval_metadata(
+                                        self._retrieval_mode,
+                                        self._top_k,
+                                        len(retrieved),
+                                    ),
+                                    **build_context_metadata(retrieved),
+                                    **build_reranker_placeholder(),
+                                    **parse_scorer_name(self._scorer.name),
+                                    "llm_provider": self._llm_provider,
+                                    "llm_host": self._llm_host,
+                                    **build_dataset_metadata(
+                                        self._dataset_name,
+                                        self._dataset_sample_seed,
+                                    ),
                                 }
                                 rows.append(row)
 

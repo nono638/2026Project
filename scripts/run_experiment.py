@@ -547,6 +547,10 @@ def main() -> None:
     # Run experiment
     from src.experiment import Experiment
 
+    # Determine LLM provider/host for metadata
+    llm_backend = getattr(args, "llm_backend", "ollama")
+    llm_host = getattr(args, "llm_base_url", None) or getattr(args, "ollama_host", None) or "local"
+
     experiment = Experiment(
         chunkers=chunkers,
         embedders=embedders,
@@ -554,6 +558,10 @@ def main() -> None:
         models=models,
         scorer=scorer,
         retrieval_mode=retrieval_mode,
+        dataset_name=getattr(args, "dataset", None),
+        dataset_sample_seed=42 if getattr(args, "dataset", None) else None,
+        llm_provider=llm_backend,
+        llm_host=llm_host,
     )
 
     # Load corpus into experiment
