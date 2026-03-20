@@ -76,12 +76,20 @@
 **Context:** No README.md, no getting-started tutorial, no explanation of output columns, no API docs for the FastAPI endpoint. Code has good docstrings but nothing user-facing. A researcher who isn't us can't use RAGBench without reading source code. Needs: README with quick-start, output format spec (what each CSV column means), and a "run your first experiment" walkthrough.
 **Next trigger:** MVP demo approaching (April 7th) or when positioning for external users. Could be part of the findings gallery effort.
 
-## Reranker protocol
-**Captured:** 2026-03-17
-**Last reviewed:** 2026-03-17
-**Context:** Add a `Reranker` protocol (`rerank(query, chunks, top_k) -> chunks`) as an optional stage between retrieval and generation. Cross-encoder reranking is standard in production RAG and improves NDCG@10 by 7-20% depending on baseline. The interaction between reranker and embedding model is non-trivial (Rao et al. 2025: smaller embeddings can outperform larger ones with the right reranker). Relevance-only reranking can actually hurt answer quality (REBEL 2025). For our experiments, hold reranking constant (either off, or one fixed reranker like `gte-reranker-modernbert-base` 149M). Infrastructure should support swapping rerankers for future users. See `reference/research.md` "Reranking in RAG Systems" for full literature review.
-**Next trigger:** Experiments 1 & 2 are complete. User wants to run Experiment 3 (reranking study) or position RAGBench for external users who expect reranking support.
-**Blocked by:** Hybrid retrieval should be implemented first — rerankers can only reorder what was retrieved, so recall matters more than precision at the retrieval stage.
+## Reranker protocol — PROMOTED 2026-03-20
+**Promoted to:** task-031 (done, merged)
+
+## Prompt template as an experimental variable (Experiment 3 candidate)
+**Captured:** 2026-03-20
+**Last reviewed:** 2026-03-20
+**Context:** Prompt templates are the biggest uncontrolled variable in RAG. Most production systems (LangChain, LlamaIndex, enterprise RAG) use a default template chosen by folklore, not evidence. Nobody has systematically tested whether these choices matter, how much, or whether they interact with model size. Currently our strategy prompt templates are hardcoded — prompt engineering is confounded with strategy logic. Decompose templates into 2 structural dimensions: context format (plain concat / numbered list / XML tags) × instruction framing (closed-book / open-book) = 6 templates. Run with NaiveRAG only (simplest strategy = prompt IS the strategy) on one model, 50 queries. 300 runs total — cheap. Key research question: does prompt engineering give more lift than switching strategies? If NaiveRAG+good-template beats CorrectiveRAG+bad-template, that's publishable. Implementation: extract prompt template from NaiveRAG into a parameter, define 6 canonical templates, run as a small side study.
+**Next trigger:** Experiments 1 & 2 are complete. User wants to design Experiment 3.
+
+## Guardrail protocol for engine users
+**Captured:** 2026-03-20
+**Last reviewed:** 2026-03-20
+**Context:** A `Guardrail` protocol so RAGBench users can plug in their own input/output filters (reject off-topic queries, block harmful outputs, filter PII). Separate from live demo guardrails (which are being built for the demo endpoint). This is about making the engine production-ready for others.
+**Next trigger:** Positioning RAGBench for external users / Builder audience. Could coincide with user documentation effort.
 
 ## Hybrid retrieval as default — PROMOTED 2026-03-17
 **Promoted to:** task-019

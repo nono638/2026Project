@@ -542,5 +542,13 @@
     "attempted_approaches": [],
     "flags": ["2 pre-written lexical overlap tests fail due to test using text*10 without space separator — test bug, not implementation bug", "Merge task-031 branch first, then task-032 (task-032 depends on task-031 changes)"],
     "daytime_reviewed": "2026-03-20T14:10:09"
+  },
+  {
+    "task_id": "task-033",
+    "description": "Granular latency: retrieval_latency_ms, generation_latency_ms, reranking_latency_ms columns",
+    "daytime_created": "2026-03-20T15:22:57",
+    "daytime_comments": "TimedRetriever wrapper pattern — no changes to Retriever, protocols, or strategies. Keep existing latency columns unchanged for backwards compat.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
