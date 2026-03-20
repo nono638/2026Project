@@ -481,8 +481,15 @@
     "daytime_created": "2026-03-19T22:46:13",
     "daytime_comments": "Gemini 2.5 Pro hit 503 on ~50% of calls during Experiment 0. Simple retry with backoff in score() method. max_retries=3 default. No new deps.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-19T23:40:18"
+    "status": "done",
+    "nighttime_started": "2026-03-19T23:40:18",
+    "nighttime_completed": "2026-03-19T23:47:52",
+    "nighttime_comments": "Added _call_with_retry() with exponential backoff + jitter, max_retries param. 5 tests pass.",
+    "branch": "night/task-029-scorer-retry",
+    "commit_sha": "237c3bf3c01993d914663c60e4d638cf9b7a6c38",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-030",
