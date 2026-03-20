@@ -508,5 +508,13 @@
     "attempted_approaches": [],
     "flags": ["plotly was not installed in venv despite being in requirements.txt — installed plotly==6.6.0"],
     "daytime_reviewed": "2026-03-20T09:18:56"
+  },
+  {
+    "task_id": "task-031",
+    "description": "Reranker Protocol + MiniLM/BGE implementations, Experiment integration, metadata/features",
+    "daytime_created": "2026-03-20T11:57:47",
+    "daytime_comments": "Optional pipeline stage between retrieval and generation. Two cross-encoder models (22M vs 278M params). Renames top_k to retrieval_top_k. Adds reranker_top_k, mean_rerank_score, var_rerank_score. No new pip dependencies — sentence-transformers CrossEncoder already available. BGE model is ~1.1GB download on first use.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
