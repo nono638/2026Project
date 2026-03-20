@@ -37,11 +37,17 @@ Configuration Selection — 2026-03-19" for the literature gap analysis.
 from __future__ import annotations
 
 import math
+import string
 from collections import Counter
 
+import faiss
 import numpy as np
 
 from src.retriever import Retriever
+
+# Punctuation removal table for lexical overlap computation.
+# Defined at module level to avoid rebuilding on each call.
+_PUNCT_TABLE = str.maketrans("", "", string.punctuation)
 
 # Lazy-loaded spaCy model — loaded once on first use, kept in module scope.
 # en_core_web_sm is installed as a pip package in the project venv
@@ -98,9 +104,14 @@ def extract_features(
 
     # Document characterization — computed from full doc text and chunk embeddings
     ner_density, ner_repetition = _ner_features(document)
-    topic_count, semantic_coherence = _embedding_features(retriever)
+    topic_count, semantic_coherence, embedding_spread = _embedding_features(retriever)
     doc_length = len(document.split())
     topic_density = topic_count / (doc_length / 1000) if doc_length > 0 else 0.0
+
+    # New features (task-032)
+    readability = _readability_score(document)
+    q_doc_sim = _query_doc_similarity(query, retriever)
+    q_doc_overlap = _query_doc_lexical_overlap(query, document)
 
     return {
         # Query-level
@@ -115,6 +126,12 @@ def extract_features(
         "doc_topic_count": topic_count,
         "doc_topic_density": topic_density,
         "doc_semantic_coherence": semantic_coherence,
+        # Extended document features (task-032)
+        "doc_readability_score": readability,
+        "doc_embedding_spread": embedding_spread,
+        # Query-document features (task-032)
+        "query_doc_similarity": q_doc_sim,
+        "query_doc_lexical_overlap": q_doc_overlap,
         # Retrieval-level
         "mean_retrieval_score": float(np.mean(scores)) if scores else 0.0,
         "var_retrieval_score": float(np.var(scores)) if scores else 0.0,
@@ -164,12 +181,13 @@ def _ner_features(text: str) -> tuple[float, float]:
     return ner_density, ner_repetition
 
 
-def _embedding_features(retriever: Retriever) -> tuple[float, float]:
+def _embedding_features(retriever: Retriever) -> tuple[float, float, float]:
     """Extract embedding-based document characterization features.
 
     Uses chunk embeddings stored in the retriever's FAISS index to compute:
     1. Topic count — number of semantic clusters (KMeans with silhouette selection)
     2. Semantic coherence — mean cosine similarity between consecutive chunks
+    3. Embedding spread — mean intra-cluster distance (Euclidean) after KMeans
 
     All computation uses sklearn (pure Python, no external data downloads)
     and numpy. FAISS index.reconstruct() pulls vectors without re-embedding.
@@ -178,13 +196,13 @@ def _embedding_features(retriever: Retriever) -> tuple[float, float]:
         retriever: A Retriever with a populated FAISS index.
 
     Returns:
-        Tuple of (topic_count, semantic_coherence).
-        Returns (1, 1.0) for single-chunk documents (trivially one topic,
-        perfect coherence).
+        Tuple of (topic_count, semantic_coherence, embedding_spread).
+        Returns (1, 1.0, 0.0) for single-chunk documents (trivially one topic,
+        perfect coherence, zero spread).
     """
     n_chunks = retriever._index.ntotal
     if n_chunks <= 1:
-        return 1, 1.0
+        return 1, 1.0, 0.0
 
     # Reconstruct all chunk embeddings from the FAISS index.
     # These are already L2-normalized (done during Retriever init),
@@ -199,10 +217,12 @@ def _embedding_features(retriever: Retriever) -> tuple[float, float]:
     # Normalized vectors → dot product = cosine similarity.
     coherence = _consecutive_cosine_mean(embeddings)
 
-    # --- Topic count via KMeans + silhouette ---
-    topic_count = _estimate_topic_count(embeddings)
+    # --- Topic count + embedding spread via KMeans + silhouette ---
+    # _estimate_topic_count returns both the count and the spread to avoid
+    # running KMeans twice on the same embeddings.
+    topic_count, embedding_spread = _estimate_topic_count(embeddings)
 
-    return float(topic_count), coherence
+    return float(topic_count), coherence, embedding_spread
 
 
 def _consecutive_cosine_mean(embeddings: np.ndarray) -> float:
@@ -225,13 +245,18 @@ def _consecutive_cosine_mean(embeddings: np.ndarray) -> float:
     return float(np.mean(sims))
 
 
-def _estimate_topic_count(embeddings: np.ndarray, max_k: int = 10) -> int:
+def _estimate_topic_count(embeddings: np.ndarray, max_k: int = 10) -> tuple[int, float]:
     """Estimate number of semantic topics via KMeans + silhouette score.
 
     Tries k=2..min(max_k, n_chunks-1) and picks the k with the highest
     silhouette score. Silhouette measures how well-separated clusters are
     (-1 to 1, higher = better). If no k improves on a single cluster,
     returns 1.
+
+    Also computes embedding spread (mean Euclidean distance from each point
+    to its assigned centroid) using the best clustering. This avoids running
+    KMeans twice — the spread is a natural byproduct of the clustering.
+    Uses Euclidean distance because sklearn KMeans uses Euclidean internally.
 
     Uses sklearn (installed in project venv, no external data downloads).
 
@@ -240,22 +265,30 @@ def _estimate_topic_count(embeddings: np.ndarray, max_k: int = 10) -> int:
         max_k: Maximum number of clusters to try. Capped at n_chunks - 1.
 
     Returns:
-        Estimated number of topics (1 to max_k).
+        Tuple of (topic_count, embedding_spread).
+        topic_count: Estimated number of topics (1 to max_k).
+        embedding_spread: Mean distance from each point to its centroid.
     """
     from sklearn.cluster import KMeans
     from sklearn.metrics import silhouette_score
 
     n = len(embeddings)
     if n < 3:
-        # silhouette_score needs at least 2 clusters and 3 samples
-        return 1
+        # silhouette_score needs at least 2 clusters and 3 samples.
+        # Compute spread as mean distance to global centroid.
+        mean_emb = embeddings.mean(axis=0)
+        distances = np.linalg.norm(embeddings - mean_emb, axis=1)
+        return 1, float(np.mean(distances))
 
     upper = min(max_k, n - 1)
     if upper < 2:
-        return 1
+        mean_emb = embeddings.mean(axis=0)
+        distances = np.linalg.norm(embeddings - mean_emb, axis=1)
+        return 1, float(np.mean(distances))
 
     best_k = 1
     best_score = -1.0
+    best_km = None
 
     for k in range(2, upper + 1):
         # n_init="auto" uses sklearn's default (10 for classic, 1 for elkan).
@@ -271,8 +304,22 @@ def _estimate_topic_count(embeddings: np.ndarray, max_k: int = 10) -> int:
         if score > best_score:
             best_score = score
             best_k = k
+            best_km = km
 
-    return best_k
+    # Compute embedding spread from the best clustering
+    if best_km is not None and best_k >= 2:
+        # Mean Euclidean distance from each point to its assigned centroid
+        distances = np.linalg.norm(
+            embeddings - best_km.cluster_centers_[best_km.labels_], axis=1
+        )
+        spread = float(np.mean(distances))
+    else:
+        # Single cluster — spread is mean distance to global centroid
+        mean_emb = embeddings.mean(axis=0)
+        distances = np.linalg.norm(embeddings - mean_emb, axis=1)
+        spread = float(np.mean(distances))
+
+    return best_k, spread
 
 
 def _count_entities(text: str) -> int:
@@ -320,3 +367,88 @@ def _vocab_entropy(text: str) -> float:
         if p > 0:
             entropy -= p * math.log2(p)
     return entropy
+
+
+def _readability_score(text: str) -> float:
+    """Compute Flesch-Kincaid grade level for document text.
+
+    Uses textstat library for accurate syllable counting and FK computation.
+    Higher scores = harder to read. Typical range 0-18 where:
+    - 5 = 5th grade level (very easy)
+    - 12 = 12th grade (high school senior)
+    - 16+ = college/graduate level
+
+    Args:
+        text: Full document text.
+
+    Returns:
+        Flesch-Kincaid grade level. Returns 0.0 for empty text.
+    """
+    if not text or not text.strip():
+        return 0.0
+    import textstat
+    return textstat.flesch_kincaid_grade(text)
+
+
+def _query_doc_similarity(query: str, retriever: Retriever) -> float:
+    """Cosine similarity between query embedding and mean document embedding.
+
+    Embeds the query, computes mean of all chunk embeddings from the FAISS
+    index, and returns their cosine similarity. Since chunk embeddings are
+    L2-normalized, the mean needs re-normalization before dot product.
+
+    This is a cheap signal for whether the query is topically central to
+    the document — useful for the meta-learner to predict retrieval difficulty.
+
+    Args:
+        query: Query text.
+        retriever: Retriever with populated FAISS index and embedder.
+
+    Returns:
+        Cosine similarity in [-1, 1]. Returns 0.0 if no chunks.
+    """
+    n_chunks = retriever._index.ntotal
+    if n_chunks == 0:
+        return 0.0
+
+    # Embed query and L2-normalize
+    query_emb = retriever._embedder.embed([query])
+    faiss.normalize_L2(query_emb)
+    query_vec = query_emb[0]
+
+    # Mean of all chunk embeddings (reconstructed from FAISS index)
+    embeddings = np.array(
+        [retriever._index.reconstruct(i) for i in range(n_chunks)],
+        dtype=np.float32,
+    )
+    mean_doc_emb = embeddings.mean(axis=0)
+    # Re-normalize the mean vector for cosine similarity
+    norm = np.linalg.norm(mean_doc_emb)
+    if norm > 0:
+        mean_doc_emb /= norm
+
+    return float(np.dot(query_vec, mean_doc_emb))
+
+
+def _query_doc_lexical_overlap(query: str, document: str) -> float:
+    """Jaccard similarity between query and document word sets.
+
+    Lowercased, punctuation stripped. Measures raw keyword overlap
+    independent of semantics — complementary to embedding similarity.
+    Both signals are useful for the meta-learner to predict retrieval
+    difficulty.
+
+    Args:
+        query: Query text.
+        document: Full document text.
+
+    Returns:
+        Jaccard similarity in [0, 1]. Returns 0.0 if both are empty.
+    """
+    q_words = set(query.lower().translate(_PUNCT_TABLE).split())
+    d_words = set(document.lower().translate(_PUNCT_TABLE).split())
+    if not q_words and not d_words:
+        return 0.0
+    intersection = q_words & d_words
+    union = q_words | d_words
+    return len(intersection) / len(union) if union else 0.0

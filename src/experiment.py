@@ -27,6 +27,7 @@ from src.metadata import (
     build_context_metadata,
     build_reranker_metadata,
     build_dataset_metadata,
+    build_llm_context_metadata,
 )
 
 
@@ -268,6 +269,12 @@ class Experiment:
                                         len(retrieved),
                                     ),
                                     **build_context_metadata(final_chunks),
+                                    **build_llm_context_metadata(
+                                        model,
+                                        self._llm_provider,
+                                        self._llm_host,
+                                        sum(len(c.get("text", "")) for c in final_chunks),
+                                    ),
                                     **build_reranker_metadata(
                                         self._reranker.name if self._reranker else None,
                                         self._reranker_top_k,
