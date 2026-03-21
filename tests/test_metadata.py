@@ -11,6 +11,7 @@ import pytest
 from src.metadata import (
     parse_chunker_name,
     parse_embedder_name,
+    parse_model_name,
     parse_scorer_name,
     parse_llm_name,
     build_retrieval_metadata,
@@ -133,6 +134,42 @@ class TestParseLlmName:
     def test_openai_compat(self):
         result = parse_llm_name("openai-compat:http://localhost:1234/v1")
         assert result == {"llm_provider": "openai-compat"}
+
+
+# ---------------------------------------------------------------------------
+# parse_model_name
+# ---------------------------------------------------------------------------
+
+class TestParseModelName:
+    """Test model name parsing for Ollama-style names."""
+
+    def test_qwen3_small(self):
+        result = parse_model_name("qwen3:0.6b")
+        assert result == {"model_family": "qwen3", "model_param_billions": 0.6}
+
+    def test_qwen3_large(self):
+        result = parse_model_name("qwen3:8b")
+        assert result == {"model_family": "qwen3", "model_param_billions": 8.0}
+
+    def test_gemma3(self):
+        result = parse_model_name("gemma3:4b")
+        assert result == {"model_family": "gemma3", "model_param_billions": 4.0}
+
+    def test_uppercase_b(self):
+        result = parse_model_name("qwen3:4B")
+        assert result == {"model_family": "qwen3", "model_param_billions": 4.0}
+
+    def test_no_colon(self):
+        result = parse_model_name("custom-model")
+        assert result == {"model_family": "custom-model", "model_param_billions": None}
+
+    def test_non_numeric_size(self):
+        result = parse_model_name("llama3:latest")
+        assert result == {"model_family": "llama3", "model_param_billions": None}
+
+    def test_empty_string(self):
+        result = parse_model_name("")
+        assert result == {"model_family": "", "model_param_billions": None}
 
 
 # ---------------------------------------------------------------------------

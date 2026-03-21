@@ -29,6 +29,7 @@ def _make_synthetic_df() -> pd.DataFrame:
         DataFrame matching the experiment output format.
     """
     rng = np.random.RandomState(42)
+    feat_rng = np.random.RandomState(99)  # separate RNG for features
 
     # Few configs (2×2×2×2=16) spread across many groups (5 docs × 8 queries = 40)
     # ensures each config "wins" in multiple groups
@@ -55,12 +56,21 @@ def _make_synthetic_df() -> pd.DataFrame:
         for query in queries:
             qt = rng.choice(query_types)
             feats = {
-                "query_length": rng.randint(3, 20),
-                "num_named_entities": rng.randint(0, 5),
-                "doc_length": rng.randint(100, 2000),
-                "doc_vocab_entropy": rng.uniform(3.0, 8.0),
-                "mean_retrieval_score": rng.uniform(0.3, 0.9),
-                "var_retrieval_score": rng.uniform(0.01, 0.2),
+                "query_length": feat_rng.randint(3, 20),
+                "num_named_entities": feat_rng.randint(0, 5),
+                "doc_length": feat_rng.randint(100, 2000),
+                "doc_vocab_entropy": feat_rng.uniform(3.0, 8.0),
+                "doc_ner_density": feat_rng.uniform(0.0, 20.0),
+                "doc_ner_repetition": feat_rng.uniform(0.0, 5.0),
+                "doc_topic_count": feat_rng.randint(1, 8),
+                "doc_topic_density": feat_rng.uniform(0.0, 5.0),
+                "doc_semantic_coherence": feat_rng.uniform(0.3, 0.95),
+                "doc_readability_score": feat_rng.uniform(4.0, 16.0),
+                "doc_embedding_spread": feat_rng.uniform(0.0, 1.0),
+                "query_doc_similarity": feat_rng.uniform(-0.1, 0.9),
+                "query_doc_lexical_overlap": feat_rng.uniform(0.0, 0.3),
+                "mean_retrieval_score": feat_rng.uniform(0.3, 0.9),
+                "var_retrieval_score": feat_rng.uniform(0.01, 0.2),
             }
             for chunker in chunkers:
                 for embedder in embedders:
@@ -191,6 +201,15 @@ class TestPredict:
             "num_named_entities": 2,
             "doc_length": 500,
             "doc_vocab_entropy": 5.5,
+            "doc_ner_density": 8.0,
+            "doc_ner_repetition": 2.0,
+            "doc_topic_count": 3,
+            "doc_topic_density": 1.5,
+            "doc_semantic_coherence": 0.7,
+            "doc_readability_score": 10.0,
+            "doc_embedding_spread": 0.4,
+            "query_doc_similarity": 0.6,
+            "query_doc_lexical_overlap": 0.1,
             "mean_retrieval_score": 0.7,
             "var_retrieval_score": 0.05,
             "query_type": "lookup",

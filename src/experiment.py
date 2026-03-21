@@ -21,6 +21,7 @@ from src.features import extract_features
 from src.metadata import (
     parse_chunker_name,
     parse_embedder_name,
+    parse_model_name,
     parse_scorer_name,
     parse_llm_name,
     build_retrieval_metadata,
@@ -350,6 +351,7 @@ class Experiment:
                                         len(retrieved),
                                     ),
                                     **build_context_metadata(final_chunks),
+                                    **parse_model_name(model),
                                     **build_llm_context_metadata(
                                         model,
                                         self._llm_provider,

@@ -131,6 +131,38 @@ def parse_llm_name(name: str) -> dict:
     return {"llm_provider": provider}
 
 
+def parse_model_name(name: str) -> dict:
+    """Parse an Ollama model name into structured metadata.
+
+    Known formats:
+        "qwen3:0.6b"  → family=qwen3, param_billions=0.6
+        "gemma3:4b"   → family=gemma3, param_billions=4.0
+        "qwen3:8b"    → family=qwen3, param_billions=8.0
+
+    Handles edge cases: missing size suffix, non-numeric sizes,
+    no colon separator.
+
+    Args:
+        name: Model name string (e.g., "qwen3:4b").
+
+    Returns:
+        Dict with keys: model_family, model_param_billions.
+    """
+    if ":" in name:
+        family, size_tag = name.split(":", 1)
+    else:
+        return {"model_family": name, "model_param_billions": None}
+
+    # Strip trailing 'b'/'B' and parse as float
+    size_str = size_tag.lower().rstrip("b")
+    try:
+        param_b = float(size_str)
+    except ValueError:
+        param_b = None
+
+    return {"model_family": family, "model_param_billions": param_b}
+
+
 def build_retrieval_metadata(
     mode: str, top_k: int, num_retrieved: int
 ) -> dict:
