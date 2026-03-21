@@ -121,6 +121,9 @@ class CrossEncoderFilter:
 
             pairs = [(query_text, p) for p in paragraphs]
             scores = self._model.predict(pairs)
+            # Guard against empty scores array (e.g. if model returns nothing)
+            if len(scores) == 0:
+                return 0.0
             max_score = max(self._sigmoid(float(s)) for s in scores)
             return max_score
 
