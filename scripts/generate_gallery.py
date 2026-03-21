@@ -475,28 +475,67 @@ def main(
             placeholder = _generate_placeholder(0, "Scorer validation — comparing LLM judges on gold-standard data.")
             (output_dir / "experiment_0.html").write_text(placeholder, encoding="utf-8")
 
-    # Experiments 1 and 2
+    # Experiments 1 and 2 — use real dashboards when data exists
+    _exp_generators = {}
+    try:
+        from scripts.generate_experiment1_dashboard import build_experiment1_figures
+        _exp_generators[1] = build_experiment1_figures
+    except ImportError:
+        logger.warning("generate_experiment1_dashboard not importable — Exp 1 will use placeholder")
+    try:
+        from scripts.generate_experiment2_dashboard import build_experiment2_figures
+        _exp_generators[2] = build_experiment2_figures
+    except ImportError:
+        logger.warning("generate_experiment2_dashboard not importable — Exp 2 will use placeholder")
+
+    _exp_titles = {1: "Strategy × Model Size", 2: "Chunking × Model Size"}
+    _exp_intros = {
+        1: ("5 RAG strategies × 6 models. Each chart below is interactive "
+            "— hover for details, click legend entries to toggle, drag to zoom."),
+        2: ("4 chunking strategies × 4 Qwen3 models. Each chart below is interactive "
+            "— hover for details, click legend entries to toggle, drag to zoom."),
+    }
+
     for exp_num in [1, 2]:
         if exp_num not in experiments:
             continue
         exp_csv = results_dir / f"experiment_{exp_num}" / "raw_scores.csv"
         desc = _EXPERIMENT_DESCRIPTIONS.get(exp_num, f"Experiment {exp_num}")
-        if exp_csv.exists() and exp_csv.stat().st_size > 0:
+        nav_key = f"exp{exp_num}"
+
+        if exp_csv.exists() and exp_csv.stat().st_size > 0 and exp_num in _exp_generators:
             experiments_info.append({
                 "num": exp_num,
-                "title": desc.split(" — ")[0] if " — " in desc else f"Experiment {exp_num}",
+                "title": _exp_titles.get(exp_num, f"Experiment {exp_num}"),
                 "status": "ready",
                 "description": desc,
             })
-            # TODO: generate real dashboard when data exists
-            # For now, use placeholder even if CSV exists
-            logger.info("Experiment %d data found but no dashboard generator yet — placeholder", exp_num)
-            placeholder = _generate_placeholder(exp_num, desc)
-            (output_dir / f"experiment_{exp_num}.html").write_text(placeholder, encoding="utf-8")
+            logger.info("Generating Experiment %d dashboard from %s", exp_num, exp_csv)
+            figures = _exp_generators[exp_num](exp_csv)
+            parts = [f"""
+    <div class="card">
+        <p>{_exp_intros.get(exp_num, '')}</p>
+    </div>
+    """]
+            from scripts.generate_experiment0_dashboard import _fig_to_html
+            for title, fig in figures:
+                chart_html = _fig_to_html(fig)
+                parts.append(f"""
+        <div class="chart-container">
+            <h3>{title}</h3>
+            {chart_html}
+        </div>""")
+            content = "\n".join(parts)
+            page_html = _build_page_template(
+                f"Experiment {exp_num}: {_exp_titles.get(exp_num, '')}",
+                nav_active=nav_key,
+                content_html=content,
+            )
+            (output_dir / f"experiment_{exp_num}.html").write_text(page_html, encoding="utf-8")
         else:
             experiments_info.append({
                 "num": exp_num,
-                "title": desc.split(" — ")[0] if " — " in desc else f"Experiment {exp_num}",
+                "title": _exp_titles.get(exp_num, f"Experiment {exp_num}"),
                 "status": "placeholder",
                 "description": desc,
             })
