@@ -566,8 +566,15 @@
     "daytime_created": "2026-03-20T22:51:02",
     "daytime_comments": "Major rewrite of train.py and predict.py. Single train() API that auto-detects regression vs classification from target column. Supports constraints, minimize/maximize objective, configurable features. Backward compatible with existing train(df) calls. See spec for full design.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-20T23:14:08"
+    "status": "done",
+    "nighttime_started": "2026-03-20T23:14:08",
+    "nighttime_completed": "2026-03-20T23:25:39",
+    "nighttime_comments": "Unified train() API with regression/classification/auto-detect, constraints, meta.json. 27 tests pass, 512 total.",
+    "branch": "night/task-034-flexible-meta-learner",
+    "commit_sha": "5df8d8f01c8d28db1a290759412444c27e3eb37e",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-035",
