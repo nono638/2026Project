@@ -559,5 +559,21 @@
     "attempted_approaches": [],
     "flags": ["Pre-existing env issue: typer and textstat not importable despite being in requirements.txt — force-reinstalled both"],
     "daytime_reviewed": "2026-03-20T21:28:57"
+  },
+  {
+    "task_id": "task-034",
+    "description": "Flexible meta-learner: user-defined objectives, regression + classification, constraints",
+    "daytime_created": "2026-03-20T22:51:02",
+    "daytime_comments": "Major rewrite of train.py and predict.py. Single train() API that auto-detects regression vs classification from target column. Supports constraints, minimize/maximize objective, configurable features. Backward compatible with existing train(df) calls. See spec for full design.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-035",
+    "description": "Findings gallery: static site generator from experiment results (Plotly, self-contained HTML)",
+    "daytime_created": "2026-03-20T22:59:54",
+    "daytime_comments": "Explorer audience deliverable. Builds on existing Plotly dashboard from task-030. Exp 0 data exists and is real. Exp 1 & 2 get placeholder pages that auto-upgrade when data appears. Refactors generate_experiment0_dashboard.py to extract build_experiment0_figures() for reuse.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

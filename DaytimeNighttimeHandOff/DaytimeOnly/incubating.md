@@ -26,12 +26,8 @@
 ## Document characterization features for meta-learner — PROMOTED 2026-03-19
 **Promoted to:** Implemented directly during daytime session (commit 47f9f5b). Five features added to `src/features.py`, 13 tests in `tests/test_doc_features.py`.
 
-## Configurable feature groups for meta-learner training
-**Captured:** 2026-03-19
-**Last reviewed:** 2026-03-19
-**Context:** The meta-learner's feature vector now has 11 features across 4 logical groups: query (2), doc-basic (2), doc-content (5, the new NER/topic/coherence features), retrieval (2). Not all users will want all groups — some may view document "peeking" as non-standard, and multimodal inputs would make text-based NER/topic features irrelevant (images/video have no NER). Decision: always compute all features during experiments (data is cheap, rerunning isn't), but make the meta-learner training step configurable about which feature groups to include. This also enables the research comparison: "doc characterization features improved accuracy by X%." XGBoost handles missing values natively, so a single model could even handle mixed text/multimodal inputs where content features are NaN.
-**Next trigger:** Meta-learner training code is being written.
-**Blocked by:** Nothing — but no value in building this until the training pipeline exists.
+## Configurable feature groups for meta-learner training — PROMOTED 2026-03-20
+**Promoted to:** task-034 (train() now accepts a `features` parameter — users choose which feature columns to include)
 
 ## Multimodal embedding support
 **Captured:** 2026-03-16
@@ -45,11 +41,12 @@
 **Context:** Google's `multimodalembedding@001` on Vertex AI puts text, image, and video into a shared 1408-dim embedding space. Interesting to benchmark on text-only despite ~32 token limit. BUT requires a paid GCP Vertex AI account (~$0.0001/prediction) — the $20/month Gemini subscription doesn't cover it. Spec was written (see architecture-decisions.md) but removed from task-006 to avoid GCP billing setup.
 **Next trigger:** User sets up GCP billing, or free Vertex AI access becomes available, or multimodal becomes a priority worth paying for.
 
-## Findings gallery website + live demo
+## Findings gallery website + live demo — PARTIALLY PROMOTED 2026-03-20
+**Promoted to:** task-035 (static gallery only — live demo remains incubating)
 **Captured:** 2026-03-17
-**Last reviewed:** 2026-03-18
-**Context:** Two-part website: (1) Static findings gallery showing pre-computed experiment results — interactive visualizations, time-quality tradeoffs, when small models beat large ones. Free hosting (Render/Vercel). (2) Live "try it yourself" demo limited to 1B/4B models for speed and cost. Backed by RunPod GPU that auto-starts on request and auto-stops after idle. Budget-aware UI shows remaining credits, degrades to gallery-only when exhausted. Architecture decision captured in reference/architecture-decisions.md.
-**Next trigger:** Experiment 1 results exist and have interesting findings worth presenting. MVP demo approaching (April 7).
+**Last reviewed:** 2026-03-20
+**Context:** Two-part website: (1) Static findings gallery showing pre-computed experiment results — interactive visualizations, time-quality tradeoffs, when small models beat large ones. Free hosting (Render/Vercel). (2) Live "try it yourself" demo limited to 1B/4B models for speed and cost. Backed by RunPod GPU that auto-starts on request and auto-stops after idle. Budget-aware UI shows remaining credits, degrades to gallery-only when exhausted.
+**Next trigger (live demo):** Gallery is deployed and working. RunPod GPU is available for inference. User decides live demo is worth the complexity before MVP demo (April 7).
 
 ## Constraint-aware analysis API
 **Captured:** 2026-03-17
