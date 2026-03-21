@@ -608,7 +608,8 @@
     "commit_sha": "4d817087bf4758ec35c138dcf690b3f330bdd01a",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-21T08:41:24"
   },
   {
     "task_id": "task-037",
@@ -624,7 +625,8 @@
     "commit_sha": "5e2d7d31beee420235e28adc621f374c423573c4",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Branch merges task-036 — merge task-036 first during morning review"]
+    "flags": ["Branch merges task-036 — merge task-036 first during morning review"],
+    "daytime_reviewed": "2026-03-21T08:41:24"
   },
   {
     "task_id": "task-038",
@@ -640,6 +642,7 @@
     "commit_sha": "f06dd76858b3ffe93b5754296f9a8eb9fd523f50",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["3 existing tests updated for best_config return type change (tuple -> dict)"]
+    "flags": ["3 existing tests updated for best_config return type change (tuple -> dict)"],
+    "daytime_reviewed": "2026-03-21T08:41:24"
   }
 ]
