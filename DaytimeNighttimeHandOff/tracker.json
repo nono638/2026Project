@@ -616,8 +616,15 @@
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Creates scripts/run_experiment_2.py. Reuses experiment_utils.py from task-036. NaiveRAG held constant. Same 200 HotpotQA sample for cross-experiment comparability.",
     "depends_on": ["task-036"],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-21T02:03:54"
+    "status": "done",
+    "nighttime_started": "2026-03-21T02:03:54",
+    "nighttime_completed": "2026-03-21T02:12:07",
+    "nighttime_comments": "Created run_experiment_2.py (16-config matrix, NaiveRAG constant). 13 task tests + 527 project tests pass. Branch merges task-036.",
+    "branch": "night/task-037-experiment-2-script",
+    "commit_sha": "5e2d7d31beee420235e28adc621f374c423573c4",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Branch merges task-036 — merge task-036 first during morning review"]
   },
   {
     "task_id": "task-038",
