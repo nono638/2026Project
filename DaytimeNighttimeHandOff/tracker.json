@@ -651,8 +651,15 @@
     "daytime_created": "2026-03-21T08:41:24",
     "daytime_comments": "Two dashboard generators following Exp 0 pattern. Charts: quality/latency heatmaps, line plots vs model size, strategy-beats-size analysis, Pareto frontier, distributions. Gallery auto-detects data and replaces placeholders.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-21T09:37:29"
+    "status": "done",
+    "nighttime_started": "2026-03-21T09:37:29",
+    "nighttime_completed": "2026-03-21T09:48:41",
+    "nighttime_comments": "Two Plotly dashboard generators (Exp 1: 12 charts for strategy×model, Exp 2: 12 charts for chunking×model) + gallery integration. 22 task tests + 549 project tests pass.",
+    "branch": "night/task-039-experiment-dashboards",
+    "commit_sha": "2248378584cc4de15e6ce49f9047ce4050d7f00b",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Pre-written test PROJECT_ROOT path calculation wrong for WrittenByDaytime location — fixed in tests/ copies"]
   },
   {
     "task_id": "task-040",
