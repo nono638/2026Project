@@ -64,11 +64,8 @@
 ## CLI: expose chunker/embedder/dataset selection — PROMOTED 2026-03-18
 **Promoted to:** task-022 (done)
 
-## User documentation: README, tutorial, output guide
-**Captured:** 2026-03-17
-**Last reviewed:** 2026-03-17
-**Context:** No README.md, no getting-started tutorial, no explanation of output columns, no API docs for the FastAPI endpoint. Code has good docstrings but nothing user-facing. A researcher who isn't us can't use RAGBench without reading source code. Needs: README with quick-start, output format spec (what each CSV column means), and a "run your first experiment" walkthrough.
-**Next trigger:** MVP demo approaching (April 7th) or when positioning for external users. Could be part of the findings gallery effort.
+## User documentation: README, tutorial, output guide — PROMOTED 2026-03-21
+**Promoted to:** task-040 (README updates + docs/output-format.md + docs/running-experiments.md)
 
 ## Reranker protocol — PROMOTED 2026-03-20
 **Promoted to:** task-031 (done, merged)

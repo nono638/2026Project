@@ -644,5 +644,21 @@
     "attempted_approaches": [],
     "flags": ["3 existing tests updated for best_config return type change (tuple -> dict)"],
     "daytime_reviewed": "2026-03-21T08:41:24"
+  },
+  {
+    "task_id": "task-039",
+    "description": "Experiment 1 & 2 interactive Plotly dashboards + gallery integration",
+    "daytime_created": "2026-03-21T08:41:24",
+    "daytime_comments": "Two dashboard generators following Exp 0 pattern. Charts: quality/latency heatmaps, line plots vs model size, strategy-beats-size analysis, Pareto frontier, distributions. Gallery auto-detects data and replaces placeholders.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-040",
+    "description": "User documentation: README updates (rerankers, cost guard, experiments) + docs/output-format.md + docs/running-experiments.md",
+    "daytime_created": "2026-03-21T08:41:24",
+    "daytime_comments": "MVP-facing docs for April 7th demo. README additions for features added since initial write. Two new docs: output format reference and experiment running guide with troubleshooting.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
