@@ -582,6 +582,7 @@
     "daytime_created": "2026-03-20T22:59:54",
     "daytime_comments": "Explorer audience deliverable. Builds on existing Plotly dashboard from task-030. Exp 0 data exists and is real. Exp 1 & 2 get placeholder pages that auto-upgrade when data appears. Refactors generate_experiment0_dashboard.py to extract build_experiment0_figures() for reuse.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-20T23:28:14"
   }
 ]
