@@ -226,7 +226,8 @@ class TestCrossComponentWiring:
         assert pivot.shape[0] > 0
 
         best = result.best_config()
-        assert len(best) == 4  # (chunker, embedder, strategy, model)
+        assert isinstance(best, dict)
+        assert "strategy" in best and "model" in best
 
         per_q = result.per_query()
         assert "spread" in per_q.columns

@@ -208,9 +208,10 @@ class TestE2ESmoke:
         summary = result.compare()
         assert not summary.empty
 
-        # best_config() should return a valid 4-tuple
+        # best_config() should return a dict with config axes
         best = result.best_config()
-        assert len(best) == 4
+        assert isinstance(best, dict)
+        assert "strategy" in best and "model" in best
 
         # strategy_vs_size() should have strategies as rows and models as cols
         pivot = result.strategy_vs_size()

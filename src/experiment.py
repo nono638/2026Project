@@ -9,6 +9,7 @@ results into an ExperimentResult for analysis.
 from __future__ import annotations
 
 import hashlib
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +31,92 @@ from src.metadata import (
     build_dataset_metadata,
     build_llm_context_metadata,
 )
+
+
+# Constraint parsing — same syntax as src/model/train.py, copied here to avoid
+# coupling the analysis layer to the training module. Both modules share the
+# syntax ">3.5", "<=1000", "==qwen3:4b" so users learn it once.
+_CONSTRAINT_RE = re.compile(r"^(>=|<=|!=|==|>|<)(.+)$")
+
+# The 4 axes that define a configuration in the experiment matrix.
+_CONFIG_AXES = ["chunker", "embedder", "strategy", "model"]
+
+
+def _apply_constraints(df: pd.DataFrame, constraints: dict[str, str]) -> pd.DataFrame:
+    """Filter a DataFrame by constraint expressions.
+
+    Each key is a column name, each value is an operator + value string
+    (e.g. ">3.0", "<=5000", "==qwen3:4b"). String values without an
+    operator prefix do exact match.
+
+    Args:
+        df: Input DataFrame to filter.
+        constraints: Mapping of column name to constraint expression.
+
+    Returns:
+        Filtered DataFrame (may be empty if no rows match).
+
+    Raises:
+        KeyError: If a constraint references a column not in the DataFrame.
+        ValueError: If a constraint string cannot be parsed.
+    """
+    if df.empty:
+        return df
+
+    mask = pd.Series(True, index=df.index)
+
+    for col, expr in constraints.items():
+        if col not in df.columns:
+            raise KeyError(
+                f"Column '{col}' not found. "
+                f"Available: {sorted(df.columns.tolist())}"
+            )
+
+        m = _CONSTRAINT_RE.match(str(expr))
+        if m is None:
+            # No operator prefix — treat as exact string match
+            mask &= df[col] == expr
+            continue
+
+        op, raw_value = m.group(1), m.group(2)
+
+        # Try numeric parse; fall back to string comparison
+        try:
+            value: float | str = float(raw_value)
+        except ValueError:
+            value = raw_value
+
+        if op == ">":
+            mask &= df[col] > value
+        elif op == ">=":
+            mask &= df[col] >= value
+        elif op == "<":
+            mask &= df[col] < value
+        elif op == "<=":
+            mask &= df[col] <= value
+        elif op == "==":
+            mask &= df[col] == value
+        elif op == "!=":
+            mask &= df[col] != value
+
+    return df[mask]
+
+
+def _validate_column(df: pd.DataFrame, column: str) -> None:
+    """Raise KeyError if column is not in the DataFrame.
+
+    Args:
+        df: DataFrame to check.
+        column: Column name to validate.
+
+    Raises:
+        KeyError: With a message listing available columns.
+    """
+    if column not in df.columns:
+        raise KeyError(
+            f"Column '{column}' not found. "
+            f"Available: {sorted(df.columns.tolist())}"
+        )
 
 
 class _TimedRetriever:
@@ -434,18 +521,310 @@ class ExperimentResult:
         """
         return cls(pd.read_parquet(path))
 
-    def best_config(self, metric: str = "quality") -> tuple:
-        """Return the config with the highest mean score for the given metric.
+    def filter(self, constraints: dict[str, str]) -> ExperimentResult:
+        """Return a new ExperimentResult with rows matching all constraints.
+
+        Constraint syntax: ``{"quality": ">3.5", "total_latency_ms": "<5000",
+        "model": "qwen3:4b"}``. Operators: ``>``, ``>=``, ``<``, ``<=``,
+        ``==``, ``!=``. String values without operators do exact match.
+
+        Args:
+            constraints: Mapping of column name to constraint expression.
+
+        Returns:
+            New ExperimentResult with matching rows (may be empty).
+
+        Raises:
+            KeyError: If a constraint references a non-existent column.
+        """
+        filtered = _apply_constraints(self.df, constraints)
+        return ExperimentResult(filtered.reset_index(drop=True))
+
+    def best_config(
+        self,
+        metric: str = "quality",
+        *,
+        maximize: bool = True,
+        constraints: dict[str, str] | None = None,
+    ) -> dict:
+        """Return the config with the best mean score for the given metric.
+
+        Enhanced version: returns a dict (not tuple) with all 4 axis values
+        plus the metric's mean value. Accepts optional constraints and a
+        maximize/minimize flag.
 
         Args:
             metric: The metric column to optimize (default: 'quality').
+            maximize: If True, find highest mean. If False, find lowest
+                (useful for latency where lower is better).
+            constraints: Optional constraint dict to filter rows first.
 
         Returns:
-            Tuple of (chunker, embedder, strategy, model) for the best config.
+            Dict with keys: chunker, embedder, strategy, model,
+            and ``mean_{metric}`` with the winning config's mean value.
+
+        Raises:
+            KeyError: If metric column not found.
+            ValueError: If no rows match constraints or DataFrame is empty.
         """
-        return self.df.groupby(
-            ["chunker", "embedder", "strategy", "model"]
-        )[metric].mean().idxmax()
+        _validate_column(self.df, metric)
+
+        df = self.df
+        if constraints:
+            df = _apply_constraints(df, constraints)
+
+        if df.empty:
+            raise ValueError(
+                f"No rows match the given constraints. "
+                f"Cannot find best config for '{metric}'."
+            )
+
+        # Find config axes present in the data
+        axes = [a for a in _CONFIG_AXES if a in df.columns]
+        if not axes:
+            raise ValueError("No config axes (chunker, embedder, strategy, model) found in data.")
+
+        grouped = df.groupby(axes)[metric].mean()
+        # Drop NaN means (configs with all NaN for this metric)
+        grouped = grouped.dropna()
+        if grouped.empty:
+            raise ValueError(f"All values for '{metric}' are NaN.")
+
+        best_idx = grouped.idxmax() if maximize else grouped.idxmin()
+        best_value = grouped[best_idx]
+
+        # Build result dict
+        if len(axes) == 1:
+            best_idx = (best_idx,)
+        result = dict(zip(axes, best_idx))
+        result[f"mean_{metric}"] = best_value
+        return result
+
+    def configs_above(self, metric: str, threshold: float) -> ExperimentResult:
+        """Return an ExperimentResult with configs whose mean metric >= threshold.
+
+        Groups by (chunker, embedder, strategy, model), computes the mean,
+        and keeps only configs meeting the threshold.
+
+        Args:
+            metric: Column to evaluate.
+            threshold: Minimum mean value (inclusive).
+
+        Returns:
+            ExperimentResult with qualifying rows.
+
+        Raises:
+            KeyError: If metric column not found (non-empty DataFrame only).
+        """
+        if self.df.empty:
+            return ExperimentResult(pd.DataFrame())
+        _validate_column(self.df, metric)
+
+        axes = [a for a in _CONFIG_AXES if a in self.df.columns]
+        means = self.df.groupby(axes)[metric].mean()
+        qualifying = means[means >= threshold].index
+        if len(qualifying) == 0:
+            return ExperimentResult(pd.DataFrame())
+
+        # Filter original rows to only qualifying configs
+        if len(axes) == 1:
+            mask = self.df[axes[0]].isin(qualifying)
+        else:
+            keys = set(qualifying)
+            mask = self.df[axes].apply(tuple, axis=1).isin(keys)
+        return ExperimentResult(self.df[mask].reset_index(drop=True))
+
+    def configs_below(self, metric: str, threshold: float) -> ExperimentResult:
+        """Return an ExperimentResult with configs whose mean metric <= threshold.
+
+        Groups by (chunker, embedder, strategy, model), computes the mean,
+        and keeps only configs meeting the threshold.
+
+        Args:
+            metric: Column to evaluate.
+            threshold: Maximum mean value (inclusive).
+
+        Returns:
+            ExperimentResult with qualifying rows.
+
+        Raises:
+            KeyError: If metric column not found (non-empty DataFrame only).
+        """
+        if self.df.empty:
+            return ExperimentResult(pd.DataFrame())
+        _validate_column(self.df, metric)
+
+        axes = [a for a in _CONFIG_AXES if a in self.df.columns]
+        means = self.df.groupby(axes)[metric].mean()
+        qualifying = means[means <= threshold].index
+        if len(qualifying) == 0:
+            return ExperimentResult(pd.DataFrame())
+
+        if len(axes) == 1:
+            mask = self.df[axes[0]].isin(qualifying)
+        else:
+            keys = set(qualifying)
+            mask = self.df[axes].apply(tuple, axis=1).isin(keys)
+        return ExperimentResult(self.df[mask].reset_index(drop=True))
+
+    def budget_analysis(
+        self,
+        quality_metric: str,
+        cost_metric: str,
+        budget: float,
+        *,
+        maximize_quality: bool = True,
+    ) -> pd.DataFrame:
+        """Find configs within a cost budget, ranked by quality.
+
+        For each config, computes mean quality and mean cost. Filters to
+        configs where mean cost <= budget. Returns sorted by quality.
+
+        Args:
+            quality_metric: Column for quality (e.g., "quality").
+            cost_metric: Column for cost (e.g., "total_latency_ms").
+            budget: Maximum mean cost allowed.
+            maximize_quality: Sort order for quality (True = best first).
+
+        Returns:
+            DataFrame with columns: chunker, embedder, strategy, model,
+            mean_{quality_metric}, mean_{cost_metric}. Empty if no
+            configs meet budget.
+
+        Raises:
+            KeyError: If either metric column not found (non-empty DataFrame only).
+        """
+        if self.df.empty:
+            return pd.DataFrame()
+        _validate_column(self.df, quality_metric)
+        _validate_column(self.df, cost_metric)
+
+        axes = [a for a in _CONFIG_AXES if a in self.df.columns]
+        grouped = self.df.groupby(axes).agg(
+            **{
+                f"mean_{quality_metric}": (quality_metric, "mean"),
+                f"mean_{cost_metric}": (cost_metric, "mean"),
+            }
+        ).reset_index()
+
+        # Filter by budget
+        within_budget = grouped[grouped[f"mean_{cost_metric}"] <= budget]
+        if within_budget.empty:
+            return pd.DataFrame()
+
+        # Sort by quality
+        result = within_budget.sort_values(
+            f"mean_{quality_metric}", ascending=not maximize_quality
+        ).reset_index(drop=True)
+        return result
+
+    def pareto_front(
+        self,
+        quality_metric: str,
+        cost_metric: str,
+        *,
+        maximize_quality: bool = True,
+        minimize_cost: bool = True,
+    ) -> pd.DataFrame:
+        """Compute the Pareto frontier — non-dominated configs.
+
+        A config is Pareto-optimal if no other config is strictly better on
+        both quality and cost. Uses per-config means as the comparison points.
+
+        Args:
+            quality_metric: Column for quality dimension.
+            cost_metric: Column for cost dimension.
+            maximize_quality: Whether higher quality is better (default True).
+            minimize_cost: Whether lower cost is better (default True).
+
+        Returns:
+            DataFrame with Pareto-optimal configs, sorted by quality descending.
+            Columns: chunker, embedder, strategy, model,
+            mean_{quality_metric}, mean_{cost_metric}.
+
+        Raises:
+            KeyError: If either metric column not found (non-empty DataFrame only).
+        """
+        if self.df.empty:
+            return pd.DataFrame()
+        _validate_column(self.df, quality_metric)
+        _validate_column(self.df, cost_metric)
+
+        axes = [a for a in _CONFIG_AXES if a in self.df.columns]
+        grouped = self.df.groupby(axes).agg(
+            **{
+                f"mean_{quality_metric}": (quality_metric, "mean"),
+                f"mean_{cost_metric}": (cost_metric, "mean"),
+            }
+        ).reset_index().dropna()
+
+        if grouped.empty:
+            return pd.DataFrame()
+
+        q_col = f"mean_{quality_metric}"
+        c_col = f"mean_{cost_metric}"
+
+        # For domination check, convert to "higher is better" for both dimensions
+        q_vals = grouped[q_col].values if maximize_quality else -grouped[q_col].values
+        c_vals = -grouped[c_col].values if minimize_cost else grouped[c_col].values
+
+        n = len(grouped)
+        is_pareto = [True] * n
+        for i in range(n):
+            if not is_pareto[i]:
+                continue
+            for j in range(n):
+                if i == j or not is_pareto[j]:
+                    continue
+                # j dominates i if j is >= on both and strictly > on at least one
+                if (q_vals[j] >= q_vals[i] and c_vals[j] >= c_vals[i] and
+                        (q_vals[j] > q_vals[i] or c_vals[j] > c_vals[i])):
+                    is_pareto[i] = False
+                    break
+
+        pareto = grouped[is_pareto].sort_values(q_col, ascending=False)
+        return pareto.reset_index(drop=True)
+
+    def rank(
+        self,
+        metric: str,
+        *,
+        ascending: bool = False,
+        top_n: int | None = None,
+    ) -> pd.DataFrame:
+        """Rank all configs by mean metric value.
+
+        Args:
+            metric: Column to rank by.
+            ascending: If True, lowest first (for latency). Default False.
+            top_n: Limit output to top N configs. None for all.
+
+        Returns:
+            DataFrame with columns: rank, chunker, embedder, strategy, model,
+            mean, std, count.
+
+        Raises:
+            KeyError: If metric column not found (non-empty DataFrame only).
+        """
+        if self.df.empty:
+            return pd.DataFrame()
+        _validate_column(self.df, metric)
+
+        axes = [a for a in _CONFIG_AXES if a in self.df.columns]
+        grouped = self.df.groupby(axes)[metric].agg(
+            ["mean", "std", "count"]
+        ).reset_index().dropna(subset=["mean"])
+
+        if grouped.empty:
+            return pd.DataFrame()
+
+        ranked = grouped.sort_values("mean", ascending=ascending).reset_index(drop=True)
+        ranked.insert(0, "rank", range(1, len(ranked) + 1))
+
+        if top_n is not None:
+            ranked = ranked.head(top_n)
+
+        return ranked
 
     def summary(self) -> pd.DataFrame:
         """Group by all four axes and compute aggregate statistics.
