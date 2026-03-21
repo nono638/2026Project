@@ -624,7 +624,14 @@
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Extends ExperimentResult in src/experiment.py. Constraint syntax matches train.py. best_config return type changes from tuple to dict (intentional breaking change).",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-21T01:52:16"
+    "status": "done",
+    "nighttime_started": "2026-03-21T01:52:16",
+    "nighttime_completed": "2026-03-21T02:02:06",
+    "nighttime_comments": "Added 7 methods to ExperimentResult (filter, best_config rewrite, configs_above/below, budget_analysis, pareto_front, rank). Updated 3 existing tests. 33 task tests + 527 project tests pass.",
+    "branch": "night/task-038-constraint-analysis",
+    "commit_sha": "f06dd76858b3ffe93b5754296f9a8eb9fd523f50",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["3 existing tests updated for best_config return type change (tuple -> dict)"]
   }
 ]
