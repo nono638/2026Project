@@ -267,10 +267,12 @@ class TestExperimentResult:
         assert summary.empty
 
     def test_best_config(self) -> None:
-        """best_config() should return a tuple of config values."""
+        """best_config() should return a dict with config axes and metric value."""
         result = self._make_result()
         best = result.best_config()
 
-        # Should be a tuple of (chunker, embedder, strategy, model)
-        assert isinstance(best, tuple)
-        assert len(best) == 4
+        # Should be a dict with config axes + mean_quality
+        assert isinstance(best, dict)
+        assert "strategy" in best
+        assert "model" in best
+        assert "mean_quality" in best
