@@ -624,6 +624,7 @@
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Extends ExperimentResult in src/experiment.py. Constraint syntax matches train.py. best_config return type changes from tuple to dict (intentional breaking change).",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-21T01:52:16"
   }
 ]
