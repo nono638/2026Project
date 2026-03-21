@@ -659,7 +659,8 @@
     "commit_sha": "2248378584cc4de15e6ce49f9047ce4050d7f00b",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Pre-written test PROJECT_ROOT path calculation wrong for WrittenByDaytime location — fixed in tests/ copies"]
+    "flags": ["Pre-written test PROJECT_ROOT path calculation wrong for WrittenByDaytime location — fixed in tests/ copies"],
+    "daytime_reviewed": "2026-03-21T12:44:44"
   },
   {
     "task_id": "task-040",
@@ -675,6 +676,7 @@
     "commit_sha": "a373d911c334fd8633db63f2f5beed58930abc55",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-21T12:44:44"
   }
 ]
