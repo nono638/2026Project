@@ -138,6 +138,16 @@ LLM-as-judge scoring on faithfulness, relevance, and conciseness (1-5 each).
 | Dense | `--retrieval-mode dense` | Embedding similarity only |
 | Sparse | `--retrieval-mode sparse` | BM25 keyword matching only |
 
+### Rerankers
+
+Optional cross-encoder reranking between retrieval and generation.
+
+| Reranker | Flag | Model | Size |
+|----------|------|-------|------|
+| MiniLM | `--reranker minilm` | ms-marco-MiniLM-L-6-v2 | 22M params |
+| BGE | `--reranker bge` | BAAI/bge-reranker-v2-m3 | 278M params |
+| None | `--reranker none` (default) | No reranking | — |
+
 ## CLI Reference
 
 ```
@@ -157,7 +167,31 @@ Options:
   --llm-base-url URL         Base URL for openai-compat backend
   --scorer PROVIDER:MODEL    LLM scorer (e.g., google:gemini-2.0-flash)
   --output DIR               Output directory (default: results/)
+  --reranker NAME            Reranker: minilm, bge, or none (default: none)
+  --reranker-top-k N         Chunks to keep after reranking (default: 3)
+  --retrieval-top-k N        Chunks to retrieve before reranking (default: 5)
+  --ollama-host URL          Remote Ollama server URL
+  --max-cost USD             Maximum API spend ceiling (default: $10)
+  --resume                   Resume interrupted experiment (experiment scripts only)
 ```
+
+## Running the Research Experiments
+
+RAGBench includes three pre-configured experiments. Each has its own script with
+checkpoint/resume support.
+
+| Experiment | Script | Matrix | Purpose |
+|------------|--------|--------|---------|
+| Exp 0: Scorer Validation | `run_experiment_0.py` | 50 queries x 6 judges | Validate LLM-as-judge reliability |
+| Exp 1: Strategy x Model | `run_experiment_1.py` | 5 strategies x 6 models | Does strategy compensate for model size? |
+| Exp 2: Chunking x Model | `run_experiment_2.py` | 4 chunkers x 4 models | How much does chunking matter? |
+
+See [docs/running-experiments.md](docs/running-experiments.md) for detailed instructions.
+
+## Output Format
+
+Experiment results are saved to `results/experiment_N/raw_scores.csv`. See
+[docs/output-format.md](docs/output-format.md) for a complete column reference.
 
 ## Implementing Your Own Components
 
@@ -189,17 +223,30 @@ src/
   embedders/            # 3 embedder implementations (Ollama, HuggingFace, Google)
   strategies/           # 5 RAG strategy implementations
   scorers/              # LLMScorer with Anthropic + Google adapters
+  rerankers/            # Cross-encoder reranker implementations (MiniLM, BGE)
   llms/                 # LLM backends (Ollama, OpenAI-compatible)
   datasets/             # Built-in dataset loaders (HotpotQA, SQuAD 2.0)
   query_generators/     # RAGAS, template, BEIR, human query generators
   query_filters/        # Heuristic, round-trip, cross-encoder filters
   query_analysis/       # Distribution analyzer for query set quality
+  cost_guard.py         # API spend tracking with configurable ceiling
+  features.py           # Meta-learner feature extraction
+  train.py              # Meta-learner training (XGBoost)
+  predict.py            # Meta-learner prediction
 scripts/
   run_experiment.py     # Main CLI entry point
   run_experiment_0.py   # Scorer validation experiment
+  run_experiment_1.py   # Strategy x model size experiment
+  run_experiment_2.py   # Chunking x model size experiment
+  experiment_utils.py   # Shared experiment infrastructure
+  generate_gallery.py   # Findings gallery site generator
+  generate_experiment0_dashboard.py  # Exp 0 interactive dashboard
   pull_models.py        # Download Ollama models
   smoke_test.py         # Verify installation
-tests/                  # 369 tests
+docs/
+  output-format.md      # CSV column reference
+  running-experiments.md # How to run experiments (local + RunPod)
+tests/                  # 549 tests
 ```
 
 ## License
