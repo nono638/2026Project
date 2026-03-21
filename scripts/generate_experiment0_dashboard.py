@@ -1124,6 +1124,65 @@ def _fig_to_html(fig: go.Figure) -> str:
     return pio.to_html(fig, full_html=False, include_plotlyjs=False)
 
 
+def build_experiment0_figures(
+    df: pd.DataFrame,
+) -> list[tuple[str, go.Figure]]:
+    """Build Experiment 0 chart figures from a scores DataFrame.
+
+    Extracts the reusable chart-building logic so the gallery generator
+    can import and wrap figures in its own page template.  Returns only
+    charts that can be generated from the scores DataFrame alone (no
+    answers_df or HotpotQA enrichment required).
+
+    Args:
+        df: Scores DataFrame (raw_scores.csv loaded as pandas).
+
+    Returns:
+        List of (title, plotly_figure) tuples suitable for embedding in HTML.
+    """
+    judges = get_valid_judges(df, min_valid=1)
+
+    figures: list[tuple[str, go.Figure]] = []
+
+    # Helper to safely attempt chart generation — some charts require
+    # columns that may not be present in all datasets (e.g. gold_bertscore).
+    def _try_append(title: str, fn, *args, **kwargs) -> None:
+        try:
+            fig = fn(*args, **kwargs)
+            figures.append((title, fig))
+        except (KeyError, ValueError) as exc:
+            logger.debug("Skipping chart '%s': %s", title, exc)
+
+    # Judge vs Gold charts (need gold columns present)
+    if "gold_f1" in df.columns:
+        _try_append("Judge Quality vs BERTScore", _chart_judge_vs_bertscore, df, judges)
+        _try_append("Judge Quality vs Gold F1", _chart_judge_vs_f1, df, judges)
+        _try_append("Judge-Gold Correlation", _chart_judge_gold_correlation, df, judges)
+        _try_append("Correct vs Incorrect Scores", _chart_correct_vs_incorrect, df, judges)
+
+    # Score analysis charts
+    _try_append("Score Heatmap", _chart_score_heatmap, df, judges)
+    _try_append("Score Distributions", _chart_violin_distributions, df, judges)
+    _try_append("Metric Breakdown", _chart_metric_breakdown, df, judges)
+    _try_append("Score vs Answer Length", _chart_score_vs_answer_length, df, judges)
+    _try_append("Score vs Question Length", _chart_score_vs_question_length, df, judges)
+
+    # Judge agreement
+    _try_append("Inter-Judge Correlation", _chart_inter_judge_correlation, df, judges)
+
+    # Gold answer analysis
+    if "gold_f1" in df.columns:
+        _try_append("BERTScore Distribution", _chart_bertscore_distribution, df)
+        _try_append("F1 Distribution", _chart_f1_distribution, df)
+        _try_append("BERTScore vs F1", _chart_bertscore_vs_f1, df)
+
+    # Data overview
+    _try_append("Question Length Distribution", _chart_question_length_distribution, df)
+    _try_append("Answer Length Comparison", _chart_answer_length_comparison, df)
+
+    return figures
+
+
 def generate_dashboard(
     scores_path: Path | str,
     answers_path: Path | str,

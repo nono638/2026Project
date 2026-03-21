@@ -17,3 +17,6 @@ DaytimeNighttimeHandOff/audit.jsonl
 DaytimeNighttimeHandOff/nighttime.log
 DaytimeNighttimeHandOff/*.bak
 pip_output.txt
+
+# Generated gallery HTML — the generator script is the source of truth
+site/*.html
