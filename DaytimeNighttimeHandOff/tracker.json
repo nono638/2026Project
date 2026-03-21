@@ -667,6 +667,7 @@
     "daytime_created": "2026-03-21T08:41:24",
     "daytime_comments": "MVP-facing docs for April 7th demo. README additions for features added since initial write. Two new docs: output format reference and experiment running guide with troubleshooting.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-21T09:51:29"
   }
 ]
