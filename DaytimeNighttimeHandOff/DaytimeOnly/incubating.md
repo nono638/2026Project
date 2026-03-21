@@ -48,11 +48,8 @@
 **Context:** Two-part website: (1) Static findings gallery showing pre-computed experiment results — interactive visualizations, time-quality tradeoffs, when small models beat large ones. Free hosting (Render/Vercel). (2) Live "try it yourself" demo limited to 1B/4B models for speed and cost. Backed by RunPod GPU that auto-starts on request and auto-stops after idle. Budget-aware UI shows remaining credits, degrades to gallery-only when exhausted.
 **Next trigger (live demo):** Gallery is deployed and working. RunPod GPU is available for inference. User decides live demo is worth the complexity before MVP demo (April 7).
 
-## Constraint-aware analysis API
-**Captured:** 2026-03-17
-**Last reviewed:** 2026-03-17
-**Context:** Extend ExperimentResult with methods like `configs_above(quality=3.5)`, `best_config(metric="quality", where={"model_size": "<4B"})`, and sorting by latency or estimated cost. Users define what "best" means by expressing priorities. The experiment data is the same — the question you ask of it changes.
-**Next trigger:** Experiment results exist with timing data. The analysis layer needs to support the Builder audience.
+## Constraint-aware analysis API — PROMOTED 2026-03-21
+**Promoted to:** task-038 (filter, budget_analysis, pareto_front, rank on ExperimentResult)
 
 ## Additional built-in dataset loaders (NQ + FRAMES)
 **Captured:** 2026-03-17

@@ -574,7 +574,8 @@
     "commit_sha": "5df8d8f01c8d28db1a290759412444c27e3eb37e",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-21T00:54:03"
   },
   {
     "task_id": "task-035",
@@ -590,6 +591,31 @@
     "commit_sha": "3324e1daa47642bc983e50d943b9c1133fac9392",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-21T00:54:03"
+  },
+  {
+    "task_id": "task-036",
+    "description": "Experiment 1 script: Strategy x Model Size — 5 strategies x 6 models, 200 HotpotQA, with shared experiment_utils.py",
+    "daytime_created": "2026-03-21T01:18:41",
+    "daytime_comments": "Creates both scripts/experiment_utils.py (shared infra) and scripts/run_experiment_1.py. Checkpoint/resume, model pre-pull, gold metrics, Gemini Flash scorer. 200 examples, seed=42.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-037",
+    "description": "Experiment 2 script: Chunking x Model Size — 4 chunkers x 4 Qwen3 models, 200 HotpotQA",
+    "daytime_created": "2026-03-21T01:18:41",
+    "daytime_comments": "Creates scripts/run_experiment_2.py. Reuses experiment_utils.py from task-036. NaiveRAG held constant. Same 200 HotpotQA sample for cross-experiment comparability.",
+    "depends_on": ["task-036"],
+    "status": "todo"
+  },
+  {
+    "task_id": "task-038",
+    "description": "Constraint-aware analysis API: filter, budget_analysis, pareto_front, rank on ExperimentResult",
+    "daytime_created": "2026-03-21T01:18:41",
+    "daytime_comments": "Extends ExperimentResult in src/experiment.py. Constraint syntax matches train.py. best_config return type changes from tuple to dict (intentional breaking change).",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
