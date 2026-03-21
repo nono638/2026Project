@@ -600,7 +600,8 @@
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Creates both scripts/experiment_utils.py (shared infra) and scripts/run_experiment_1.py. Checkpoint/resume, model pre-pull, gold metrics, Gemini Flash scorer. 200 examples, seed=42.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-21T01:41:00"
   },
   {
     "task_id": "task-037",
