@@ -600,8 +600,15 @@
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Creates both scripts/experiment_utils.py (shared infra) and scripts/run_experiment_1.py. Checkpoint/resume, model pre-pull, gold metrics, Gemini Flash scorer. 200 examples, seed=42.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-21T01:41:00"
+    "status": "done",
+    "nighttime_started": "2026-03-21T01:41:00",
+    "nighttime_completed": "2026-03-21T01:50:04",
+    "nighttime_comments": "Created experiment_utils.py (shared infra) and run_experiment_1.py (30-config matrix). 33 task tests + 527 project tests pass.",
+    "branch": "night/task-036-experiment-1-script",
+    "commit_sha": "4d817087bf4758ec35c138dcf690b3f330bdd01a",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   },
   {
     "task_id": "task-037",
