@@ -616,7 +616,8 @@
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Creates scripts/run_experiment_2.py. Reuses experiment_utils.py from task-036. NaiveRAG held constant. Same 200 HotpotQA sample for cross-experiment comparability.",
     "depends_on": ["task-036"],
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-21T02:03:54"
   },
   {
     "task_id": "task-038",
