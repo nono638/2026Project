@@ -582,7 +582,14 @@
     "daytime_created": "2026-03-20T22:59:54",
     "daytime_comments": "Explorer audience deliverable. Builds on existing Plotly dashboard from task-030. Exp 0 data exists and is real. Exp 1 & 2 get placeholder pages that auto-upgrade when data appears. Refactors generate_experiment0_dashboard.py to extract build_experiment0_figures() for reuse.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-20T23:28:14"
+    "status": "done",
+    "nighttime_started": "2026-03-20T23:28:14",
+    "nighttime_completed": "2026-03-20T23:37:49",
+    "nighttime_comments": "Gallery generator with index, Exp 0 dashboard, placeholder pages. Extracted build_experiment0_figures(). 15 tests pass, 507 total.",
+    "branch": "night/task-035-findings-gallery",
+    "commit_sha": "3324e1daa47642bc983e50d943b9c1133fac9392",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   }
 ]
