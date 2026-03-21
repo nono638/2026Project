@@ -13,7 +13,4 @@
 - [one-line capture — what it is and why it came up]
 -->
 
-## 2026-03-20
-- Granular latency breakdown: split strategy_latency_ms into embedding/retrieval/reranking/generation — ready to spec for tonight
-- top_k and chunk_overlap as experimental axes: engine supports both but CLI needs --chunk-overlap flag and experiment scripts need to loop over values — discuss when designing Exp 1 & 2
-- Live demo guardrails: reject off-topic queries, block harmful outputs on the public-facing endpoint — spec when live demo work begins
+<!-- inbox cleared 2026-03-20 session -->

@@ -91,6 +91,12 @@
 **Context:** A `Guardrail` protocol so RAGBench users can plug in their own input/output filters (reject off-topic queries, block harmful outputs, filter PII). Separate from live demo guardrails (which are being built for the demo endpoint). This is about making the engine production-ready for others.
 **Next trigger:** Positioning RAGBench for external users / Builder audience. Could coincide with user documentation effort.
 
+## top_k and chunk_overlap as experimental axes
+**Captured:** 2026-03-20
+**Last reviewed:** 2026-03-20
+**Context:** The engine supports both top_k and chunk_overlap as parameters, but the CLI lacks a --chunk-overlap flag and experiment scripts don't loop over these values. Adding them as axes would let experiments explore retrieval depth and chunking overlap as variables. Needs CLI flag and experiment script updates.
+**Next trigger:** Designing Experiment 1 & 2 run configurations — discuss whether these are worth varying or held constant.
+
 ## Hybrid retrieval as default — PROMOTED 2026-03-17
 **Promoted to:** task-019
 
