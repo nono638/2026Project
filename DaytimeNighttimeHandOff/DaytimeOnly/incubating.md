@@ -29,6 +29,12 @@
 ## Configurable feature groups for meta-learner training — PROMOTED 2026-03-20
 **Promoted to:** task-034 (train() now accepts a `features` parameter — users choose which feature columns to include)
 
+## Automated experiment writeup generation (LLM narrator)
+**Captured:** 2026-03-22
+**Last reviewed:** 2026-03-22
+**Context:** RAGBench should auto-generate narrative writeups as part of experiment output. An LLM (Claude or a model on RunPod) analyzes the results CSV and generated charts, then produces per-chart takeaways and an overall conclusions section. This makes the gallery self-documenting for any experiment — not just hand-written prose. The user runs an experiment, and at the end gets both visualizations and a written analysis. Two audiences: (1) the findings gallery website gets richer content automatically, (2) Builder users who run their own experiments get an interpretation of their results without manual analysis.
+**Next trigger:** Experiments 1 & 2 are complete and the gallery has real multi-experiment data to narrate. The manual writeup pattern from Experiment 0 serves as the template for what the LLM should produce.
+
 ## Multimodal embedding support
 **Captured:** 2026-03-16
 **Last reviewed:** 2026-03-16

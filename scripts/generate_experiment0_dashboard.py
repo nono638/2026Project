@@ -294,6 +294,71 @@ def _chart_pipeline_walkthrough(
     """
 
 
+def _add_judge_filter_buttons(
+    fig: go.Figure,
+    judge_names: list[str],
+    traces_per_judge: int = 2,
+) -> None:
+    """Add dropdown buttons to show/hide judges on a multi-judge chart.
+
+    Adds an "All Judges" option plus one option per judge. Each judge has
+    *traces_per_judge* traces (e.g. scatter + trendline = 2).
+
+    Args:
+        fig: The figure to modify in place.
+        judge_names: Display names in trace order.
+        traces_per_judge: Number of traces per judge (default 2).
+    """
+    n = len(judge_names)
+    total = n * traces_per_judge
+
+    buttons = [dict(
+        label="All Judges",
+        method="update",
+        args=[{"visible": [True] * total}],
+    )]
+
+    for i, name in enumerate(judge_names):
+        vis = [False] * total
+        for t in range(traces_per_judge):
+            vis[i * traces_per_judge + t] = True
+        buttons.append(dict(
+            label=name,
+            method="update",
+            args=[{"visible": vis}],
+        ))
+
+    # Add pairwise combinations for the most common comparisons
+    if n >= 2:
+        for i in range(n):
+            for k in range(i + 1, n):
+                vis = [False] * total
+                for t in range(traces_per_judge):
+                    vis[i * traces_per_judge + t] = True
+                    vis[k * traces_per_judge + t] = True
+                buttons.append(dict(
+                    label=f"{judge_names[i]} vs {judge_names[k]}",
+                    method="update",
+                    args=[{"visible": vis}],
+                ))
+
+    fig.update_layout(
+        updatemenus=[dict(
+            type="dropdown",
+            direction="down",
+            x=1.0,
+            xanchor="right",
+            y=1.18,
+            yanchor="top",
+            buttons=buttons,
+            showactive=True,
+            bgcolor="white",
+            bordercolor="#ccc",
+            font=dict(size=12),
+        )],
+    )
+
+
 def _chart_judge_vs_bertscore(
     df: pd.DataFrame,
     judges: list[dict[str, Any]],
@@ -308,6 +373,7 @@ def _chart_judge_vs_bertscore(
         Plotly figure.
     """
     fig = go.Figure()
+    judge_names = []
 
     for j in judges:
         prefix = j["prefix"]
@@ -318,17 +384,27 @@ def _chart_judge_vs_bertscore(
 
         x = subset["gold_bertscore"].values
         y = subset[f"{prefix}_quality"].values
+        r = np.corrcoef(x, y)[0, 1] if len(x) >= 3 else float("nan")
         q_text = [str(q)[:60] for q in subset["question"]]
+        display = j["display_name"]
+        judge_names.append(display)
+
+        # Add jitter to both axes so overlapping points spread out visually.
+        # Trendline uses original values; only the displayed dots are jittered.
+        rng = np.random.RandomState(hash(display) & 0xFFFFFFFF)
+        x_jittered = x + rng.uniform(-0.005, 0.005, size=len(x))
+        y_jittered = y + rng.uniform(-0.12, 0.12, size=len(y))
 
         fig.add_trace(go.Scatter(
-            x=x, y=y, mode="markers",
-            name=f'{j["display_name"]} (n={len(subset)})',
-            marker=dict(color=j["color"], size=8),
+            x=x_jittered, y=y_jittered, mode="markers",
+            name=f'{display} (n={len(subset)}, r={r:.2f})',
+            marker=dict(color=j["color"], size=8, opacity=0.7),
             text=q_text,
-            hovertemplate="<b>%{text}</b><br>BERTScore: %{x:.3f}<br>Quality: %{y:.2f}<extra></extra>",
+            customdata=np.column_stack([x, y]),
+            hovertemplate="<b>%{text}</b><br>BERTScore: %{customdata[0]:.3f}<br>Quality: %{customdata[1]:.2f}<extra></extra>",
         ))
 
-        # OLS trendline
+        # OLS trendline (uses original y, not jittered)
         if len(x) >= 3:
             coeffs = np.polyfit(x, y, 1)
             x_line = np.array([x.min(), x.max()])
@@ -339,13 +415,21 @@ def _chart_judge_vs_bertscore(
                 showlegend=False,
                 hoverinfo="skip",
             ))
+        else:
+            # Placeholder trace so trace count stays at 2 per judge
+            fig.add_trace(go.Scatter(
+                x=[], y=[], mode="lines", showlegend=False, hoverinfo="skip",
+            ))
+
+    _add_judge_filter_buttons(fig, judge_names, traces_per_judge=2)
 
     fig.update_layout(
-        title="Do judges agree with semantic similarity to the gold answer?",
+        title=("Do judges agree with semantic similarity to the gold answer?"
+               "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
         xaxis_title="Gold BERTScore",
         yaxis_title="Judge Quality Score",
         template="plotly_white",
-        height=500,
+        height=550,
     )
     return fig
 
@@ -364,6 +448,7 @@ def _chart_judge_vs_f1(
         Plotly figure.
     """
     fig = go.Figure()
+    judge_names = []
 
     for j in judges:
         prefix = j["prefix"]
@@ -374,14 +459,22 @@ def _chart_judge_vs_f1(
 
         x = subset["gold_f1"].values
         y = subset[f"{prefix}_quality"].values
+        r = np.corrcoef(x, y)[0, 1] if len(x) >= 3 else float("nan")
         q_text = [str(q)[:60] for q in subset["question"]]
+        display = j["display_name"]
+        judge_names.append(display)
+
+        rng = np.random.RandomState(hash(display) & 0xFFFFFFFF)
+        x_jittered = x + rng.uniform(-0.015, 0.015, size=len(x))
+        y_jittered = y + rng.uniform(-0.12, 0.12, size=len(y))
 
         fig.add_trace(go.Scatter(
-            x=x, y=y, mode="markers",
-            name=f'{j["display_name"]} (n={len(subset)})',
-            marker=dict(color=j["color"], size=8),
+            x=x_jittered, y=y_jittered, mode="markers",
+            name=f'{display} (n={len(subset)}, r={r:.2f})',
+            marker=dict(color=j["color"], size=8, opacity=0.7),
             text=q_text,
-            hovertemplate="<b>%{text}</b><br>F1: %{x:.3f}<br>Quality: %{y:.2f}<extra></extra>",
+            customdata=np.column_stack([x, y]),
+            hovertemplate="<b>%{text}</b><br>F1: %{customdata[0]:.3f}<br>Quality: %{customdata[1]:.2f}<extra></extra>",
         ))
 
         if len(x) >= 3:
@@ -394,13 +487,20 @@ def _chart_judge_vs_f1(
                 showlegend=False,
                 hoverinfo="skip",
             ))
+        else:
+            fig.add_trace(go.Scatter(
+                x=[], y=[], mode="lines", showlegend=False, hoverinfo="skip",
+            ))
+
+    _add_judge_filter_buttons(fig, judge_names, traces_per_judge=2)
 
     fig.update_layout(
-        title="Do judges agree with word-overlap correctness?",
+        title=("Do judges agree with word-overlap correctness?"
+               "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
         xaxis_title="Gold F1",
         yaxis_title="Judge Quality Score",
         template="plotly_white",
-        height=500,
+        height=550,
     )
     return fig
 
@@ -686,15 +786,23 @@ def _chart_score_vs_answer_length(
     df["avg_quality"] = df[quality_cols].mean(axis=1)
     df["answer_words"] = df["rag_answer"].astype(str).apply(lambda x: len(x.split()))
 
+    # Jitter both axes to reveal overlapping points
+    rng = np.random.RandomState(42)
+    df["answer_words_j"] = df["answer_words"] + rng.uniform(-0.4, 0.4, size=len(df))
+    df["avg_quality_j"] = df["avg_quality"] + rng.uniform(-0.08, 0.08, size=len(df))
+
     color_col = "gold_exact_match" if "gold_exact_match" in df.columns else None
     fig = px.scatter(
-        df, x="answer_words", y="avg_quality",
+        df, x="answer_words_j", y="avg_quality_j",
         color=color_col,
-        hover_data=["question"],
-        title="Does answer length affect judge scores?",
-        labels={"answer_words": "Answer Word Count", "avg_quality": "Avg Quality (all judges)"},
+        hover_data={"question": True, "answer_words": True, "avg_quality": ":.2f",
+                     "answer_words_j": False, "avg_quality_j": False},
+        title=("Does answer length affect judge scores?"
+               "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
+        labels={"answer_words_j": "Answer Word Count", "avg_quality_j": "Avg Quality (all judges)"},
         template="plotly_white",
     )
+    fig.update_traces(marker=dict(opacity=0.7))
     fig.update_layout(height=450)
     return fig
 
@@ -717,15 +825,23 @@ def _chart_score_vs_question_length(
     df["avg_quality"] = df[quality_cols].mean(axis=1)
     df["question_words"] = df["question"].astype(str).apply(lambda x: len(x.split()))
 
+    # Jitter both axes to reveal overlapping points
+    rng = np.random.RandomState(43)
+    df["question_words_j"] = df["question_words"] + rng.uniform(-0.4, 0.4, size=len(df))
+    df["avg_quality_j"] = df["avg_quality"] + rng.uniform(-0.08, 0.08, size=len(df))
+
     color_col = "difficulty" if "difficulty" in df.columns else None
     fig = px.scatter(
-        df, x="question_words", y="avg_quality",
+        df, x="question_words_j", y="avg_quality_j",
         color=color_col,
-        hover_data=["question"],
-        title="Does question complexity affect scores?",
-        labels={"question_words": "Question Word Count", "avg_quality": "Avg Quality (all judges)"},
+        hover_data={"question": True, "question_words": True, "avg_quality": ":.2f",
+                     "question_words_j": False, "avg_quality_j": False},
+        title=("Does question complexity affect scores?"
+               "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
+        labels={"question_words_j": "Question Word Count", "avg_quality_j": "Avg Quality (all judges)"},
         template="plotly_white",
     )
+    fig.update_traces(marker=dict(opacity=0.7))
     fig.update_layout(height=450)
     return fig
 
@@ -978,15 +1094,24 @@ def _chart_bertscore_vs_f1(df: pd.DataFrame) -> go.Figure:
     Returns:
         Plotly figure.
     """
+    df = df.copy()
+    rng = np.random.RandomState(44)
+    df["gold_f1_j"] = df["gold_f1"] + rng.uniform(-0.015, 0.015, size=len(df))
+    df["gold_bertscore_j"] = df["gold_bertscore"] + rng.uniform(-0.005, 0.005, size=len(df))
+
     color_col = "gold_exact_match" if "gold_exact_match" in df.columns else None
     fig = px.scatter(
-        df, x="gold_f1", y="gold_bertscore",
+        df, x="gold_f1_j", y="gold_bertscore_j",
         color=color_col,
-        hover_data=["question", "gold_answer", "rag_answer"],
-        title="Do semantic and lexical metrics agree?",
-        labels={"gold_f1": "Gold F1", "gold_bertscore": "Gold BERTScore"},
+        hover_data={"question": True, "gold_answer": True, "rag_answer": True,
+                     "gold_f1": ":.3f", "gold_bertscore": ":.3f",
+                     "gold_f1_j": False, "gold_bertscore_j": False},
+        title=("Do semantic and lexical metrics agree?"
+               "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
+        labels={"gold_f1_j": "Gold F1", "gold_bertscore_j": "Gold BERTScore"},
         template="plotly_white",
     )
+    fig.update_traces(marker=dict(opacity=0.7))
     fig.update_layout(height=450)
     return fig
 

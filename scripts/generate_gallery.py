@@ -188,6 +188,11 @@ p { margin: 12px 0; }
 .placeholder h2 { border: none; color: #888; }
 .placeholder p { color: #666; max-width: 600px; margin: 16px auto; }
 
+/* Data tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 16px 0; }
+.data-table th, .data-table td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
+.data-table th { background: #f5f5f5; font-weight: 600; }
+
 /* Footer */
 .footer {
     text-align: center;
@@ -332,7 +337,8 @@ def _generate_experiment_0(csv_path: Path) -> str:
     """Build the Experiment 0 dashboard page content with Plotly charts.
 
     Imports the chart-building functions from the existing dashboard script
-    and wraps them in the gallery template.
+    and wraps them in the gallery template.  Adds explanatory prose around
+    each chart so readers understand what they're looking at.
 
     Args:
         csv_path: Path to ``results/experiment_0/raw_scores.csv``.
@@ -348,24 +354,324 @@ def _generate_experiment_0(csv_path: Path) -> str:
     df = pd.read_csv(csv_path)
     figures = build_experiment0_figures(df)
 
+    # Per-chart explanations keyed by chart title.  Charts whose title
+    # doesn't appear here get no extra prose (just the chart).
+    chart_explanations: dict[str, str] = {
+        "Judge Quality vs BERTScore": """
+            <strong>What this shows:</strong> Each dot is one question. The x-axis is
+            BERTScore (how semantically similar the RAG answer is to the known-correct
+            answer, 0&ndash;1). The y-axis is the judge's quality score (1&ndash;5).
+            A good judge should give higher scores to answers that are actually more
+            correct &mdash; meaning the dots should trend upward from left to right.
+            <br><br>
+            <strong>How to read it:</strong> What matters is how tightly the dots cluster
+            around the trendline, not the slope itself. A tight cluster (high r) means the
+            judge reliably tracks quality; scattered dots (low r) mean it's guessing.
+            Use the dropdown above the chart to compare specific judges, or click legend
+            entries to show/hide them.
+            <br><br>
+            <strong>Key takeaway:</strong> Claude Sonnet (r&nbsp;=&nbsp;0.68) and Gemini
+            3.1 Pro (r&nbsp;=&nbsp;0.63) track BERTScore most closely &mdash; their dots
+            cluster tightly around the trendline. Flash-Lite's dots are scattered randomly
+            (r&nbsp;=&nbsp;0.07) &mdash; it can't distinguish good answers from bad.
+        """,
+        "Judge Quality vs Gold F1": """
+            <strong>What this shows:</strong> Same idea as above, but using word-overlap
+            F1 instead of BERTScore. F1 measures how many words the RAG answer shares with
+            the gold answer (0&ndash;1). It's a stricter, more literal measure &mdash;
+            paraphrased answers score low on F1 even if semantically correct.
+            <br><br>
+            <strong>How to read it:</strong> Judges that correlate with both BERTScore
+            <em>and</em> F1 are tracking real quality, not just surface similarity.
+            Use the dropdown to compare specific judges side-by-side.
+            <br><br>
+            <strong>Key takeaway:</strong> The same pattern holds &mdash; Sonnet
+            (r&nbsp;=&nbsp;0.60) and Flash (r&nbsp;=&nbsp;0.49) track F1 well.
+            Flash-Lite again shows near-zero correlation (r&nbsp;=&nbsp;0.02).
+        """,
+        "Judge-Gold Correlation": """
+            <strong>What this shows:</strong> A summary bar chart &mdash; Pearson
+            correlation (r) between each judge's quality scores and the two gold metrics.
+            Higher bars mean the judge better tracks objective correctness.
+            <br><br>
+            <strong>How to read it:</strong> This is the key chart for choosing a scorer.
+            We want the cheapest judge with high correlation. An r above 0.5 indicates
+            a meaningful relationship; above 0.7 is strong.
+            <br><br>
+            <strong>Key takeaway:</strong> Sonnet is the most accurate judge overall, but
+            Flash is close behind at 1/50th the cost. Flash-Lite and Haiku fall well short.
+            This chart drove the decision to use Flash for Experiments 1 &amp; 2.
+        """,
+        "Correct vs Incorrect Scores": """
+            <strong>What this shows:</strong> Splits answers into "correct" (exact match
+            with gold) and "incorrect," then compares the average judge score for each
+            group. A good judge should score correct answers meaningfully higher.
+            <br><br>
+            <strong>How to read it:</strong> A large gap between the two bars means the
+            judge distinguishes right from wrong. A small gap means it can't tell.
+            <br><br>
+            <strong>Key takeaway:</strong> 74% of answers were exact matches, so there
+            are only 13 "incorrect" examples &mdash; a small group. Still, most judges
+            do score correct answers higher, confirming they detect real quality differences.
+        """,
+        "Score Heatmap": """
+            <strong>What this shows:</strong> Every cell is one judge scoring one question.
+            Color intensity shows the quality score (darker = higher). Rows are questions,
+            columns are judges.
+            <br><br>
+            <strong>How to read it:</strong> Vertical stripes of similar color mean judges
+            agree. Scattered colors mean disagreement. Look for questions where judges
+            wildly disagree &mdash; those reveal what kinds of answers are hard to evaluate.
+            <br><br>
+            <strong>Key takeaway:</strong> Most rows are consistently dark (high scores),
+            reflecting that Qwen3 4B answered most questions well. The few light rows
+            (low scores) tend to be consistent across judges &mdash; genuinely bad answers.
+        """,
+        "Score Distributions": """
+            <strong>What this shows:</strong> Violin plots of each judge's score
+            distribution across all 50 questions. The shape shows where scores cluster.
+            <br><br>
+            <strong>How to read it:</strong> A judge that gives everything a 5 isn't
+            discriminating &mdash; it's rubber-stamping. A wide distribution using the
+            full 1&ndash;5 range means the judge is actually evaluating. The ideal scorer
+            uses the full range and concentrates mass where the true quality distribution is.
+            <br><br>
+            <strong>Key takeaway:</strong> Claude Opus has the narrowest range (3&ndash;5,
+            std&nbsp;=&nbsp;0.50) &mdash; it's the most lenient. Flash and Flash-Lite use
+            the full 1&ndash;5 range (std&nbsp;~0.85&ndash;0.95), making them better at
+            separating quality levels.
+        """,
+        "Metric Breakdown": """
+            <strong>What this shows:</strong> Each judge scores three sub-dimensions:
+            faithfulness (does the answer match the retrieved context?), relevance
+            (does it answer the question?), and conciseness (is it appropriately brief?).
+            This breaks down the overall quality score into those components.
+            <br><br>
+            <strong>How to read it:</strong> If a judge rates everything high on
+            faithfulness but low on conciseness, that tells you about its evaluation
+            biases, not necessarily about the answers.
+            <br><br>
+            <strong>Key takeaway:</strong> All judges tend to rate faithfulness and
+            relevance higher than conciseness, suggesting the model gives correct but
+            somewhat verbose answers.
+        """,
+        "Score vs Answer Length": """
+            <strong>What this shows:</strong> Whether longer RAG answers systematically
+            receive higher or lower scores.
+            <br><br>
+            <strong>How to read it:</strong> A strong correlation here is a red flag &mdash;
+            it could mean the judge rewards verbosity rather than quality. Ideally, length
+            and score should be weakly related.
+            <br><br>
+            <strong>Key takeaway:</strong> All judges penalize longer answers
+            (r&nbsp;=&nbsp;&minus;0.39 to &minus;0.73). This is actually appropriate here
+            &mdash; the gold answers average 16 characters, so verbose RAG answers
+            (mean 189 chars) are genuinely lower quality, not just wordier.
+        """,
+        "Score vs Question Length": """
+            <strong>What this shows:</strong> Whether longer (typically harder) questions
+            tend to receive lower scores.
+            <br><br>
+            <strong>How to read it:</strong> A downward trend is expected &mdash; harder
+            questions are harder to answer well. But a very steep drop might mean the
+            model struggles disproportionately with complex queries.
+            <br><br>
+            <strong>Key takeaway:</strong> Question length has almost no effect on scores
+            (r&nbsp;&lt;&nbsp;0.15 for all judges). The model handles long and short
+            questions roughly equally well.
+        """,
+        "Inter-Judge Correlation": """
+            <strong>What this shows:</strong> Pearson correlation between every pair of
+            judges. Values near 1.0 mean two judges rank answers the same way; near 0
+            means they're unrelated.
+            <br><br>
+            <strong>How to read it:</strong> High inter-judge agreement (r &gt; 0.6)
+            suggests the judges are measuring something real, not random noise. If two
+            judges from different providers agree, that's especially meaningful.
+            <br><br>
+            <strong>Key takeaway:</strong> Flash and Gemini 3.1 Pro are nearly identical
+            (r&nbsp;=&nbsp;0.96) &mdash; essentially the same scorer. Cross-provider
+            agreement is moderate: Flash vs Sonnet (r&nbsp;=&nbsp;0.63), Flash vs Opus
+            (r&nbsp;=&nbsp;0.67). Flash-Lite is the outlier, agreeing weakly with everyone.
+        """,
+        "BERTScore Distribution": """
+            <strong>What this shows:</strong> The distribution of BERTScore F1 across
+            all 50 RAG answers. BERTScore (0&ndash;1) uses neural embeddings to measure
+            semantic similarity between the RAG answer and the known-correct answer.
+            Values above 0.85 indicate strong semantic match.
+            <br><br>
+            <strong>Why the range looks narrow:</strong> BERTScore naturally clusters
+            high (0.8&ndash;1.0) because even mediocre answers share some meaning with
+            the gold answer. The differences in this range are still meaningful &mdash;
+            0.85 vs 0.95 is a real quality gap.
+            <br><br>
+            <strong>Key takeaway:</strong> Median BERTScore is 0.986 and mean is 0.931,
+            confirming that Qwen3 4B + NaiveRAG produces semantically strong answers on
+            HotpotQA. The low outliers (below 0.85) are where the model genuinely
+            struggled.
+        """,
+        "F1 Distribution": """
+            <strong>What this shows:</strong> Distribution of word-overlap F1 scores.
+            F1 (0&ndash;1) counts shared words between the RAG answer and the gold
+            answer, penalizing both missing words and extra words.
+            <br><br>
+            <strong>How to read it:</strong> F1 is strict &mdash; a perfect paraphrase
+            ("Steve McQueen" vs 'Terence Steven "Steve" McQueen') gets a low F1 despite
+            being correct. That's why we use BERTScore as the primary gold metric.
+            <br><br>
+            <strong>Key takeaway:</strong> Mean F1 is 0.611 &mdash; much lower than the
+            BERTScore mean of 0.931. This gap confirms the model paraphrases frequently
+            rather than echoing gold wording, which is why BERTScore is the better
+            quality signal.
+        """,
+        "BERTScore vs F1": """
+            <strong>What this shows:</strong> The relationship between the two gold metrics
+            themselves. Points in the upper-right are answers that are both literally and
+            semantically correct. Points in the upper-left are correct paraphrases (high
+            BERTScore, low F1).
+            <br><br>
+            <strong>How to read it:</strong> Divergence between the two metrics reveals
+            how much paraphrasing the model does. A tight diagonal means it echoes the gold
+            wording; spread means it paraphrases freely.
+            <br><br>
+            <strong>Key takeaway:</strong> The cluster in the upper-left (high BERTScore,
+            variable F1) shows the model frequently gives correct answers in different words
+            than the gold standard. This validates using BERTScore over F1 as the primary
+            measure.
+        """,
+        "Question Length Distribution": """
+            <strong>What this shows:</strong> How long the 50 test questions are.
+            <br><br>
+            <strong>Why it matters:</strong> Question length correlates with complexity.
+            If the sample is skewed toward short, easy questions, the results may not
+            generalize to harder queries.
+            <br><br>
+            <strong>Key takeaway:</strong> Questions range from 48 to 254 characters
+            (median 94), giving a reasonable spread of complexity. The sample isn't
+            dominated by trivially short or unusually long questions.
+        """,
+        "Answer Length Comparison": """
+            <strong>What this shows:</strong> Side-by-side comparison of RAG answer length
+            vs gold answer length.
+            <br><br>
+            <strong>How to read it:</strong> If RAG answers are consistently much longer
+            than gold answers, the model is being verbose. If shorter, it may be
+            truncating or losing information.
+            <br><br>
+            <strong>Key takeaway:</strong> Gold answers are terse (median 14 chars &mdash;
+            typically a name or short phrase). RAG answers average 189 chars but have a
+            median of only 19, meaning most answers are concise but a few are very verbose.
+            Those verbose outliers are what drive the strong length-vs-score penalty
+            seen earlier.
+        """,
+    }
+
     parts = []
+
+    # --- Intro: what this experiment is and why it matters ---
     parts.append("""
     <div class="card">
+        <h2>What This Experiment Tests</h2>
         <p>
-            Scorer validation: 50 HotpotQA questions answered by NaiveRAG + Qwen3 4B,
-            scored by 6 LLM judges (4 Gemini + 2 Claude). Each chart below is interactive
-            — hover for details, click legend entries to toggle, drag to zoom.
+            Before running thousands of RAG configurations in Experiments 1 and 2,
+            we need to know: <strong>can an LLM reliably judge the quality of a RAG
+            answer?</strong> If the scorer is unreliable, all downstream results are noise.
+        </p>
+        <p>
+            We took 50 questions from HotpotQA (a dataset where the correct answers are
+            known), generated RAG answers using NaiveRAG + Qwen3 4B, then asked 6 different
+            LLM judges to score each answer. By comparing the judges' scores against the
+            known-correct answers, we can measure which judges actually detect quality and
+            which ones are just rubber-stamping everything as "good."
         </p>
     </div>
     """)
 
+    # --- Key concepts: explain the scales ---
+    parts.append("""
+    <div class="card">
+        <h2>Understanding the Metrics</h2>
+        <p>The charts below use three types of scores on different scales:</p>
+        <table class="data-table" style="max-width: 700px;">
+            <tr>
+                <th>Metric</th><th>Scale</th><th>What It Measures</th>
+            </tr>
+            <tr>
+                <td><strong>Judge Quality Score</strong></td>
+                <td>1&ndash;5</td>
+                <td>An LLM judge reads the question, retrieved context, and RAG answer,
+                    then rates quality on three dimensions (faithfulness, relevance,
+                    conciseness). The average of these three is the quality score.
+                    The judge does <em>not</em> see the correct answer.</td>
+            </tr>
+            <tr>
+                <td><strong>BERTScore</strong></td>
+                <td>0&ndash;1</td>
+                <td>Semantic similarity between the RAG answer and the <em>known-correct</em>
+                    ("gold") answer, computed by a neural language model. Values above 0.85
+                    indicate strong match. This is the primary objective metric.</td>
+            </tr>
+            <tr>
+                <td><strong>F1 (word overlap)</strong></td>
+                <td>0&ndash;1</td>
+                <td>How many words the RAG answer shares with the gold answer. Strict and
+                    literal &mdash; penalizes correct paraphrases. Used as a secondary check.</td>
+            </tr>
+        </table>
+        <p>
+            <strong>What "gold" means:</strong> HotpotQA provides human-verified correct
+            answers for every question. These are the "gold standard" &mdash; ground truth
+            we can compare against. The whole point of this experiment is to test whether
+            LLM judges agree with this ground truth.
+        </p>
+    </div>
+    """)
+
+    # --- Charts with per-chart explanations ---
     for title, fig in figures:
         chart_html = _fig_to_html(fig)
+        explanation = chart_explanations.get(title, "")
+        explanation_html = ""
+        if explanation:
+            explanation_html = f"""
+            <p class="chart-explanation" style="color: #555; font-size: 0.92em;
+               line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
+                {explanation}
+            </p>"""
         parts.append(f"""
         <div class="chart-container">
-            <h3>{title}</h3>
+            <h3>{title}</h3>{explanation_html}
             {chart_html}
         </div>""")
+
+    # --- Conclusions ---
+    parts.append("""
+    <div class="card">
+        <h2>Conclusions</h2>
+        <p>
+            <strong>Best cost/quality scorer: Gemini 2.5 Flash.</strong>
+            It showed strong correlation with both BERTScore (r&nbsp;=&nbsp;0.60) and
+            F1 (r&nbsp;=&nbsp;0.49), used the full 1&ndash;5 scoring range (good
+            discrimination), and costs ~$0.0001 per call &mdash; 23&times; cheaper than
+            Claude Sonnet.
+        </p>
+        <p>
+            <strong>Claude Sonnet had the highest gold correlation</strong>
+            (BERTScore r&nbsp;=&nbsp;0.68, F1 r&nbsp;=&nbsp;0.60) but at 50&times;
+            the cost of Flash. For 2,000+ scoring calls in Experiments 1 and 2,
+            the cost difference matters.
+        </p>
+        <p>
+            <strong>Flash-Lite is unreliable</strong> &mdash; near-zero correlation
+            with gold metrics despite similar average scores. It rates everything
+            highly without distinguishing quality.
+        </p>
+        <p>
+            <strong>Decision:</strong> Experiments 1 and 2 will use Gemini 2.5 Flash
+            as the primary scorer, with the option to spot-check a sample with Sonnet.
+        </p>
+    </div>
+    """)
 
     content = "\n".join(parts)
     return _build_page_template(
