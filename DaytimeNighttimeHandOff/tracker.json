@@ -21,7 +21,9 @@
     "description": "Migrate existing components to pluggable interfaces",
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "Moves pipeline code into new packages.",
-    "depends_on": ["task-001"],
+    "depends_on": [
+      "task-001"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-16T22:20:00",
     "nighttime_completed": "2026-03-16T22:35:00",
@@ -30,7 +32,9 @@
     "commit_sha": "556202d883e4f557b7b224998ed00f58a9bf36ad",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["__pycache__ directories remain under old src/data/ and src/pipeline/"],
+    "flags": [
+      "__pycache__ directories remain under old src/data/ and src/pipeline/"
+    ],
     "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
@@ -38,7 +42,9 @@
     "description": "Implement remaining strategies, chunkers, and embedders",
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "MultiQueryRAG, CorrectiveRAG, AdaptiveRAG, FixedSizeChunker, RecursiveChunker, SentenceChunker, HuggingFaceEmbedder.",
-    "depends_on": ["task-002"],
+    "depends_on": [
+      "task-002"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-16T22:40:00",
     "nighttime_completed": "2026-03-16T23:00:00",
@@ -47,7 +53,9 @@
     "commit_sha": "af1ad7d4f2762b82293211601d7047d246b30465",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["sentence-transformers adds ~2GB of deps (torch)"],
+    "flags": [
+      "sentence-transformers adds ~2GB of deps (torch)"
+    ],
     "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
@@ -55,7 +63,9 @@
     "description": "ExperimentResult analysis and visualization methods",
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "Heatmaps, comparisons, per-query breakdowns, CSV/Parquet export, merge.",
-    "depends_on": ["task-002"],
+    "depends_on": [
+      "task-002"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-16T23:05:00",
     "nighttime_completed": "2026-03-16T23:20:00",
@@ -72,7 +82,10 @@
     "description": "Wire meta-learner and FastAPI to new 4-axis architecture",
     "daytime_created": "2026-03-16T18:00:00",
     "daytime_comments": "Config label becomes chunker__embedder__strategy__model.",
-    "depends_on": ["task-002", "task-004"],
+    "depends_on": [
+      "task-002",
+      "task-004"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-17T00:00:00",
     "nighttime_completed": "2026-03-17T00:30:00",
@@ -81,14 +94,16 @@
     "commit_sha": "a60c4d3b5dddc0613d8b0b26d07267962b77145b",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["src/config.py no longer exists — train.py and predict.py use inline defaults"],
+    "flags": [
+      "src/config.py no longer exists \u00e2\u20ac\u201d train.py and predict.py use inline defaults"
+    ],
     "daytime_reviewed": "2026-03-17T10:00:00"
   },
   {
     "task_id": "task-006",
     "description": "Google text embedder: text-embedding-005 via free Google AI Studio API",
     "daytime_created": "2026-03-16T21:30:00",
-    "daytime_comments": "GoogleTextEmbedder only. Multimodal embedder moved to incubating — requires paid GCP Vertex AI account.",
+    "daytime_comments": "GoogleTextEmbedder only. Multimodal embedder moved to incubating \u00e2\u20ac\u201d requires paid GCP Vertex AI account.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-17T02:00:00",
@@ -98,14 +113,16 @@
     "commit_sha": "43ca9cf216875ea18ecd3353f9f8fa0ac51d940a",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["google-generativeai SDK is deprecated — emits FutureWarning, should migrate to google.genai"],
+    "flags": [
+      "google-generativeai SDK is deprecated \u00e2\u20ac\u201d emits FutureWarning, should migrate to google.genai"
+    ],
     "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
     "task_id": "task-007",
     "description": "Query pipeline protocols and data models: Document, Query, QueryGenerator, QueryFilter",
     "daytime_created": "2026-03-16T22:00:00",
-    "daytime_comments": "Interfaces and data models only — no implementations. Document and Query as own modules. Bridge helpers for existing Experiment runner. CSV loader for Wikipedia dataset.",
+    "daytime_comments": "Interfaces and data models only \u00e2\u20ac\u201d no implementations. Document and Query as own modules. Bridge helpers for existing Experiment runner. CSV loader for Wikipedia dataset.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-17T02:30:00",
@@ -123,7 +140,9 @@
     "description": "RAGAS QueryGenerator and round-trip consistency filter implementations",
     "daytime_created": "2026-03-16T22:00:00",
     "daytime_comments": "First concrete implementations of task-007 protocols. RAGAS for query generation (with evolution types), RoundTripFilter for validation. All RAGAS API calls mocked in tests.",
-    "depends_on": ["task-007"],
+    "depends_on": [
+      "task-007"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-17T03:00:00",
     "nighttime_completed": "2026-03-17T03:45:00",
@@ -132,7 +151,10 @@
     "commit_sha": "06763390a9b0899085a4e0611d646deab43add76",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["RAGAS 0.4.3 API differs significantly from spec's 0.1.x-0.2.x description — wrapper adapts but column names may vary", "jiter downgraded from 0.13.0 to 0.11.1 by openai dependency"],
+    "flags": [
+      "RAGAS 0.4.3 API differs significantly from spec's 0.1.x-0.2.x description \u00e2\u20ac\u201d wrapper adapts but column names may vary",
+      "jiter downgraded from 0.13.0 to 0.11.1 by openai dependency"
+    ],
     "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
@@ -140,7 +162,9 @@
     "description": "Additional query generators: HumanQuerySet, BEIRQuerySet, TemplateQueryGenerator",
     "daytime_created": "2026-03-16T22:15:00",
     "daytime_comments": "Three more QueryGenerator implementations for methodological breadth. Human = validation anchor, BEIR = benchmark gold standard, Template = uniform/cheap. spaCy needed for template NER.",
-    "depends_on": ["task-007"],
+    "depends_on": [
+      "task-007"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-17T04:00:00",
     "nighttime_completed": "2026-03-17T04:30:00",
@@ -166,15 +190,19 @@
     "commit_sha": "65f188551a3d46266d40157b27dc06be1eaf6d5e",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Core imports fail in smoke test on main — src/document.py only exists on branch. Will pass after merge."],
+    "flags": [
+      "Core imports fail in smoke test on main \u00e2\u20ac\u201d src/document.py only exists on branch. Will pass after merge."
+    ],
     "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
     "task_id": "task-011",
     "description": "Cross-encoder query filter and distribution analyzer",
     "daytime_created": "2026-03-16T23:00:00",
-    "daytime_comments": "CrossEncoderFilter uses ms-marco-MiniLM-L-6-v2 (~100M params, local) for precise query-passage relevance scoring (InPars-v2 methodology, arxiv:2301.01820). DistributionAnalyzer checks set-level quality: type balance, corpus coverage, diversity, duplicates. Separate from QueryFilter protocol — produces reports, not filtered lists.",
-    "depends_on": ["task-008"],
+    "daytime_comments": "CrossEncoderFilter uses ms-marco-MiniLM-L-6-v2 (~100M params, local) for precise query-passage relevance scoring (InPars-v2 methodology, arxiv:2301.01820). DistributionAnalyzer checks set-level quality: type balance, corpus coverage, diversity, duplicates. Separate from QueryFilter protocol \u00e2\u20ac\u201d produces reports, not filtered lists.",
+    "depends_on": [
+      "task-008"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-17T05:05:00",
     "nighttime_completed": "2026-03-17T05:45:00",
@@ -183,7 +211,9 @@
     "commit_sha": "24452c884acb5b8d242b4a179b9a2fb64b1ac612",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["cross-encoder tests use real model (~25MB download on first run)"],
+    "flags": [
+      "cross-encoder tests use real model (~25MB download on first run)"
+    ],
     "daytime_reviewed": "2026-03-17T22:00:00"
   },
   {
@@ -200,7 +230,9 @@
     "commit_sha": "ba8087241b24337861f03096d0c7c528d63e8659",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Pre-existing test collection errors in tests/ (missing xgboost, langchain_openai) — unrelated to this task"],
+    "flags": [
+      "Pre-existing test collection errors in tests/ (missing xgboost, langchain_openai) \u00e2\u20ac\u201d unrelated to this task"
+    ],
     "daytime_reviewed": "2026-03-18T10:30:00"
   },
   {
@@ -224,7 +256,7 @@
     "task_id": "task-014",
     "description": "Add timing to experiment runner: strategy_latency_ms, scorer_latency_ms, total_latency_ms columns + analysis methods",
     "daytime_created": "2026-03-17T23:30:00",
-    "daytime_comments": "Latency as a first-class output dimension. Uses time.perf_counter(). New analysis methods: latency_report() and time_vs_quality(). Not a meta-learner feature — measurement for human decision-making.",
+    "daytime_comments": "Latency as a first-class output dimension. Uses time.perf_counter(). New analysis methods: latency_report() and time_vs_quality(). Not a meta-learner feature \u00e2\u20ac\u201d measurement for human decision-making.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-17T23:56:00",
@@ -251,7 +283,9 @@
     "commit_sha": "cafbdeda93943826e9458e4060ebb990893137e0",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["datasets==4.7.0 was not installed in venv despite being in requirements.txt"],
+    "flags": [
+      "datasets==4.7.0 was not installed in venv despite being in requirements.txt"
+    ],
     "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
@@ -268,15 +302,19 @@
     "commit_sha": "a2c45b0ce80946039a5b92b4abf2e7cd2992e998",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["google-genai was not installed in venv despite being in requirements.txt"],
+    "flags": [
+      "google-genai was not installed in venv despite being in requirements.txt"
+    ],
     "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
     "task_id": "task-017",
-    "description": "Refactor ClaudeScorer → LLMScorer with Anthropic + Google provider adapters",
+    "description": "Refactor ClaudeScorer \u00e2\u2020\u2019 LLMScorer with Anthropic + Google provider adapters",
     "daytime_created": "2026-03-17T15:23:11",
-    "daytime_comments": "Provider-agnostic scoring. Adapter factory pattern — each provider is a small callable. Anthropic + Google initially, extensible to OpenAI/Ollama. No backwards-compat alias for ClaudeScorer.",
-    "depends_on": ["task-016"],
+    "daytime_comments": "Provider-agnostic scoring. Adapter factory pattern \u00e2\u20ac\u201d each provider is a small callable. Anthropic + Google initially, extensible to OpenAI/Ollama. No backwards-compat alias for ClaudeScorer.",
+    "depends_on": [
+      "task-016"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-17T23:53:33",
     "nighttime_completed": "2026-03-17T23:59:24",
@@ -285,15 +323,20 @@
     "commit_sha": "681c06ab5c4e502c9b258f8a9210fc8eefceda0c",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["TestGoogleProvider::test_score_returns_dict has extraneous @patch decorator causing TypeError — test bug, not impl bug"],
+    "flags": [
+      "TestGoogleProvider::test_score_returns_dict has extraneous @patch decorator causing TypeError \u00e2\u20ac\u201d test bug, not impl bug"
+    ],
     "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
     "task_id": "task-018",
-    "description": "Experiment 0 script: scorer validation — 50 HotpotQA × 5 LLM judges, inter-scorer agreement + gold correlation",
+    "description": "Experiment 0 script: scorer validation \u00e2\u20ac\u201d 50 HotpotQA \u00c3\u2014 5 LLM judges, inter-scorer agreement + gold correlation",
     "daytime_created": "2026-03-17T16:21:12",
-    "daytime_comments": "Write the script only — user runs it later when Ollama is set up. Judges: Gemini Flash, Gemini Pro, Claude Haiku, Claude Sonnet, Claude Opus. Includes --skip-generation flag for re-scoring without re-generating. NOTE: task-020 changes NaiveRAG to require llm parameter — construct as NaiveRAG(llm=OllamaLLM()) not NaiveRAG().",
-    "depends_on": ["task-017", "task-020"],
+    "daytime_comments": "Write the script only \u00e2\u20ac\u201d user runs it later when Ollama is set up. Judges: Gemini Flash, Gemini Pro, Claude Haiku, Claude Sonnet, Claude Opus. Includes --skip-generation flag for re-scoring without re-generating. NOTE: task-020 changes NaiveRAG to require llm parameter \u00e2\u20ac\u201d construct as NaiveRAG(llm=OllamaLLM()) not NaiveRAG().",
+    "depends_on": [
+      "task-017",
+      "task-020"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-18T00:21:37",
     "nighttime_completed": "2026-03-18T00:27:03",
@@ -302,7 +345,10 @@
     "commit_sha": "ab917bb32740b56b7745896fc969405788960e0c",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Branch merges task-017 and task-020 — merge those first during morning review", "tabulate package may need to be installed for report.md generation"],
+    "flags": [
+      "Branch merges task-017 and task-020 \u00e2\u20ac\u201d merge those first during morning review",
+      "tabulate package may need to be installed for report.md generation"
+    ],
     "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
@@ -326,7 +372,7 @@
     "task_id": "task-020",
     "description": "LLM Protocol: abstract generation backend with Ollama + OpenAI-compatible adapters",
     "daytime_created": "2026-03-17T21:53:01",
-    "daytime_comments": "Touches all 5 strategy files + run_experiment.py. Mechanical refactor — same pattern applied 5 times. No new dependencies (ollama and openai already installed). OpenAI-compatible adapter covers LM Studio, vLLM, llama.cpp server.",
+    "daytime_comments": "Touches all 5 strategy files + run_experiment.py. Mechanical refactor \u00e2\u20ac\u201d same pattern applied 5 times. No new dependencies (ollama and openai already installed). OpenAI-compatible adapter covers LM Studio, vLLM, llama.cpp server.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-18T00:10:21",
@@ -336,7 +382,9 @@
     "commit_sha": "d2c5e734ae48247daf31163c79badfec7645513a",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["openai==2.29.0 was not installed in venv despite being in requirements.txt"],
+    "flags": [
+      "openai==2.29.0 was not installed in venv despite being in requirements.txt"
+    ],
     "daytime_reviewed": "2026-03-18T00:54:34"
   },
   {
@@ -353,7 +401,9 @@
     "commit_sha": "b5ca1c79576196ac01e6fffd6480339aee061c94",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["5 pre-existing test failures need fixing (ClaudeScorer refs, spacy/typer import, strategy llm arg, round-trip filter)"],
+    "flags": [
+      "5 pre-existing test failures need fixing (ClaudeScorer refs, spacy/typer import, strategy llm arg, round-trip filter)"
+    ],
     "daytime_reviewed": "2026-03-18T09:47:41"
   },
   {
@@ -361,7 +411,9 @@
     "description": "Expose CLI flags for chunker, embedder, dataset, retrieval mode, and LLM backend in run_experiment.py",
     "daytime_created": "2026-03-18T01:14:02",
     "daytime_comments": "All components already importable. Only modifies scripts/run_experiment.py. Must preserve default behavior when no new flags provided.",
-    "depends_on": ["task-021"],
+    "depends_on": [
+      "task-021"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-18T01:37:00",
     "nighttime_completed": "2026-03-18T01:43:10",
@@ -370,14 +422,16 @@
     "commit_sha": "b6680aa143796980073e3fe783573cf7843a8453",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Experiment() constructor requires scorer param — script doesn't configure one (pre-existing issue)"],
+    "flags": [
+      "Experiment() constructor requires scorer param \u00e2\u20ac\u201d script doesn't configure one (pre-existing issue)"
+    ],
     "daytime_reviewed": "2026-03-18T09:47:41"
   },
   {
     "task_id": "task-023",
     "description": "RunPod management module: create/terminate pods, GPU fallback, balance query, wait-for-ready",
     "daytime_created": "2026-03-18T12:38:28",
-    "daytime_comments": "Deployment infrastructure only — lives in deploy/, does not touch src/. Uses RunPod REST API (not GraphQL SDK) for pod lifecycle, GraphQL only for balance queries. All API details and URLs are in the spec. requests library already installed.",
+    "daytime_comments": "Deployment infrastructure only \u00e2\u20ac\u201d lives in deploy/, does not touch src/. Uses RunPod REST API (not GraphQL SDK) for pod lifecycle, GraphQL only for balance queries. All API details and URLs are in the spec. requests library already installed.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-18T13:04:43",
@@ -438,15 +492,19 @@
     "commit_sha": "64a130250bb1b11f4a67cf02fed25203629ca6cf",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["RTX 4000 Ada Generation GPU type ID string uncertain — verify at runtime"],
+    "flags": [
+      "RTX 4000 Ada Generation GPU type ID string uncertain \u00e2\u20ac\u201d verify at runtime"
+    ],
     "daytime_reviewed": "2026-03-19T15:45:49"
   },
   {
     "task_id": "task-027",
-    "description": "API cost guard — track estimated spend, abort if ceiling exceeded",
+    "description": "API cost guard \u00e2\u20ac\u201d track estimated spend, abort if ceiling exceeded",
     "daytime_created": "2026-03-19T14:17:40",
     "daytime_comments": "User has limited credits and is a novice with cloud APIs. Default $5 ceiling. Saves partial results on abort. Simple hardcoded cost table that errs high.",
-    "depends_on": ["task-025"],
+    "depends_on": [
+      "task-025"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-19T15:21:11",
     "nighttime_completed": "2026-03-19T15:25:53",
@@ -455,12 +513,14 @@
     "commit_sha": "d528324c6c46390d3991438df20b5476b9470b2b",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Branch merges task-025 — merge task-025 first during morning review"],
+    "flags": [
+      "Branch merges task-025 \u00e2\u20ac\u201d merge task-025 first during morning review"
+    ],
     "daytime_reviewed": "2026-03-19T15:45:49"
   },
   {
     "task_id": "task-028",
-    "description": "Automated visualization pipeline — explainer diagram, experiment-specific charts, HTML gallery",
+    "description": "Automated visualization pipeline \u00e2\u20ac\u201d explainer diagram, experiment-specific charts, HTML gallery",
     "daytime_created": "2026-03-19T17:43:17",
     "daytime_comments": "Reads results/experiment_N/ CSVs, generates PNGs (300 DPI) + index.html. Experiment 0 visuals: correlation heatmap, judge-vs-gold scatter, score distributions, BERTScore histogram. Explainer shows one real data row through the RAG pipeline. Pure matplotlib, no seaborn. IBM colorblind palette. Cross-experiment skeleton ready for exp 1+2.",
     "depends_on": null,
@@ -494,7 +554,7 @@
   },
   {
     "task_id": "task-030",
-    "description": "Interactive Plotly dashboard for Experiment 0 — 18 visualizations in one HTML file",
+    "description": "Interactive Plotly dashboard for Experiment 0 \u00e2\u20ac\u201d 18 visualizations in one HTML file",
     "daytime_created": "2026-03-19T23:05:47",
     "daytime_comments": "Replaces static matplotlib PNGs. Pipeline walkthrough, judge vs gold (primary), score distributions, judge agreement, gold analysis, data overview. Enrich CSV with HotpotQA difficulty/type. plotly==6.6.0 already installed. Single self-contained HTML output.",
     "depends_on": null,
@@ -506,14 +566,16 @@
     "commit_sha": "fe54d2fb3ea9e6cb07b1ef34b2876205c668c735",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["plotly was not installed in venv despite being in requirements.txt — installed plotly==6.6.0"],
+    "flags": [
+      "plotly was not installed in venv despite being in requirements.txt \u00e2\u20ac\u201d installed plotly==6.6.0"
+    ],
     "daytime_reviewed": "2026-03-20T09:18:56"
   },
   {
     "task_id": "task-031",
     "description": "Reranker Protocol + MiniLM/BGE implementations, Experiment integration, metadata/features",
     "daytime_created": "2026-03-20T11:57:47",
-    "daytime_comments": "Optional pipeline stage between retrieval and generation. Two cross-encoder models (22M vs 278M params). Renames top_k to retrieval_top_k. Adds reranker_top_k, mean_rerank_score, var_rerank_score. No new pip dependencies — sentence-transformers CrossEncoder already available. BGE model is ~1.1GB download on first use.",
+    "daytime_comments": "Optional pipeline stage between retrieval and generation. Two cross-encoder models (22M vs 278M params). Renames top_k to retrieval_top_k. Adds reranker_top_k, mean_rerank_score, var_rerank_score. No new pip dependencies \u00e2\u20ac\u201d sentence-transformers CrossEncoder already available. BGE model is ~1.1GB download on first use.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-20T13:19:00",
@@ -523,7 +585,9 @@
     "commit_sha": "b81f90b304aebabdfc7726bf9c3b94823614d1fb",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Pre-existing spacy/typer import issue causes 21 test failures (not caused by this task)"],
+    "flags": [
+      "Pre-existing spacy/typer import issue causes 21 test failures (not caused by this task)"
+    ],
     "daytime_reviewed": "2026-03-20T14:10:09"
   },
   {
@@ -531,7 +595,9 @@
     "description": "Extended features: context window, readability, embedding spread, query-doc similarity/overlap",
     "daytime_created": "2026-03-20T13:05:32",
     "daytime_comments": "6 new columns: llm_context_window, context_utilization_ratio (metadata via Ollama API), doc_readability_score (Flesch-Kincaid via textstat), doc_embedding_spread (intra-cluster variance), query_doc_similarity (embedding cosine), query_doc_lexical_overlap (Jaccard). textstat==0.7.13 already installed in venv.",
-    "depends_on": ["task-031"],
+    "depends_on": [
+      "task-031"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-20T13:38:21",
     "nighttime_completed": "2026-03-20T13:55:47",
@@ -540,14 +606,17 @@
     "commit_sha": "38f71dac9f2b1af00bf98a27d97a5ac4eb19ca3b",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["2 pre-written lexical overlap tests fail due to test using text*10 without space separator — test bug, not implementation bug", "Merge task-031 branch first, then task-032 (task-032 depends on task-031 changes)"],
+    "flags": [
+      "2 pre-written lexical overlap tests fail due to test using text*10 without space separator \u00e2\u20ac\u201d test bug, not implementation bug",
+      "Merge task-031 branch first, then task-032 (task-032 depends on task-031 changes)"
+    ],
     "daytime_reviewed": "2026-03-20T14:10:09"
   },
   {
     "task_id": "task-033",
     "description": "Granular latency: retrieval_latency_ms, generation_latency_ms, reranking_latency_ms columns",
     "daytime_created": "2026-03-20T15:22:57",
-    "daytime_comments": "TimedRetriever wrapper pattern — no changes to Retriever, protocols, or strategies. Keep existing latency columns unchanged for backwards compat.",
+    "daytime_comments": "TimedRetriever wrapper pattern \u00e2\u20ac\u201d no changes to Retriever, protocols, or strategies. Keep existing latency columns unchanged for backwards compat.",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-20T16:17:24",
@@ -557,7 +626,9 @@
     "commit_sha": "1e1a00e99c17b15c42782ec012bc54f7b193b740",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Pre-existing env issue: typer and textstat not importable despite being in requirements.txt — force-reinstalled both"],
+    "flags": [
+      "Pre-existing env issue: typer and textstat not importable despite being in requirements.txt \u00e2\u20ac\u201d force-reinstalled both"
+    ],
     "daytime_reviewed": "2026-03-20T21:28:57"
   },
   {
@@ -596,7 +667,7 @@
   },
   {
     "task_id": "task-036",
-    "description": "Experiment 1 script: Strategy x Model Size — 5 strategies x 6 models, 200 HotpotQA, with shared experiment_utils.py",
+    "description": "Experiment 1 script: Strategy x Model Size \u00e2\u20ac\u201d 5 strategies x 6 models, 200 HotpotQA, with shared experiment_utils.py",
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Creates both scripts/experiment_utils.py (shared infra) and scripts/run_experiment_1.py. Checkpoint/resume, model pre-pull, gold metrics, Gemini Flash scorer. 200 examples, seed=42.",
     "depends_on": null,
@@ -613,10 +684,12 @@
   },
   {
     "task_id": "task-037",
-    "description": "Experiment 2 script: Chunking x Model Size — 4 chunkers x 4 Qwen3 models, 200 HotpotQA",
+    "description": "Experiment 2 script: Chunking x Model Size \u00e2\u20ac\u201d 4 chunkers x 4 Qwen3 models, 200 HotpotQA",
     "daytime_created": "2026-03-21T01:18:41",
     "daytime_comments": "Creates scripts/run_experiment_2.py. Reuses experiment_utils.py from task-036. NaiveRAG held constant. Same 200 HotpotQA sample for cross-experiment comparability.",
-    "depends_on": ["task-036"],
+    "depends_on": [
+      "task-036"
+    ],
     "status": "done",
     "nighttime_started": "2026-03-21T02:03:54",
     "nighttime_completed": "2026-03-21T02:12:07",
@@ -625,7 +698,9 @@
     "commit_sha": "5e2d7d31beee420235e28adc621f374c423573c4",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Branch merges task-036 — merge task-036 first during morning review"],
+    "flags": [
+      "Branch merges task-036 \u00e2\u20ac\u201d merge task-036 first during morning review"
+    ],
     "daytime_reviewed": "2026-03-21T08:41:24"
   },
   {
@@ -642,7 +717,9 @@
     "commit_sha": "f06dd76858b3ffe93b5754296f9a8eb9fd523f50",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["3 existing tests updated for best_config return type change (tuple -> dict)"],
+    "flags": [
+      "3 existing tests updated for best_config return type change (tuple -> dict)"
+    ],
     "daytime_reviewed": "2026-03-21T08:41:24"
   },
   {
@@ -654,12 +731,14 @@
     "status": "done",
     "nighttime_started": "2026-03-21T09:37:29",
     "nighttime_completed": "2026-03-21T09:48:41",
-    "nighttime_comments": "Two Plotly dashboard generators (Exp 1: 12 charts for strategy×model, Exp 2: 12 charts for chunking×model) + gallery integration. 22 task tests + 549 project tests pass.",
+    "nighttime_comments": "Two Plotly dashboard generators (Exp 1: 12 charts for strategy\u00c3\u2014model, Exp 2: 12 charts for chunking\u00c3\u2014model) + gallery integration. 22 task tests + 549 project tests pass.",
     "branch": "night/task-039-experiment-dashboards",
     "commit_sha": "2248378584cc4de15e6ce49f9047ce4050d7f00b",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Pre-written test PROJECT_ROOT path calculation wrong for WrittenByDaytime location — fixed in tests/ copies"],
+    "flags": [
+      "Pre-written test PROJECT_ROOT path calculation wrong for WrittenByDaytime location \u00e2\u20ac\u201d fixed in tests/ copies"
+    ],
     "daytime_reviewed": "2026-03-21T12:44:44"
   },
   {
@@ -681,10 +760,11 @@
   },
   {
     "task_id": "task-041",
-    "description": "Auto-regenerate gallery after experiment runs — wire generate_gallery.main() into each experiment script with --no-gallery opt-out",
+    "description": "Auto-regenerate gallery after experiment runs \u00e2\u20ac\u201d wire generate_gallery.main() into each experiment script with --no-gallery opt-out",
     "daytime_created": "2026-03-22T17:09:30",
     "daytime_comments": "Simple wiring task. Each experiment script calls generate_gallery.main(experiments=[N]) after saving CSV. Lazy import + try/except so gallery failure never loses experiment data.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-22T17:53:34"
   }
 ]
