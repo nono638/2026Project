@@ -678,5 +678,13 @@
     "attempted_approaches": [],
     "flags": [],
     "daytime_reviewed": "2026-03-21T12:44:44"
+  },
+  {
+    "task_id": "task-041",
+    "description": "Auto-regenerate gallery after experiment runs — wire generate_gallery.main() into each experiment script with --no-gallery opt-out",
+    "daytime_created": "2026-03-22T17:09:30",
+    "daytime_comments": "Simple wiring task. Each experiment script calls generate_gallery.main(experiments=[N]) after saving CSV. Lazy import + try/except so gallery failure never loses experiment data.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

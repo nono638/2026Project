@@ -682,6 +682,338 @@ def _generate_experiment_0(csv_path: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Experiment 1 dashboard
+# ---------------------------------------------------------------------------
+
+# Per-chart explanations for Experiment 1 (Strategy x Model Size)
+_EXP1_EXPLANATIONS: dict[str, str] = {
+    "Summary": """
+        <strong>What this shows:</strong> Key statistics for the experiment &mdash;
+        total configurations tested, best and worst performing config, and overall
+        mean quality.
+    """,
+    "Quality Heatmap": """
+        <strong>What this shows:</strong> Mean quality score for every strategy-model
+        combination. Rows are RAG strategies, columns are models ordered by parameter
+        count (smallest left, largest right). Brighter cells = higher quality.
+        <br><br>
+        <strong>How to read it:</strong> Look for whether the rightmost column
+        (largest model) always dominates &mdash; if not, a smart strategy is
+        compensating for model size. Also look for rows (strategies) that are
+        consistently bright or dark across all models.
+    """,
+    "Latency Heatmap": """
+        <strong>What this shows:</strong> Mean strategy latency (in seconds) for each
+        configuration. Same layout as the quality heatmap for easy comparison.
+        <br><br>
+        <strong>How to read it:</strong> Compare this with the quality heatmap above.
+        Is the highest-quality config also the slowest? Are there configs that achieve
+        nearly the same quality at a fraction of the time?
+    """,
+    "Quality vs Model Size": """
+        <strong>What this shows:</strong> Each line is one RAG strategy. The x-axis is
+        model size (billions of parameters), the y-axis is mean quality. Error bars
+        show standard deviation across individual questions.
+        <br><br>
+        <strong>How to read it:</strong> If all lines slope upward, bigger models always
+        win. If a strategy line is flat or inverted, that strategy doesn't benefit from
+        scale &mdash; or the small model is already good enough. Lines that <em>cross</em>
+        are the most interesting: they show where strategy choice matters more than model size.
+    """,
+    "Latency vs Model Size": """
+        <strong>What this shows:</strong> Same layout as quality vs model size, but y-axis
+        is latency (log scale). Strategies with more LLM calls (MultiQuery, Corrective)
+        should show steeper slopes.
+        <br><br>
+        <strong>How to read it:</strong> The gap between strategies at each model size
+        shows the latency cost of "smarter" RAG. If a strategy doubles latency for
+        minimal quality gain, that's a bad tradeoff.
+    """,
+    "Strategy Beats Size": """
+        <strong>What this shows:</strong> The core research question &mdash; how often does
+        strategy + small model beat NaiveRAG + larger model? Each bar shows how many
+        such "upset" cases a strategy produces. The label shows the average quality
+        advantage.
+        <br><br>
+        <strong>How to read it:</strong> Tall bars mean the strategy consistently
+        compensates for model size. A strategy with zero upsets isn't worth the
+        complexity over simply using a bigger model with NaiveRAG.
+    """,
+    "Per-Metric Breakdown": """
+        <strong>What this shows:</strong> Quality decomposed into three dimensions
+        (faithfulness, relevance, conciseness) for the best and worst configurations.
+        <br><br>
+        <strong>How to read it:</strong> If the worst configs fail primarily on one
+        dimension (e.g., faithfulness), that tells you which aspect of the RAG pipeline
+        breaks down &mdash; retrieval quality vs answer formulation vs verbosity.
+    """,
+    "Score Distributions by Strategy": """
+        <strong>What this shows:</strong> Violin plots of quality scores for each strategy
+        across all models and questions. The shape shows where scores concentrate.
+        <br><br>
+        <strong>How to read it:</strong> A tall, narrow violin centered high means
+        consistently good. A wide, spread violin means the strategy is unreliable &mdash;
+        sometimes excellent, sometimes terrible.
+    """,
+    "Score Distributions by Model": """
+        <strong>What this shows:</strong> Same as above but grouped by model instead of
+        strategy. Reveals whether model size gives more consistent (narrower) or just
+        higher-mean results.
+        <br><br>
+        <strong>How to read it:</strong> If larger models have narrower distributions,
+        they're more reliable, not just better on average. If the spread is similar
+        across sizes, reliability comes from strategy, not scale.
+    """,
+    "Gold Metrics Heatmap": """
+        <strong>What this shows:</strong> Gold F1 (word-overlap with the known-correct
+        answer) for each configuration. This is an objective measure independent of the
+        LLM judge.
+        <br><br>
+        <strong>How to read it:</strong> Compare with the quality heatmap. If the
+        patterns match, the judge is tracking real correctness. If they diverge, the
+        judge may be rewarding style over substance.
+    """,
+    "Quality vs Latency (Pareto)": """
+        <strong>What this shows:</strong> Every dot is one configuration. X-axis is
+        latency, y-axis is quality. The dashed line connects Pareto-optimal configs
+        &mdash; those where no other config is both faster AND better.
+        <br><br>
+        <strong>How to read it:</strong> Points on or near the frontier are the only
+        rational choices. Points well below the frontier are dominated &mdash; another
+        config is both faster and better. The shape of the frontier shows the
+        quality-speed tradeoff curve.
+    """,
+    "Per-Query Detail": """
+        <strong>What this shows:</strong> The 10 worst and 10 best individual answers
+        across all configurations. Reveals what kinds of questions the pipeline handles
+        well vs. poorly.
+        <br><br>
+        <strong>How to read it:</strong> Look for patterns in the worst answers &mdash;
+        are they all from one strategy, one model, or one type of question?
+    """,
+}
+
+
+def _generate_experiment_1(csv_path: Path) -> str:
+    """Build the Experiment 1 dashboard page with explanatory prose.
+
+    Args:
+        csv_path: Path to ``results/experiment_1/raw_scores.csv``.
+
+    Returns:
+        Full HTML page string.
+    """
+    from scripts.generate_experiment1_dashboard import build_experiment1_figures
+    from scripts.generate_experiment0_dashboard import _fig_to_html
+
+    figures = build_experiment1_figures(csv_path)
+
+    parts = []
+    parts.append("""
+    <div class="card">
+        <h2>What This Experiment Tests</h2>
+        <p>
+            <strong>Does a smarter RAG strategy compensate for a smaller language model?</strong>
+            We test 5 RAG strategies (NaiveRAG, SelfRAG, CorrectiveRAG, AdaptiveRAG,
+            MultiQueryRAG) across 6 models ranging from 0.6B to 8B parameters.
+            All other variables are held constant: Recursive chunker (500/100),
+            mxbai-embed-large embedder, hybrid retrieval.
+        </p>
+        <p>
+            200 HotpotQA questions are scored by Gemini 2.5 Flash (validated in Experiment 0).
+            The key question: when does investing in a complex strategy pay off vs. just
+            using a bigger model with simple NaiveRAG?
+        </p>
+    </div>
+    """)
+
+    for title, fig in figures:
+        chart_html = _fig_to_html(fig)
+        explanation = _EXP1_EXPLANATIONS.get(title, "")
+        explanation_html = ""
+        if explanation:
+            explanation_html = f"""
+            <p class="chart-explanation" style="color: #555; font-size: 0.92em;
+               line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
+                {explanation}
+            </p>"""
+        parts.append(f"""
+        <div class="chart-container">
+            <h3>{title}</h3>{explanation_html}
+            {chart_html}
+        </div>""")
+
+    content = "\n".join(parts)
+    return _build_page_template(
+        "Experiment 1: Strategy × Model Size",
+        nav_active="exp1",
+        content_html=content,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Experiment 2 dashboard
+# ---------------------------------------------------------------------------
+
+# Per-chart explanations for Experiment 2 (Chunking x Model Size)
+_EXP2_EXPLANATIONS: dict[str, str] = {
+    "Summary": """
+        <strong>What this shows:</strong> Key statistics for the experiment &mdash;
+        total configurations tested, best and worst performing config, and overall
+        mean quality.
+    """,
+    "Quality Heatmap": """
+        <strong>What this shows:</strong> Mean quality score for every chunker-model
+        combination. Rows are chunking strategies, columns are Qwen3 models ordered
+        by parameter count. Brighter cells = higher quality.
+        <br><br>
+        <strong>How to read it:</strong> Look for whether chunker choice matters
+        at all &mdash; if all rows look the same, chunking doesn't matter much.
+        If one row is consistently brighter, that chunker is the clear winner.
+    """,
+    "Latency Heatmap": """
+        <strong>What this shows:</strong> Mean strategy latency for each configuration.
+        Chunking itself is fast, but different chunk sizes affect retrieval and
+        generation time.
+        <br><br>
+        <strong>How to read it:</strong> Semantic chunking may be slower (requires
+        embedding each chunk boundary). If its latency is high but quality is only
+        marginally better, it's not worth the cost.
+    """,
+    "Quality vs Model Size": """
+        <strong>What this shows:</strong> Each line is one chunking strategy.
+        X-axis is model size, y-axis is mean quality with error bars.
+        <br><br>
+        <strong>How to read it:</strong> If the lines are nearly parallel, chunking
+        choice doesn't interact with model size &mdash; the same chunker wins everywhere.
+        If lines cross, the optimal chunker depends on model size, which is a more
+        interesting finding.
+    """,
+    "Latency vs Model Size": """
+        <strong>What this shows:</strong> Latency by chunker and model size (log scale).
+        <br><br>
+        <strong>How to read it:</strong> Since all configs use NaiveRAG (same strategy),
+        latency differences come from chunk count affecting retrieval and context length
+        affecting generation time.
+    """,
+    "Chunking Impact Analysis": """
+        <strong>What this shows:</strong> For each model, the quality gap between the
+        best and worst chunker. Labels show which chunker won and which lost.
+        <br><br>
+        <strong>How to read it:</strong> Tall bars mean chunking choice matters a lot
+        for that model. If bars are short across all models, chunking is a minor
+        variable &mdash; effort is better spent on strategy or model selection.
+    """,
+    "Per-Metric Breakdown": """
+        <strong>What this shows:</strong> Quality decomposed into faithfulness,
+        relevance, and conciseness for all 16 configurations, ordered by overall
+        quality.
+        <br><br>
+        <strong>How to read it:</strong> Does chunking primarily affect faithfulness
+        (getting the right context) or conciseness (answer verbosity)? Relevance
+        should be relatively stable if questions are well-formed.
+    """,
+    "Score Distributions by Chunker": """
+        <strong>What this shows:</strong> Violin plots of quality for each chunker
+        across all models and questions.
+        <br><br>
+        <strong>How to read it:</strong> A chunker with a narrow, high violin is
+        both good and reliable. Wide spread means inconsistent &mdash; it helps
+        some queries but hurts others.
+    """,
+    "Score Distributions by Model": """
+        <strong>What this shows:</strong> Violin plots grouped by model. Since strategy
+        is held constant (NaiveRAG), this isolates the pure effect of model size.
+        <br><br>
+        <strong>How to read it:</strong> Compare the shapes, not just the means.
+        Does a larger model reduce the "tail" of bad answers, or does it just
+        shift the whole distribution up?
+    """,
+    "Gold Metrics Heatmap": """
+        <strong>What this shows:</strong> Gold F1 for each configuration &mdash;
+        the objective correctness measure independent of the LLM judge.
+        <br><br>
+        <strong>How to read it:</strong> Same pattern as quality heatmap? Good &mdash;
+        the judge agrees with ground truth. Different pattern? Investigate why.
+    """,
+    "Quality vs Latency (Pareto)": """
+        <strong>What this shows:</strong> Each dot is one chunker-model config.
+        The Pareto frontier connects configs where no other is both faster and better.
+        <br><br>
+        <strong>How to read it:</strong> Configs below the frontier are dominated.
+        With only 16 configs, the frontier shape reveals whether bigger chunks
+        (fewer, faster) or smaller chunks (more, better retrieval) win the
+        speed/quality tradeoff.
+    """,
+    "Chunk Count Analysis": """
+        <strong>What this shows:</strong> Mean number of chunks produced vs. mean
+        quality, colored by chunker. Models within each chunker appear as separate points.
+        <br><br>
+        <strong>How to read it:</strong> Is there an optimal chunk count? Too few
+        means important context is missed. Too many means the model drowns in
+        irrelevant text. The "sweet spot" is where the quality peaks.
+    """,
+}
+
+
+def _generate_experiment_2(csv_path: Path) -> str:
+    """Build the Experiment 2 dashboard page with explanatory prose.
+
+    Args:
+        csv_path: Path to ``results/experiment_2/raw_scores.csv``.
+
+    Returns:
+        Full HTML page string.
+    """
+    from scripts.generate_experiment2_dashboard import build_experiment2_figures
+    from scripts.generate_experiment0_dashboard import _fig_to_html
+
+    figures = build_experiment2_figures(csv_path)
+
+    parts = []
+    parts.append("""
+    <div class="card">
+        <h2>What This Experiment Tests</h2>
+        <p>
+            <strong>Does how you split documents into chunks affect answer quality,
+            and does it interact with model size?</strong> We test 4 chunking strategies
+            (Fixed 512, Recursive 500/100, Sentence, Semantic) across 4 Qwen3 models
+            (0.6B to 8B). Strategy is held constant at NaiveRAG to isolate the
+            chunking variable.
+        </p>
+        <p>
+            This is an understudied question &mdash; most RAG research treats chunking
+            as a fixed preprocessing step. We test whether it deserves the same attention
+            as strategy and model selection.
+        </p>
+    </div>
+    """)
+
+    for title, fig in figures:
+        chart_html = _fig_to_html(fig)
+        explanation = _EXP2_EXPLANATIONS.get(title, "")
+        explanation_html = ""
+        if explanation:
+            explanation_html = f"""
+            <p class="chart-explanation" style="color: #555; font-size: 0.92em;
+               line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
+                {explanation}
+            </p>"""
+        parts.append(f"""
+        <div class="chart-container">
+            <h3>{title}</h3>{explanation_html}
+            {chart_html}
+        </div>""")
+
+    content = "\n".join(parts)
+    return _build_page_template(
+        "Experiment 2: Chunking × Model Size",
+        nav_active="exp2",
+        content_html=content,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Placeholder pages
 # ---------------------------------------------------------------------------
 
@@ -781,35 +1113,17 @@ def main(
             placeholder = _generate_placeholder(0, "Scorer validation — comparing LLM judges on gold-standard data.")
             (output_dir / "experiment_0.html").write_text(placeholder, encoding="utf-8")
 
-    # Experiments 1 and 2 — use real dashboards when data exists
-    _exp_generators = {}
-    try:
-        from scripts.generate_experiment1_dashboard import build_experiment1_figures
-        _exp_generators[1] = build_experiment1_figures
-    except ImportError:
-        logger.warning("generate_experiment1_dashboard not importable — Exp 1 will use placeholder")
-    try:
-        from scripts.generate_experiment2_dashboard import build_experiment2_figures
-        _exp_generators[2] = build_experiment2_figures
-    except ImportError:
-        logger.warning("generate_experiment2_dashboard not importable — Exp 2 will use placeholder")
-
+    # Experiments 1 and 2 — use dedicated generators with prose when data exists
     _exp_titles = {1: "Strategy × Model Size", 2: "Chunking × Model Size"}
-    _exp_intros = {
-        1: ("5 RAG strategies × 6 models. Each chart below is interactive "
-            "— hover for details, click legend entries to toggle, drag to zoom."),
-        2: ("4 chunking strategies × 4 Qwen3 models. Each chart below is interactive "
-            "— hover for details, click legend entries to toggle, drag to zoom."),
-    }
+    _exp_page_generators = {1: _generate_experiment_1, 2: _generate_experiment_2}
 
     for exp_num in [1, 2]:
         if exp_num not in experiments:
             continue
         exp_csv = results_dir / f"experiment_{exp_num}" / "raw_scores.csv"
         desc = _EXPERIMENT_DESCRIPTIONS.get(exp_num, f"Experiment {exp_num}")
-        nav_key = f"exp{exp_num}"
 
-        if exp_csv.exists() and exp_csv.stat().st_size > 0 and exp_num in _exp_generators:
+        if exp_csv.exists() and exp_csv.stat().st_size > 0:
             experiments_info.append({
                 "num": exp_num,
                 "title": _exp_titles.get(exp_num, f"Experiment {exp_num}"),
@@ -817,27 +1131,13 @@ def main(
                 "description": desc,
             })
             logger.info("Generating Experiment %d dashboard from %s", exp_num, exp_csv)
-            figures = _exp_generators[exp_num](exp_csv)
-            parts = [f"""
-    <div class="card">
-        <p>{_exp_intros.get(exp_num, '')}</p>
-    </div>
-    """]
-            from scripts.generate_experiment0_dashboard import _fig_to_html
-            for title, fig in figures:
-                chart_html = _fig_to_html(fig)
-                parts.append(f"""
-        <div class="chart-container">
-            <h3>{title}</h3>
-            {chart_html}
-        </div>""")
-            content = "\n".join(parts)
-            page_html = _build_page_template(
-                f"Experiment {exp_num}: {_exp_titles.get(exp_num, '')}",
-                nav_active=nav_key,
-                content_html=content,
-            )
-            (output_dir / f"experiment_{exp_num}.html").write_text(page_html, encoding="utf-8")
+            try:
+                page_html = _exp_page_generators[exp_num](exp_csv)
+                (output_dir / f"experiment_{exp_num}.html").write_text(page_html, encoding="utf-8")
+            except Exception as exc:
+                logger.warning("Experiment %d dashboard generation failed: %s — using placeholder", exp_num, exc)
+                placeholder = _generate_placeholder(exp_num, desc)
+                (output_dir / f"experiment_{exp_num}.html").write_text(placeholder, encoding="utf-8")
         else:
             experiments_info.append({
                 "num": exp_num,
