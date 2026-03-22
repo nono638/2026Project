@@ -3,7 +3,7 @@
 **Completed:** 2026-03-22T18:02:58
 
 ## Commits
-- `<sha>` — night: task-041 auto-regenerate gallery after experiment runs
+- `dd1289d31e4439d8b883cd7132ee697dd6c56956` — night: task-041 auto-regenerate gallery after experiment runs
 
 ## Test Results
 - Command run: `.venv/Scripts/python -m pytest DaytimeNighttimeHandOff/WrittenByDaytime/task-041-auto-gallery-regen/tests/ -v`
