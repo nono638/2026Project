@@ -774,6 +774,7 @@
     "attempted_approaches": [],
     "flags": [
       "2 pre-written tests for exp0 have a mock bug (@patch conflicts with testing the real parse_args) - implementation is correct, exp1/exp2 equivalents pass"
-    ]
+    ],
+    "daytime_reviewed": "2026-03-23T09:45:29"
   }
 ]
