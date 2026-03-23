@@ -38,17 +38,27 @@ retrieval, aggressive filtering, or model generation failure.
        skipped_retrieval: bool = False,
    ) -> str:
    ```
-   Returns one of: `"none"`, `"chunker"`, `"retrieval"`, `"filtering"`, `"generation"`,
+   Returns a tuple of `(stage: str, confidence: str)`.
+
+   Stage is one of: `"none"`, `"chunker"`, `"retrieval"`, `"filtering"`, `"generation"`,
    `"no_retrieval"`, `"unknown"`.
 
+   Confidence is one of: `"high"`, `"low"`, `"n/a"`.
+
    Logic (in order):
-   - If `gold_answer` is empty/None → `"unknown"`
-   - If `gold_answer` found in `rag_answer` (case-insensitive containment) → `"none"`
-   - If `skipped_retrieval` is True → `"no_retrieval"` (strategy chose not to retrieve)
-   - If `gold_answer` not found in ANY chunk text → `"chunker"`
-   - If `gold_answer` in chunks but not in any retrieved chunk → `"retrieval"`
-   - If `gold_answer` in retrieved chunks but not in `context_sent_to_llm` → `"filtering"`
-   - If `gold_answer` in context but not in answer → `"generation"`
+   - If `gold_answer` is empty/None → `("unknown", "n/a")`
+   - If `gold_answer` found in `rag_answer` (case-insensitive containment) → `("none", "n/a")`
+   - If `skipped_retrieval` is True → `("no_retrieval", "high")`
+   - If `gold_answer` not found in ANY chunk text → `("chunker", "low")`
+   - If `gold_answer` in chunks but not in any retrieved chunk → `("retrieval", "high")`
+   - If `gold_answer` in retrieved chunks but not in `context_sent_to_llm` → `("filtering", "high")`
+   - If `gold_answer` in context but not in answer → `("generation", "high")`
+
+   Confidence rationale: stage-to-stage transitions are definitional — if the gold
+   substring is present at stage N but absent at stage N+1, that stage is 100% at fault.
+   The only low-confidence case is `"chunker"`, because the gold answer might be present
+   in the document with different wording (e.g., "887" vs "eight hundred eighty-seven").
+   The substring check would miss it and falsely blame the chunker.
 
    "Found in" means case-insensitive substring match (`gold.lower() in text.lower()`).
    This is deliberately simple and heuristic — matches the existing `exact_match()` logic
@@ -59,7 +69,10 @@ retrieval, aggressive filtering, or model generation failure.
    - Pass it to `strategy.run(query.text, retriever, model, diagnostics=diagnostics)`
    - Use diagnostics to populate new return dict keys:
      - `context_sent_to_llm` (str)
-     - `failure_stage` (str)
+     - `failure_stage` (str — from detect_failure_stage)
+     - `failure_stage_confidence` (str — "high", "low", or "n/a")
+     - `failure_stage_method` (str — always `"substring"` for now, documents how
+       attribution was computed so future analysis knows)
      - `gold_in_chunks` (bool)
      - `gold_in_retrieved` (bool)
      - `gold_in_context` (bool)

@@ -86,8 +86,12 @@ class TestGenerateAnswerDiagnosticColumns:
             )
 
         assert "failure_stage" in result
+        assert "failure_stage_confidence" in result
+        assert "failure_stage_method" in result
         # Gold "Paris" is in the answer → "none"
         assert result["failure_stage"] == "none"
+        assert result["failure_stage_confidence"] == "n/a"
+        assert result["failure_stage_method"] == "substring"
 
     def test_returns_gold_presence_bools(self, mock_strategy, mock_chunker, mock_embedder,
                                          mock_query, mock_doc):

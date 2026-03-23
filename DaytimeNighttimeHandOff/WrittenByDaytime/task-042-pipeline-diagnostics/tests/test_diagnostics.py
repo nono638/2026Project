@@ -2,6 +2,7 @@
 
 These tests verify detect_failure_stage() correctly identifies which pipeline
 stage caused a RAG failure by checking gold answer presence at each stage.
+Returns (stage, confidence) tuples.
 """
 
 import pytest
@@ -19,31 +20,33 @@ class TestDetectFailureStageNone:
     """Gold answer found in RAG answer → no failure."""
 
     def test_exact_match(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="Paris",
             rag_answer="The capital of France is Paris.",
             all_chunks=["Paris is the capital of France."],
             retrieved_chunk_texts=["Paris is the capital of France."],
             context_sent_to_llm="Paris is the capital of France.",
         )
-        assert result == "none"
+        assert stage == "none"
+        assert confidence == "n/a"
 
     def test_case_insensitive_match(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="paris",
             rag_answer="The answer is PARIS.",
             all_chunks=["Paris info"],
             retrieved_chunk_texts=["Paris info"],
             context_sent_to_llm="Paris info",
         )
-        assert result == "none"
+        assert stage == "none"
+        assert confidence == "n/a"
 
 
 class TestDetectFailureStageChunker:
     """Gold answer not in any chunk → chunker lost the information."""
 
     def test_gold_not_in_any_chunk(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="887",
             rag_answer="The area is approximately 500 acres.",
             all_chunks=[
@@ -54,14 +57,29 @@ class TestDetectFailureStageChunker:
             retrieved_chunk_texts=["Vilnius is a city in Lithuania."],
             context_sent_to_llm="Vilnius is a city in Lithuania.",
         )
-        assert result == "chunker"
+        assert stage == "chunker"
+        assert confidence == "low"
+
+    def test_chunker_low_confidence_reason(self):
+        """Chunker is low confidence because gold might be paraphrased."""
+        stage, confidence = detect_failure_stage(
+            gold_answer="eight hundred eighty-seven",
+            rag_answer="Unknown.",
+            all_chunks=["The area covers 887 acres."],  # Numerically present but different wording
+            retrieved_chunk_texts=["The area covers 887 acres."],
+            context_sent_to_llm="The area covers 887 acres.",
+        )
+        # Substring "eight hundred eighty-seven" is NOT in "887 acres"
+        # so this falsely blames chunker — demonstrating why confidence is "low"
+        assert stage == "chunker"
+        assert confidence == "low"
 
 
 class TestDetectFailureStageRetrieval:
     """Gold answer in chunks but not in retrieved chunks → retrieval failure."""
 
     def test_gold_in_chunks_not_retrieved(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="887",
             rag_answer="The area is unknown.",
             all_chunks=[
@@ -78,14 +96,15 @@ class TestDetectFailureStageRetrieval:
             ],
             context_sent_to_llm="Vilnius is a city.\n\nTourism is important.\n\nMany churches exist.",
         )
-        assert result == "retrieval"
+        assert stage == "retrieval"
+        assert confidence == "high"
 
 
 class TestDetectFailureStageFiltering:
     """Gold answer in retrieved chunks but not in context → strategy filtered it out."""
 
     def test_gold_filtered_by_strategy(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="887",
             rag_answer="The area is not mentioned.",
             all_chunks=[
@@ -99,28 +118,30 @@ class TestDetectFailureStageFiltering:
             # Strategy filtered out the chunk with 887
             context_sent_to_llm="Vilnius is a city.",
         )
-        assert result == "filtering"
+        assert stage == "filtering"
+        assert confidence == "high"
 
 
 class TestDetectFailureStageGeneration:
     """Gold answer in context but not in RAG answer → model failed to use it."""
 
     def test_gold_in_context_not_in_answer(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="887",
             rag_answer="The old town is a historic area with many notable buildings.",
             all_chunks=["The old town covers 887 acres."],
             retrieved_chunk_texts=["The old town covers 887 acres."],
             context_sent_to_llm="The old town covers 887 acres.",
         )
-        assert result == "generation"
+        assert stage == "generation"
+        assert confidence == "high"
 
 
 class TestDetectFailureStageNoRetrieval:
     """Strategy skipped retrieval entirely."""
 
     def test_skipped_retrieval(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="Paris",
             rag_answer="I think the capital is London.",
             all_chunks=["Paris is the capital of France."],
@@ -128,11 +149,12 @@ class TestDetectFailureStageNoRetrieval:
             context_sent_to_llm="",
             skipped_retrieval=True,
         )
-        assert result == "no_retrieval"
+        assert stage == "no_retrieval"
+        assert confidence == "high"
 
     def test_skipped_retrieval_but_correct(self):
         """Even if retrieval was skipped, correct answer = 'none'."""
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="Paris",
             rag_answer="The capital of France is Paris.",
             all_chunks=[],
@@ -140,52 +162,57 @@ class TestDetectFailureStageNoRetrieval:
             context_sent_to_llm="",
             skipped_retrieval=True,
         )
-        assert result == "none"
+        assert stage == "none"
+        assert confidence == "n/a"
 
 
 class TestDetectFailureStageUnknown:
     """No gold answer → can't determine failure stage."""
 
     def test_empty_gold(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="",
             rag_answer="Some answer.",
             all_chunks=["Some chunk."],
             retrieved_chunk_texts=["Some chunk."],
             context_sent_to_llm="Some chunk.",
         )
-        assert result == "unknown"
+        assert stage == "unknown"
+        assert confidence == "n/a"
 
     def test_none_gold(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer=None,
             rag_answer="Some answer.",
             all_chunks=["Some chunk."],
             retrieved_chunk_texts=["Some chunk."],
             context_sent_to_llm="Some chunk.",
         )
-        assert result == "unknown"
+        assert stage == "unknown"
+        assert confidence == "n/a"
 
 
 class TestDetectFailureStageCaseInsensitivity:
     """All comparisons should be case-insensitive."""
 
     def test_gold_uppercase_in_lowercase_chunks(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="PARIS",
             rag_answer="Not found.",
             all_chunks=["paris is the capital."],
             retrieved_chunk_texts=["paris is the capital."],
             context_sent_to_llm="paris is the capital.",
         )
-        assert result == "generation"
+        assert stage == "generation"
+        assert confidence == "high"
 
     def test_gold_mixed_case(self):
-        result = detect_failure_stage(
+        stage, confidence = detect_failure_stage(
             gold_answer="Albert Einstein",
             rag_answer="The physicist was albert einstein.",
             all_chunks=["ALBERT EINSTEIN was born in 1879."],
             retrieved_chunk_texts=["ALBERT EINSTEIN was born in 1879."],
             context_sent_to_llm="ALBERT EINSTEIN was born in 1879.",
         )
-        assert result == "none"
+        assert stage == "none"
+        assert confidence == "n/a"
