@@ -791,6 +791,15 @@
     "commit_sha": "39b180de2d55ad4051651da237504b1d884a9c54",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": []
+    "flags": [],
+    "daytime_reviewed": "2026-03-23T14:04:05"
+  },
+  {
+    "task_id": "task-043",
+    "description": "Experiment 0 v2: diagnostics, BGE reranker, answer_quality column, 150 medium+hard questions, scorer context fix, gallery v1/v2",
+    "daytime_created": "2026-03-23T15:20:30",
+    "daytime_comments": "Fixes 5 oversights from Exp 0 v1: no pipeline observability, scorer saw full doc instead of retrieved chunks, no reranker, ceiling effect from easy questions, no composite answer quality metric. Results go to results/experiment_0_v2/. v1 data untouched.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

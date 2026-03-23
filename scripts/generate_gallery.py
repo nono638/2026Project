@@ -1013,6 +1013,110 @@ def _generate_experiment_0(csv_path: Path) -> str:
     </div>
     """)
 
+    # ------------------------------------------------------------------
+    # Lessons Learned
+    # ------------------------------------------------------------------
+    parts.append("""
+    <h2>Lessons Learned</h2>
+    <div class="card" style="border-left: 4px solid #FE6100;">
+        <h3>What We Got Wrong in Experiment 0 (v1)</h3>
+        <p>
+            Experiment 0 was our first end-to-end pipeline run. It answered the question
+            it was designed to answer &mdash; which scorer to trust &mdash; but post-analysis
+            revealed five methodological oversights that we are addressing in
+            <strong>Experiment 0 v2</strong>.
+        </p>
+
+        <h3 style="margin-top: 20px;">1. We didn't capture what the LLM saw</h3>
+        <p>
+            The pipeline generated answers but didn't record which chunks were retrieved,
+            what context was assembled, or what the LLM actually received as input. When
+            the Church of St. Anne question failed (example&nbsp;5), we could see the answer
+            was wrong but couldn't determine <em>why</em> &mdash; was it a retrieval miss,
+            a chunking problem, or a generation error? Without pipeline observability,
+            failure analysis is guesswork.
+        </p>
+        <p>
+            <strong>Fix:</strong> Pipeline diagnostics now capture retrieved chunks,
+            filtered chunks, context sent to the LLM, and automatically attribute failures
+            to the responsible pipeline stage (chunker, retrieval, filtering, or generation).
+        </p>
+
+        <h3 style="margin-top: 20px;">2. The scorer judged against information the LLM never received</h3>
+        <p>
+            When scoring each answer, we passed the <strong>full source document</strong>
+            as context to the LLM judge. But the answering model only saw the
+            <strong>retrieved chunks</strong> &mdash; a small subset of the document.
+            This means the faithfulness score measured whether the answer was consistent
+            with the entire document, not with what the model actually had access to.
+            A hallucinated detail that happened to appear elsewhere in the document
+            would score as &ldquo;faithful.&rdquo;
+        </p>
+        <p>
+            <strong>Fix:</strong> v2 passes the actual context sent to the LLM
+            (<code>context_sent_to_llm</code>) to the scorer, so faithfulness is
+            evaluated against what the model truly saw.
+        </p>
+
+        <h3 style="margin-top: 20px;">3. No reranker in the pipeline</h3>
+        <p>
+            The v1 pipeline used raw hybrid retrieval (dense + BM25 with RRF fusion)
+            without a cross-encoder reranker. This is a weaker pipeline than what
+            Experiments 1 and 2 will use, which means we validated our scorers on
+            a different pipeline configuration than the one they'll actually score.
+            Reranking improves retrieval precision and changes the distribution of
+            answer quality &mdash; scorer validation should reflect the real pipeline.
+        </p>
+        <p>
+            <strong>Fix:</strong> v2 adds BGE Reranker v2 M3 (568M parameters) as the
+            default reranker. Retrieve 10 candidates, rerank down to 3.
+        </p>
+
+        <h3 style="margin-top: 20px;">4. Ceiling effect &mdash; too many easy questions</h3>
+        <p>
+            With 50 HotpotQA questions sampled proportionally across difficulties,
+            74% of answers were correct (exact match). Most judges rated most answers
+            5/5 &mdash; Flash-Lite gave a perfect 5.0 on 78% of examples, Opus on 78%.
+            With only ~13 wrong answers, there wasn't enough signal to meaningfully
+            compare how well judges discriminate between good and bad answers.
+        </p>
+        <p>
+            <strong>Fix:</strong> v2 increases the sample to 150 questions and filters
+            to <strong>medium and hard difficulty only</strong> (dropping easy questions
+            entirely). This produces more wrong and partial answers, giving us real
+            statistical power to compare scorer discrimination.
+        </p>
+
+        <h3 style="margin-top: 20px;">5. No composite answer quality metric</h3>
+        <p>
+            We had three independent signals for answer correctness &mdash; BERTScore
+            (semantic similarity to the gold answer), word-overlap F1, and LLM judge
+            scores &mdash; but no way to ask: &ldquo;do all three agree this answer is
+            good?&rdquo; A judge that gives 5/5 to an answer with low BERTScore and
+            low F1 has a blind spot. Example&nbsp;31 illustrates this perfectly: the RAG
+            answer was &ldquo;Not specified in the context&rdquo; (a polite refusal),
+            Flash and Opus both gave it 5/5 for faithfulness (it <em>was</em> faithful
+            to the empty context), but the gold answer was &ldquo;El Alma Argentina&rdquo;
+            &mdash; a complete miss.
+        </p>
+        <p>
+            <strong>Fix:</strong> v2 adds an <code>answer_quality</code> column that
+            requires agreement across all three metrics: BERTScore &ge; 0.90,
+            word-overlap F1 &ge; 0.50, <em>and</em> Sonnet quality &ge; 4.0.
+            An answer is only &ldquo;good&rdquo; if the gold metrics and the best
+            judge all agree. This triangulation exposes the blind spots that any
+            single metric misses.
+        </p>
+    </div>
+    <div class="card" style="border-left: 4px solid #648FFF; margin-top: 16px;">
+        <p style="margin: 0;">
+            <strong>Experiment 0 v2</strong> reruns this scorer validation with all
+            five fixes in place. The v1 results above are preserved as-is &mdash; they
+            are the baseline that motivated these improvements.
+        </p>
+    </div>
+    """)
+
     content = "\n".join(parts)
     return _build_page_template(
         "Experiment 0: Scorer Validation",
