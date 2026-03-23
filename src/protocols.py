@@ -61,13 +61,23 @@ class Strategy(Protocol):
         """Unique identifier (e.g., 'naive', 'self_rag')."""
         ...
 
-    def run(self, query: str, retriever: Retriever, model: str) -> str:
+    def run(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Execute the RAG strategy and return the generated answer.
 
         Args:
             query: The user's question.
             retriever: A Retriever instance (wraps chunks + index + embedder).
             model: Ollama model name for generation (e.g., 'qwen3:0.6b').
+            diagnostics: Optional mutable dict populated with intermediate
+                pipeline data (retrieved_chunks, filtered_chunks,
+                context_sent_to_llm, retrieval_queries, skipped_retrieval).
+                When None (default), no diagnostics overhead.
         """
         ...
 

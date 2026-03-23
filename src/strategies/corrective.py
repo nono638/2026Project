@@ -72,19 +72,28 @@ class CorrectiveRAG:
                 relevant.append(r["text"])
         return relevant
 
-    def run(self, query: str, retriever: Retriever, model: str) -> str:
+    def run(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Run Corrective RAG: retrieve, filter, optionally reformulate, generate.
 
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
             model: Model name for generation.
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's generated answer.
         """
         # Step 1: Retrieve
         retrieved = retriever.retrieve(query)
+        all_retrieved = list(retrieved)  # Track all chunks across rounds
+        queries_used = [query]
 
         # Step 2-3: Filter by relevance
         relevant_chunks = self._filter_relevant(query, retrieved, model)
@@ -94,9 +103,11 @@ class CorrectiveRAG:
             reformulated = self._llm.generate(
                 model, REFORMULATE_PROMPT.format(query=query)
             ).strip()
+            queries_used.append(reformulated)
 
             # Second retrieval with reformulated query
             retrieved2 = retriever.retrieve(reformulated)
+            all_retrieved.extend(retrieved2)
             relevant_chunks2 = self._filter_relevant(reformulated, retrieved2, model)
 
             # Merge both sets of relevant chunks
@@ -107,6 +118,13 @@ class CorrectiveRAG:
             relevant_chunks = [r["text"] for r in retrieved[:2]]
 
         context = "\n\n".join(relevant_chunks)
+
+        if diagnostics is not None:
+            diagnostics["retrieved_chunks"] = all_retrieved
+            diagnostics["filtered_chunks"] = relevant_chunks
+            diagnostics["context_sent_to_llm"] = context
+            diagnostics["retrieval_queries"] = queries_used
+            diagnostics["skipped_retrieval"] = False
 
         # Step 5: Generate answer
         prompt = (
