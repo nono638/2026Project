@@ -783,7 +783,14 @@
     "daytime_created": "2026-03-23T11:51:09",
     "daytime_comments": "Motivated by Exp 0 analysis — Church of St. Anne question showed retrieval failure but we couldn't diagnose it from the CSV. Adds diagnostics kwarg to all 5 strategy run() methods plus detect_failure_stage() utility. Experiments 1 & 2 get diagnostics automatically via experiment_utils.generate_answer().",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-23T13:09:47"
+    "status": "done",
+    "nighttime_started": "2026-03-23T13:09:47",
+    "nighttime_completed": "2026-03-23T13:20:14",
+    "nighttime_comments": "Added diagnostics kwarg to all 5 strategies, created src/diagnostics.py with detect_failure_stage(), updated experiment_utils with failure attribution columns. 34 task tests + 576 project tests pass.",
+    "branch": "night/task-042-pipeline-diagnostics",
+    "commit_sha": "39b180de2d55ad4051651da237504b1d884a9c54",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": []
   }
 ]
