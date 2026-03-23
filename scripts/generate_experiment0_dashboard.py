@@ -426,7 +426,7 @@ def _chart_judge_vs_bertscore(
     fig.update_layout(
         title=("Do judges agree with semantic similarity to the gold answer?"
                "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
-        xaxis_title="Gold BERTScore",
+        xaxis_title="Gold BERTScore (semantic similarity)",
         yaxis_title="Judge Quality Score",
         template="plotly_white",
         height=550,
@@ -497,7 +497,7 @@ def _chart_judge_vs_f1(
     fig.update_layout(
         title=("Do judges agree with word-overlap correctness?"
                "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
-        xaxis_title="Gold F1",
+        xaxis_title="Gold F1 (word overlap)",
         yaxis_title="Judge Quality Score",
         template="plotly_white",
         height=550,
@@ -548,12 +548,12 @@ def _chart_judge_gold_correlation(
 
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        x=judges_sorted, y=bert_vals, name="BERTScore correlation",
+        x=judges_sorted, y=bert_vals, name="BERTScore (semantic similarity)",
         text=[f"r={v:.3f}" for v in bert_vals], textposition="outside",
         marker_color=_COLORS[0],
     ))
     fig.add_trace(go.Bar(
-        x=judges_sorted, y=f1_vals, name="F1 correlation",
+        x=judges_sorted, y=f1_vals, name="F1 (word overlap)",
         text=[f"r={v:.3f}" for v in f1_vals], textposition="outside",
         marker_color=_COLORS[3],
     ))
@@ -561,7 +561,7 @@ def _chart_judge_gold_correlation(
     fig.update_layout(
         title="Which judge best tracks ground truth?",
         xaxis_title="Judge",
-        yaxis_title="Pearson Correlation",
+        yaxis_title="Pearson r (higher = better tracks truth)",
         barmode="group",
         template="plotly_white",
         height=450,
@@ -1108,7 +1108,7 @@ def _chart_bertscore_vs_f1(df: pd.DataFrame) -> go.Figure:
                      "gold_f1_j": False, "gold_bertscore_j": False},
         title=("Do semantic and lexical metrics agree?"
                "<br><sub>Both axes jittered slightly to reveal overlapping points. Hover for exact values.</sub>"),
-        labels={"gold_f1_j": "Gold F1", "gold_bertscore_j": "Gold BERTScore"},
+        labels={"gold_f1_j": "Gold F1 (word overlap)", "gold_bertscore_j": "Gold BERTScore (semantic similarity)"},
         template="plotly_white",
     )
     fig.update_traces(marker=dict(opacity=0.7))

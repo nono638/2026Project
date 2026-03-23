@@ -776,5 +776,13 @@
       "2 pre-written tests for exp0 have a mock bug (@patch conflicts with testing the real parse_args) - implementation is correct, exp1/exp2 equivalents pass"
     ],
     "daytime_reviewed": "2026-03-23T09:45:29"
+  },
+  {
+    "task_id": "task-042",
+    "description": "Pipeline diagnostics: log context sent to LLM, retrieved/filtered chunks, and auto-detect failure attribution stage (chunker/retrieval/filtering/generation)",
+    "daytime_created": "2026-03-23T11:51:09",
+    "daytime_comments": "Motivated by Exp 0 analysis — Church of St. Anne question showed retrieval failure but we couldn't diagnose it from the CSV. Adds diagnostics kwarg to all 5 strategy run() methods plus detect_failure_stage() utility. Experiments 1 & 2 get diagnostics automatically via experiment_utils.generate_answer().",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

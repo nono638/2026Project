@@ -321,9 +321,9 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
         <h2>Key Findings</h2>
         <p>
             <strong>Experiment 0 (Scorer Validation):</strong> Compared 6 LLM judges
-            on 50 HotpotQA questions scored by NaiveRAG + Qwen3 4B. Finding: Gemini 2.5
-            Flash offers the best cost/quality balance for automated scoring — strong
-            correlation with gold-standard metrics at 23× lower cost than Claude Sonnet.
+            on 50 HotpotQA questions scored by NaiveRAG + Qwen3 4B. Finding: Claude
+            Sonnet is the most accurate scorer (r&nbsp;=&nbsp;0.68 with gold-standard
+            metrics). Gemini 2.5 Flash is a strong budget alternative at 50× lower cost.
         </p>
     </div>
     """
@@ -333,12 +333,333 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
 # Experiment 0 dashboard
 # ---------------------------------------------------------------------------
 
+def _create_workflow_diagram() -> str:
+    """Create a Plotly-based workflow diagram showing the Experiment 0 pipeline.
+
+    Returns:
+        HTML string of the embedded Plotly figure.
+    """
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+
+    # Two-row layout with generous spacing.
+    # Row 1 (y=2.0): HotpotQA → Question + Docs → RAG Pipeline → RAG Answer → 6 LLM Judges
+    # Row 2 (y=0.0): Gold Answer ─────────────────────────────→ Compare ←─────┘
+    #
+    # Use unitless coordinates; aspect ratio set by height/xrange.
+    boxes = [
+        # (x, y, w, h, label, color)
+        (1,  2, 2.4, 1.0, "HotpotQA<br>Dataset",           "#648FFF"),
+        (5,  2, 2.8, 1.0, "Question +<br>Source Docs",      "#785EF0"),
+        (9,  2, 3.2, 1.0, "RAG Pipeline<br><span style='font-size:11px'>(NaiveRAG + Qwen3 4B)</span>", "#DC267F"),
+        (13, 2, 2.4, 1.0, "RAG Answer",                     "#FE6100"),
+        (17, 2, 2.4, 1.0, "6 LLM Judges",                   "#FFB000"),
+        (1,  0, 2.4, 1.0, "Gold Answer",                     "#22A884"),
+        (9,  0, 3.6, 1.0, "Automated Metrics<br>(BERTScore, F1)", "#22A884"),
+        (17, 0, 3.0, 1.0, "Which judge<br>tracks truth?",   "#648FFF"),
+    ]
+
+    shapes = []
+    annotations = []
+
+    for x, y, w, h, label, color in boxes:
+        shapes.append(dict(
+            type="rect",
+            x0=x - w / 2, y0=y - h / 2,
+            x1=x + w / 2, y1=y + h / 2,
+            fillcolor=color, opacity=0.9,
+            line=dict(color="white", width=2),
+            layer="above",
+        ))
+        annotations.append(dict(
+            x=x, y=y,
+            text=f"<b>{label}</b>",
+            showarrow=False,
+            font=dict(color="white", size=13),
+            align="center",
+        ))
+
+    # Arrows: (tail_x, tail_y, head_x, head_y)
+    arrows = [
+        (2.2, 2, 3.6, 2),     # HotpotQA → Q+Docs
+        (6.4, 2, 7.6, 2),     # Q+Docs → RAG Pipeline
+        (10.4, 2, 11.8, 2),   # RAG Pipeline → RAG Answer
+        (14.2, 2, 15.8, 2),   # RAG Answer → 6 LLM Judges
+        (1, 1.5, 1, 0.5),     # HotpotQA ↓ Gold Answer
+        (2.2, 0, 7.2, 0),     # Gold Answer → Automated Metrics
+        (13, 1.5, 13, 0.65),  # RAG Answer ↓ (toward Automated Metrics)
+        (13, 0.35, 10.8, 0),  # ↓ into Automated Metrics
+        (10.8, 0, 15.5, 0),   # Automated Metrics → Which judge
+        (17, 1.5, 17, 0.5),   # 6 LLM Judges ↓ Which judge
+    ]
+
+    for ax, ay, x, y in arrows:
+        annotations.append(dict(
+            x=x, y=y, ax=ax, ay=ay,
+            xref="x", yref="y", axref="x", ayref="y",
+            showarrow=True,
+            arrowhead=2, arrowsize=1.5, arrowwidth=2,
+            arrowcolor="#555", text="",
+        ))
+
+    fig.update_layout(
+        xaxis=dict(range=[-1, 20], showgrid=False, zeroline=False,
+                   showticklabels=False, fixedrange=True),
+        yaxis=dict(range=[-1, 3.2], showgrid=False, zeroline=False,
+                   showticklabels=False, fixedrange=True),
+        shapes=shapes, annotations=annotations,
+        plot_bgcolor="white", paper_bgcolor="white",
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=280,
+    )
+
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", showlegend=False))
+
+    return fig
+
+
+def _build_row_examiner(scores_df: pd.DataFrame, answers_df: pd.DataFrame) -> str:
+    """Build an interactive row examiner widget for the Experiment 0 page.
+
+    Shows each example's full pipeline: document, question, gold answer,
+    RAG answer, automated metrics, and all judge scores.  Supports sorting
+    by question text, quality score, F1, or BERTScore.  Highlights the gold
+    answer within the source document.
+
+    Args:
+        scores_df: Scores DataFrame (raw_scores.csv).
+        answers_df: Answers DataFrame (raw_answers.csv) with doc_text.
+
+    Returns:
+        HTML string with inline CSS/JS for the widget.
+    """
+    import html as html_module
+    from scripts.generate_experiment0_dashboard import get_valid_judges
+
+    judges = get_valid_judges(scores_df, min_valid=1)
+
+    # Merge doc_text from answers
+    merged = scores_df.merge(
+        answers_df[["example_id", "doc_text"]],
+        on="example_id",
+        how="left",
+    )
+    if "doc_text" not in merged.columns:
+        merged["doc_text"] = ""
+
+    # Compute a representative quality score (mean across all judges)
+    quality_cols = [f"{j['prefix']}_quality" for j in judges]
+    merged["_mean_quality"] = merged[quality_cols].mean(axis=1)
+
+    # Build JSON-serializable data for JS sorting
+    import json
+
+    examples_data = []  # for JS sort metadata
+    examples_html = ""
+
+    for _, row in merged.iterrows():
+        eid = int(row["example_id"])
+        q = str(row.get("question", ""))
+        q_escaped = html_module.escape(q)
+        q_short = (q[:80] + "...") if len(q) > 80 else q
+
+        gold_answer = str(row.get("gold_answer", ""))
+        gold_answer_escaped = html_module.escape(gold_answer)
+        rag_answer = html_module.escape(str(row.get("rag_answer", "")))
+        doc_text_raw = str(row.get("doc_text", ""))
+        exact_match = row.get("gold_exact_match", False)
+        f1 = float(row.get("gold_f1", 0))
+        bertscore = float(row.get("gold_bertscore", 0))
+        mean_quality = float(row.get("_mean_quality", 0))
+
+        # Highlight gold answer in doc text (case-insensitive)
+        doc_text_escaped = html_module.escape(doc_text_raw)
+        if gold_answer.strip():
+            import re
+            pattern = re.escape(html_module.escape(gold_answer.strip()))
+            doc_text_highlighted = re.sub(
+                f"({pattern})",
+                r'<mark style="background:#FFD54F;padding:1px 3px;border-radius:3px">\1</mark>',
+                doc_text_escaped,
+                flags=re.IGNORECASE,
+            )
+        else:
+            doc_text_highlighted = doc_text_escaped
+
+        # Judge scores table
+        judge_rows_html = ""
+        for j in judges:
+            prefix = j["prefix"]
+            faith = row.get(f"{prefix}_faithfulness", float("nan"))
+            rel = row.get(f"{prefix}_relevance", float("nan"))
+            conc = row.get(f"{prefix}_conciseness", float("nan"))
+            qual = row.get(f"{prefix}_quality", float("nan"))
+            if pd.notna(qual):
+                judge_rows_html += (
+                    f"<tr><td>{j['display_name']}</td>"
+                    f"<td>{faith:.0f}</td><td>{rel:.0f}</td><td>{conc:.0f}</td>"
+                    f"<td><strong>{qual:.2f}</strong></td></tr>"
+                )
+
+        examples_data.append({
+            "id": eid,
+            "question": q,
+            "label": f"{eid}: {q_short}",
+            "quality": round(mean_quality, 3),
+            "f1": round(f1, 3),
+            "bertscore": round(bertscore, 3),
+        })
+
+        examples_html += f"""
+        <div class="example-panel" id="rex-{eid}" style="display:none;">
+            <div class="rex-step">
+                <h4>Question</h4>
+                <p style="font-size:1.05em;">{q_escaped}</p>
+            </div>
+            <div class="rex-step">
+                <h4>Source Document <span style="font-weight:normal;color:#888;font-size:0.85em;">
+                    (gold answer highlighted if found)</span></h4>
+                <div class="rex-doc">{doc_text_highlighted}</div>
+            </div>
+            <div class="rex-step rex-answers">
+                <div class="rex-answer-box">
+                    <h4>Gold Answer</h4>
+                    <p class="rex-gold">{gold_answer_escaped}</p>
+                </div>
+                <div class="rex-answer-box">
+                    <h4>RAG Answer</h4>
+                    <p class="rex-rag">{rag_answer}</p>
+                </div>
+            </div>
+            <div class="rex-step">
+                <h4>Automated Metrics</h4>
+                <p>
+                    Exact Match: <strong>{"Yes" if exact_match else "No"}</strong> &nbsp;|&nbsp;
+                    F1 (word overlap): <strong>{f1:.3f}</strong> &nbsp;|&nbsp;
+                    BERTScore (semantic): <strong>{bertscore:.3f}</strong>
+                </p>
+            </div>
+            <div class="rex-step">
+                <h4>Judge Scores</h4>
+                <table class="data-table" style="max-width:600px;">
+                    <tr><th>Judge</th><th>Faith.</th><th>Rel.</th><th>Conc.</th><th>Quality</th></tr>
+                    {judge_rows_html}
+                </table>
+            </div>
+        </div>
+        """
+
+    examples_json = json.dumps(examples_data)
+
+    return f"""
+    <style>
+    .rex-controls {{
+        display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+        margin-bottom: 16px;
+    }}
+    .rex-controls label {{ font-weight: 600; font-size: 0.9em; }}
+    .rex-controls select {{
+        padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px;
+        font-size: 0.95em; min-width: 200px;
+    }}
+    .rex-step {{
+        background: #f8f9fa; border-radius: 8px; padding: 16px;
+        margin: 12px 0; border-left: 4px solid #648FFF;
+    }}
+    .rex-step h4 {{ margin: 0 0 8px 0; color: #1a1a2e; }}
+    .rex-doc {{
+        max-height: 400px; overflow-y: auto; font-size: 0.88em;
+        line-height: 1.7; white-space: pre-wrap; word-wrap: break-word;
+        background: white; padding: 12px; border-radius: 6px;
+        border: 1px solid #e0e0e0;
+    }}
+    .rex-answers {{
+        display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+        background: transparent; border: none; padding: 0;
+    }}
+    .rex-answer-box {{
+        background: #f8f9fa; border-radius: 8px; padding: 16px;
+        border-left: 4px solid #22A884;
+    }}
+    .rex-answer-box:last-child {{ border-left-color: #FE6100; }}
+    .rex-answer-box h4 {{ margin: 0 0 8px 0; color: #1a1a2e; }}
+    .rex-gold {{ color: #2e7d32; font-weight: 600; }}
+    .rex-rag {{ color: #e65100; }}
+    </style>
+
+    <div class="rex-controls">
+        <label for="rex-sort">Sort by:</label>
+        <select id="rex-sort" onchange="rexSort()">
+            <option value="alpha">Question (A&rarr;Z)</option>
+            <option value="quality_desc">Avg Judge Quality (high&rarr;low)</option>
+            <option value="quality_asc">Avg Judge Quality (low&rarr;high)</option>
+            <option value="bertscore_desc">BERTScore (high&rarr;low)</option>
+            <option value="bertscore_asc">BERTScore (low&rarr;high)</option>
+            <option value="f1_desc">F1 (high&rarr;low)</option>
+            <option value="f1_asc">F1 (low&rarr;high)</option>
+        </select>
+        <label for="rex-select">Example:</label>
+        <select id="rex-select" onchange="rexShow(this.value)" style="min-width:400px;">
+            <option value="">-- Choose a question --</option>
+        </select>
+    </div>
+    {examples_html}
+
+    <script>
+    (function() {{
+        var data = {examples_json};
+        var selectEl = document.getElementById('rex-select');
+        var sortEl = document.getElementById('rex-sort');
+
+        function populateDropdown(sorted) {{
+            var current = selectEl.value;
+            selectEl.innerHTML = '<option value="">-- Choose a question --</option>';
+            sorted.forEach(function(d) {{
+                var opt = document.createElement('option');
+                opt.value = 'rex-' + d.id;
+                var suffix = ' [Q=' + d.quality.toFixed(2) + ', BERT=' + d.bertscore.toFixed(3) + ', F1=' + d.f1.toFixed(3) + ']';
+                opt.textContent = d.label + suffix;
+                selectEl.appendChild(opt);
+            }});
+            if (current) selectEl.value = current;
+        }}
+
+        window.rexSort = function() {{
+            var mode = sortEl.value;
+            var sorted = data.slice();
+            if (mode === 'alpha') sorted.sort(function(a,b) {{ return a.question.localeCompare(b.question); }});
+            else if (mode === 'quality_desc') sorted.sort(function(a,b) {{ return b.quality - a.quality; }});
+            else if (mode === 'quality_asc') sorted.sort(function(a,b) {{ return a.quality - b.quality; }});
+            else if (mode === 'bertscore_desc') sorted.sort(function(a,b) {{ return b.bertscore - a.bertscore; }});
+            else if (mode === 'bertscore_asc') sorted.sort(function(a,b) {{ return a.bertscore - b.bertscore; }});
+            else if (mode === 'f1_desc') sorted.sort(function(a,b) {{ return b.f1 - a.f1; }});
+            else if (mode === 'f1_asc') sorted.sort(function(a,b) {{ return a.f1 - b.f1; }});
+            populateDropdown(sorted);
+        }};
+
+        window.rexShow = function(val) {{
+            var panels = document.querySelectorAll('.example-panel');
+            panels.forEach(function(p) {{ p.style.display = 'none'; }});
+            if (val) {{
+                var el = document.getElementById(val);
+                if (el) el.style.display = 'block';
+            }}
+        }};
+
+        // Initial populate
+        rexSort();
+    }})();
+    </script>
+    """
+
+
 def _generate_experiment_0(csv_path: Path) -> str:
     """Build the Experiment 0 dashboard page content with Plotly charts.
 
-    Imports the chart-building functions from the existing dashboard script
-    and wraps them in the gallery template.  Adds explanatory prose around
-    each chart so readers understand what they're looking at.
+    Restructured for progressive disclosure: workflow diagram and headline
+    result first, then judge comparison, then measurement details, then
+    deep-dive charts.
 
     Args:
         csv_path: Path to ``results/experiment_0/raw_scores.csv``.
@@ -354,312 +675,327 @@ def _generate_experiment_0(csv_path: Path) -> str:
     df = pd.read_csv(csv_path)
     figures = build_experiment0_figures(df)
 
-    # Per-chart explanations keyed by chart title.  Charts whose title
-    # doesn't appear here get no extra prose (just the chart).
-    chart_explanations: dict[str, str] = {
-        "Judge Quality vs BERTScore": """
-            <strong>What this shows:</strong> Each dot is one question. The x-axis is
-            BERTScore (how semantically similar the RAG answer is to the known-correct
-            answer, 0&ndash;1). The y-axis is the judge's quality score (1&ndash;5).
-            A good judge should give higher scores to answers that are actually more
-            correct &mdash; meaning the dots should trend upward from left to right.
-            <br><br>
-            <strong>How to read it:</strong> What matters is how tightly the dots cluster
-            around the trendline, not the slope itself. A tight cluster (high r) means the
-            judge reliably tracks quality; scattered dots (low r) mean it's guessing.
-            Use the dropdown above the chart to compare specific judges, or click legend
-            entries to show/hide them.
-            <br><br>
-            <strong>Key takeaway:</strong> Claude Sonnet (r&nbsp;=&nbsp;0.68) and Gemini
-            3.1 Pro (r&nbsp;=&nbsp;0.63) track BERTScore most closely &mdash; their dots
-            cluster tightly around the trendline. Flash-Lite's dots are scattered randomly
-            (r&nbsp;=&nbsp;0.07) &mdash; it can't distinguish good answers from bad.
-        """,
-        "Judge Quality vs Gold F1": """
-            <strong>What this shows:</strong> Same idea as above, but using word-overlap
-            F1 instead of BERTScore. F1 measures how many words the RAG answer shares with
-            the gold answer (0&ndash;1). It's a stricter, more literal measure &mdash;
-            paraphrased answers score low on F1 even if semantically correct.
-            <br><br>
-            <strong>How to read it:</strong> Judges that correlate with both BERTScore
-            <em>and</em> F1 are tracking real quality, not just surface similarity.
-            Use the dropdown to compare specific judges side-by-side.
-            <br><br>
-            <strong>Key takeaway:</strong> The same pattern holds &mdash; Sonnet
-            (r&nbsp;=&nbsp;0.60) and Flash (r&nbsp;=&nbsp;0.49) track F1 well.
-            Flash-Lite again shows near-zero correlation (r&nbsp;=&nbsp;0.02).
-        """,
-        "Judge-Gold Correlation": """
-            <strong>What this shows:</strong> A summary bar chart &mdash; Pearson
-            correlation (r) between each judge's quality scores and the two gold metrics.
-            Higher bars mean the judge better tracks objective correctness.
-            <br><br>
-            <strong>How to read it:</strong> This is the key chart for choosing a scorer.
-            We want the cheapest judge with high correlation. An r above 0.5 indicates
-            a meaningful relationship; above 0.7 is strong.
-            <br><br>
-            <strong>Key takeaway:</strong> Sonnet is the most accurate judge overall, but
-            Flash is close behind at 1/50th the cost. Flash-Lite and Haiku fall well short.
-            This chart drove the decision to use Flash for Experiments 1 &amp; 2.
-        """,
-        "Correct vs Incorrect Scores": """
-            <strong>What this shows:</strong> Splits answers into "correct" (exact match
-            with gold) and "incorrect," then compares the average judge score for each
-            group. A good judge should score correct answers meaningfully higher.
-            <br><br>
-            <strong>How to read it:</strong> A large gap between the two bars means the
-            judge distinguishes right from wrong. A small gap means it can't tell.
-            <br><br>
-            <strong>Key takeaway:</strong> 74% of answers were exact matches, so there
-            are only 13 "incorrect" examples &mdash; a small group. Still, most judges
-            do score correct answers higher, confirming they detect real quality differences.
-        """,
-        "Score Heatmap": """
-            <strong>What this shows:</strong> Every cell is one judge scoring one question.
-            Color intensity shows the quality score (darker = higher). Rows are questions,
-            columns are judges.
-            <br><br>
-            <strong>How to read it:</strong> Vertical stripes of similar color mean judges
-            agree. Scattered colors mean disagreement. Look for questions where judges
-            wildly disagree &mdash; those reveal what kinds of answers are hard to evaluate.
-            <br><br>
-            <strong>Key takeaway:</strong> Most rows are consistently dark (high scores),
-            reflecting that Qwen3 4B answered most questions well. The few light rows
-            (low scores) tend to be consistent across judges &mdash; genuinely bad answers.
-        """,
-        "Score Distributions": """
-            <strong>What this shows:</strong> Violin plots of each judge's score
-            distribution across all 50 questions. The shape shows where scores cluster.
-            <br><br>
-            <strong>How to read it:</strong> A judge that gives everything a 5 isn't
-            discriminating &mdash; it's rubber-stamping. A wide distribution using the
-            full 1&ndash;5 range means the judge is actually evaluating. The ideal scorer
-            uses the full range and concentrates mass where the true quality distribution is.
-            <br><br>
-            <strong>Key takeaway:</strong> Claude Opus has the narrowest range (3&ndash;5,
-            std&nbsp;=&nbsp;0.50) &mdash; it's the most lenient. Flash and Flash-Lite use
-            the full 1&ndash;5 range (std&nbsp;~0.85&ndash;0.95), making them better at
-            separating quality levels.
-        """,
-        "Metric Breakdown": """
-            <strong>What this shows:</strong> Each judge scores three sub-dimensions:
-            faithfulness (does the answer match the retrieved context?), relevance
-            (does it answer the question?), and conciseness (is it appropriately brief?).
-            This breaks down the overall quality score into those components.
-            <br><br>
-            <strong>How to read it:</strong> If a judge rates everything high on
-            faithfulness but low on conciseness, that tells you about its evaluation
-            biases, not necessarily about the answers.
-            <br><br>
-            <strong>Key takeaway:</strong> All judges tend to rate faithfulness and
-            relevance higher than conciseness, suggesting the model gives correct but
-            somewhat verbose answers.
-        """,
-        "Score vs Answer Length": """
-            <strong>What this shows:</strong> Whether longer RAG answers systematically
-            receive higher or lower scores.
-            <br><br>
-            <strong>How to read it:</strong> A strong correlation here is a red flag &mdash;
-            it could mean the judge rewards verbosity rather than quality. Ideally, length
-            and score should be weakly related.
-            <br><br>
-            <strong>Key takeaway:</strong> All judges penalize longer answers
-            (r&nbsp;=&nbsp;&minus;0.39 to &minus;0.73). This is actually appropriate here
-            &mdash; the gold answers average 16 characters, so verbose RAG answers
-            (mean 189 chars) are genuinely lower quality, not just wordier.
-        """,
-        "Score vs Question Length": """
-            <strong>What this shows:</strong> Whether longer (typically harder) questions
-            tend to receive lower scores.
-            <br><br>
-            <strong>How to read it:</strong> A downward trend is expected &mdash; harder
-            questions are harder to answer well. But a very steep drop might mean the
-            model struggles disproportionately with complex queries.
-            <br><br>
-            <strong>Key takeaway:</strong> Question length has almost no effect on scores
-            (r&nbsp;&lt;&nbsp;0.15 for all judges). The model handles long and short
-            questions roughly equally well.
-        """,
-        "Inter-Judge Correlation": """
-            <strong>What this shows:</strong> Pearson correlation between every pair of
-            judges. Values near 1.0 mean two judges rank answers the same way; near 0
-            means they're unrelated.
-            <br><br>
-            <strong>How to read it:</strong> High inter-judge agreement (r &gt; 0.6)
-            suggests the judges are measuring something real, not random noise. If two
-            judges from different providers agree, that's especially meaningful.
-            <br><br>
-            <strong>Key takeaway:</strong> Flash and Gemini 3.1 Pro are nearly identical
-            (r&nbsp;=&nbsp;0.96) &mdash; essentially the same scorer. Cross-provider
-            agreement is moderate: Flash vs Sonnet (r&nbsp;=&nbsp;0.63), Flash vs Opus
-            (r&nbsp;=&nbsp;0.67). Flash-Lite is the outlier, agreeing weakly with everyone.
-        """,
-        "BERTScore Distribution": """
-            <strong>What this shows:</strong> The distribution of BERTScore F1 across
-            all 50 RAG answers. BERTScore (0&ndash;1) uses neural embeddings to measure
-            semantic similarity between the RAG answer and the known-correct answer.
-            Values above 0.85 indicate strong semantic match.
-            <br><br>
-            <strong>Why the range looks narrow:</strong> BERTScore naturally clusters
-            high (0.8&ndash;1.0) because even mediocre answers share some meaning with
-            the gold answer. The differences in this range are still meaningful &mdash;
-            0.85 vs 0.95 is a real quality gap.
-            <br><br>
-            <strong>Key takeaway:</strong> Median BERTScore is 0.986 and mean is 0.931,
-            confirming that Qwen3 4B + NaiveRAG produces semantically strong answers on
-            HotpotQA. The low outliers (below 0.85) are where the model genuinely
-            struggled.
-        """,
-        "F1 Distribution": """
-            <strong>What this shows:</strong> Distribution of word-overlap F1 scores.
-            F1 (0&ndash;1) counts shared words between the RAG answer and the gold
-            answer, penalizing both missing words and extra words.
-            <br><br>
-            <strong>How to read it:</strong> F1 is strict &mdash; a perfect paraphrase
-            ("Steve McQueen" vs 'Terence Steven "Steve" McQueen') gets a low F1 despite
-            being correct. That's why we use BERTScore as the primary gold metric.
-            <br><br>
-            <strong>Key takeaway:</strong> Mean F1 is 0.611 &mdash; much lower than the
-            BERTScore mean of 0.931. This gap confirms the model paraphrases frequently
-            rather than echoing gold wording, which is why BERTScore is the better
-            quality signal.
-        """,
-        "BERTScore vs F1": """
-            <strong>What this shows:</strong> The relationship between the two gold metrics
-            themselves. Points in the upper-right are answers that are both literally and
-            semantically correct. Points in the upper-left are correct paraphrases (high
-            BERTScore, low F1).
-            <br><br>
-            <strong>How to read it:</strong> Divergence between the two metrics reveals
-            how much paraphrasing the model does. A tight diagonal means it echoes the gold
-            wording; spread means it paraphrases freely.
-            <br><br>
-            <strong>Key takeaway:</strong> The cluster in the upper-left (high BERTScore,
-            variable F1) shows the model frequently gives correct answers in different words
-            than the gold standard. This validates using BERTScore over F1 as the primary
-            measure.
-        """,
-        "Question Length Distribution": """
-            <strong>What this shows:</strong> How long the 50 test questions are.
-            <br><br>
-            <strong>Why it matters:</strong> Question length correlates with complexity.
-            If the sample is skewed toward short, easy questions, the results may not
-            generalize to harder queries.
-            <br><br>
-            <strong>Key takeaway:</strong> Questions range from 48 to 254 characters
-            (median 94), giving a reasonable spread of complexity. The sample isn't
-            dominated by trivially short or unusually long questions.
-        """,
-        "Answer Length Comparison": """
-            <strong>What this shows:</strong> Side-by-side comparison of RAG answer length
-            vs gold answer length.
-            <br><br>
-            <strong>How to read it:</strong> If RAG answers are consistently much longer
-            than gold answers, the model is being verbose. If shorter, it may be
-            truncating or losing information.
-            <br><br>
-            <strong>Key takeaway:</strong> Gold answers are terse (median 14 chars &mdash;
-            typically a name or short phrase). RAG answers average 189 chars but have a
-            median of only 19, meaning most answers are concise but a few are very verbose.
-            Those verbose outliers are what drive the strong length-vs-score penalty
-            seen earlier.
-        """,
-    }
+    # Load answers for the row examiner (doc_text lives here)
+    answers_csv = csv_path.parent / "raw_answers.csv"
+    answers_df = pd.read_csv(answers_csv) if answers_csv.exists() else None
 
-    parts = []
-
-    # --- Intro: what this experiment is and why it matters ---
-    parts.append("""
-    <div class="card">
-        <h2>What This Experiment Tests</h2>
-        <p>
-            Before running thousands of RAG configurations in Experiments 1 and 2,
-            we need to know: <strong>can an LLM reliably judge the quality of a RAG
-            answer?</strong> If the scorer is unreliable, all downstream results are noise.
-        </p>
-        <p>
-            We took 50 questions from HotpotQA (a dataset where the correct answers are
-            known), generated RAG answers using NaiveRAG + Qwen3 4B, then asked 6 different
-            LLM judges to score each answer. By comparing the judges' scores against the
-            known-correct answers, we can measure which judges actually detect quality and
-            which ones are just rubber-stamping everything as "good."
-        </p>
-    </div>
-    """)
-
-    # --- Key concepts: explain the scales ---
-    parts.append("""
-    <div class="card">
-        <h2>Understanding the Metrics</h2>
-        <p>The charts below use three types of scores on different scales:</p>
-        <table class="data-table" style="max-width: 700px;">
-            <tr>
-                <th>Metric</th><th>Scale</th><th>What It Measures</th>
-            </tr>
-            <tr>
-                <td><strong>Judge Quality Score</strong></td>
-                <td>1&ndash;5</td>
-                <td>An LLM judge reads the question, retrieved context, and RAG answer,
-                    then rates quality on three dimensions (faithfulness, relevance,
-                    conciseness). The average of these three is the quality score.
-                    The judge does <em>not</em> see the correct answer.</td>
-            </tr>
-            <tr>
-                <td><strong>BERTScore</strong></td>
-                <td>0&ndash;1</td>
-                <td>Semantic similarity between the RAG answer and the <em>known-correct</em>
-                    ("gold") answer, computed by a neural language model. Values above 0.85
-                    indicate strong match. This is the primary objective metric.</td>
-            </tr>
-            <tr>
-                <td><strong>F1 (word overlap)</strong></td>
-                <td>0&ndash;1</td>
-                <td>How many words the RAG answer shares with the gold answer. Strict and
-                    literal &mdash; penalizes correct paraphrases. Used as a secondary check.</td>
-            </tr>
-        </table>
-        <p>
-            <strong>What "gold" means:</strong> HotpotQA provides human-verified correct
-            answers for every question. These are the "gold standard" &mdash; ground truth
-            we can compare against. The whole point of this experiment is to test whether
-            LLM judges agree with this ground truth.
-        </p>
-    </div>
-    """)
-
-    # --- Charts with per-chart explanations ---
+    # Build a dict for random access by chart title
+    figures_by_title: dict[str, str] = {}
     for title, fig in figures:
-        chart_html = _fig_to_html(fig)
-        explanation = chart_explanations.get(title, "")
-        explanation_html = ""
-        if explanation:
-            explanation_html = f"""
-            <p class="chart-explanation" style="color: #555; font-size: 0.92em;
-               line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
-                {explanation}
-            </p>"""
-        parts.append(f"""
-        <div class="chart-container">
-            <h3>{title}</h3>{explanation_html}
-            {chart_html}
-        </div>""")
+        figures_by_title[title] = _fig_to_html(fig)
 
-    # --- Conclusions ---
+    def _chart_block(title: str, explanation: str = "") -> str:
+        """Render a chart container with optional explanation prose."""
+        chart_html = figures_by_title.get(title)
+        if chart_html is None:
+            return ""
+        expl_html = ""
+        if explanation:
+            expl_html = (
+                '<p class="chart-explanation" style="color: #555; font-size: 0.92em;'
+                ' line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">'
+                f'{explanation}</p>'
+            )
+        return f"""
+        <div class="chart-container">
+            <h3>{title}</h3>{expl_html}
+            {chart_html}
+        </div>"""
+
+    parts: list[str] = []
+
+    # ------------------------------------------------------------------
+    # Section 1: How This Experiment Works (workflow diagram)
+    # ------------------------------------------------------------------
+    workflow_fig = _create_workflow_diagram()
+    workflow_html = _fig_to_html(workflow_fig)
+
+    parts.append(f"""
+    <div class="card">
+        <h2>How This Experiment Works</h2>
+        <p>
+            We start with <strong><a href="https://hotpotqa.github.io/" target="_blank"
+            style="color: #648FFF;">HotpotQA</a></strong>, a dataset of real questions where the
+            correct answers are already known. Each question comes with source documents
+            and a verified "gold" answer. We feed the question and documents into a
+            <strong>RAG pipeline</strong> (NaiveRAG + Qwen3 4B) to generate an answer,
+            then measure that answer two ways:
+        </p>
+        <ol style="margin: 12px 0 12px 24px; line-height: 1.8;">
+            <li><strong>Automated metrics</strong> compare the RAG answer to the gold answer
+                using BERTScore (semantic similarity) and F1 (word overlap) &mdash; these are
+                objective, but can't capture everything.</li>
+            <li><strong>LLM judges</strong> (6 different cloud models) read the question,
+                context, and RAG answer, then rate quality on faithfulness, relevance, and
+                conciseness &mdash; without ever seeing the gold answer.</li>
+        </ol>
+        <p>
+            The question this experiment answers: <strong>which judges' ratings actually
+            track the objective metrics?</strong> If a judge says an answer is good, is it
+            really good?
+        </p>
+        {workflow_html}
+        <p style="margin-top: 16px; font-size: 0.9em;">
+            <a href="raw_scores.csv" style="color: #648FFF;">Download the raw data (CSV)</a>
+            to explore the full dataset yourself.
+        </p>
+    </div>
+    """)
+
+    # ------------------------------------------------------------------
+    # Section 1b: Row Examiner — see the pipeline in action
+    # ------------------------------------------------------------------
+    if answers_df is not None:
+        row_examiner_html = _build_row_examiner(df, answers_df)
+        parts.append(f"""
+    <div class="card">
+        <h2>See It in Action</h2>
+        <p>
+            Pick any of the 50 questions below to walk through the full pipeline: the
+            source document (with the gold answer highlighted if it appears), the question,
+            what the RAG system answered, what the correct answer is, and how each judge
+            scored it. Sort by score to find the best and worst examples.
+        </p>
+        {row_examiner_html}
+    </div>
+        """)
+
+    # ------------------------------------------------------------------
+    # Section 2: Why This Matters
+    # ------------------------------------------------------------------
     parts.append("""
     <div class="card">
+        <h2>Why This Matters</h2>
+        <p>
+            Experiments 1 and 2 will test 30+ RAG configurations with 200 questions each
+            &mdash; thousands of answers that need scoring. We can't check them all by hand.
+            We need an automated judge we can trust. If the scorer is unreliable,
+            <strong>every downstream result is noise</strong>.
+        </p>
+        <p>
+            This experiment validates the scorer <em>before</em> we rely on it.
+            It's the foundation the rest of the project stands on.
+        </p>
+    </div>
+    """)
+
+    # ------------------------------------------------------------------
+    # Section 3: The Bottom Line (headline result + correlation chart)
+    # ------------------------------------------------------------------
+    parts.append("""
+    <div class="card">
+        <h2>The Bottom Line</h2>
+        <p>
+            <strong>Claude Sonnet is the most accurate scorer.</strong> It tracks
+            objective correctness better than any other judge we tested. At ~$0.005
+            per call, scoring all of Experiments 1 and 2 (~9,200 answers) costs roughly
+            $46 &mdash; a modest investment for the best available accuracy.
+        </p>
+        <p>
+            For larger-scale experiments where cost matters more, <strong>Gemini 2.5
+            Flash</strong> is an excellent budget alternative at $0.0001 per call (50&times;
+            cheaper). It's not far behind Sonnet in accuracy and would cost under $1 for
+            the same workload.
+        </p>
+        <p>
+            The chart below shows <strong>Pearson correlation (r)</strong> between each
+            judge's scores and two objective metrics. Pearson r measures how closely two
+            sets of numbers move together: r&nbsp;=&nbsp;1.0 means perfect agreement,
+            r&nbsp;=&nbsp;0 means no relationship. Higher bars mean the judge better
+            tracks real answer quality.
+        </p>
+    </div>
+    """)
+    parts.append(_chart_block("Judge-Gold Correlation", """
+        <strong>Key takeaway:</strong> Sonnet leads on both metrics
+        (r&nbsp;=&nbsp;0.68 BERTScore, r&nbsp;=&nbsp;0.60 F1). Gemini 3.1 Pro is
+        close (r&nbsp;=&nbsp;0.63, 0.52) but costs 2&times; more than Sonnet per call.
+        Flash is slightly behind (r&nbsp;=&nbsp;0.60, 0.49) at 1/50th the cost.
+        Flash-Lite and Haiku fall well short.
+        <strong>Sonnet will be used for Experiments 1 &amp; 2.</strong>
+    """))
+
+    # ------------------------------------------------------------------
+    # Section 4: Judge Comparison (the interesting charts, moved up)
+    # ------------------------------------------------------------------
+    parts.append("""
+    <div class="card" style="margin-top: 40px;">
+        <h2>How the Judges Compare</h2>
+        <p>
+            The correlation chart above summarizes each judge in a single number. The
+            charts below show the raw data behind those numbers &mdash; how each judge
+            scores individual answers compared to objective truth.
+        </p>
+    </div>
+    """)
+    parts.append(_chart_block("Judge Quality vs BERTScore", """
+        Each dot is one question. X-axis: how semantically similar the RAG answer is to the
+        gold answer (BERTScore, 0&ndash;1). Y-axis: the judge's quality rating (1&ndash;5).
+        A good judge's dots should trend upward &mdash; higher scores for better answers.
+        Use the dropdown to compare specific judges.
+        <br><br>
+        <strong>Key takeaway:</strong> Claude Sonnet (r&nbsp;=&nbsp;0.68) and Gemini
+        3.1 Pro (r&nbsp;=&nbsp;0.63) track BERTScore most closely. Flash-Lite's dots
+        are scattered randomly (r&nbsp;=&nbsp;0.07) &mdash; it can't tell good answers
+        from bad.
+    """))
+    parts.append(_chart_block("Judge Quality vs Gold F1", """
+        Same idea, but using word-overlap F1 instead of BERTScore. F1 is stricter &mdash;
+        correct paraphrases score low because the words don't match literally. Judges that
+        correlate with <em>both</em> metrics are tracking real quality, not just surface
+        similarity.
+        <br><br>
+        <strong>Key takeaway:</strong> Same pattern &mdash; Sonnet (r&nbsp;=&nbsp;0.60)
+        and Flash (r&nbsp;=&nbsp;0.49) track F1 well. Flash-Lite shows near-zero
+        correlation (r&nbsp;=&nbsp;0.02).
+    """))
+    parts.append(_chart_block("Correct vs Incorrect Scores", """
+        Answers split into "correct" (exact match with gold) and "incorrect." A good judge
+        should score correct answers meaningfully higher.
+        <br><br>
+        <strong>Key takeaway:</strong> 74% of answers were exact matches, so there are
+        only 13 "incorrect" examples. Still, most judges do score correct answers higher,
+        confirming they detect real quality differences.
+    """))
+
+    # ------------------------------------------------------------------
+    # Section 5: How We Measured — BERTScore and F1 explained in context
+    # ------------------------------------------------------------------
+    parts.append("""
+    <div class="card" style="margin-top: 40px;">
+        <h2>How We Measured "Correctness"</h2>
+        <p>
+            The charts above keep referring to "BERTScore" and "F1" &mdash; these are the
+            two automated metrics we use to measure how close a RAG answer is to the
+            known-correct gold answer. They measure different things:
+        </p>
+        <ul style="margin: 12px 0 12px 24px; line-height: 1.8;">
+            <li><strong>BERTScore (0&ndash;1):</strong> Uses a neural language model to
+                measure <em>semantic</em> similarity. "Steve McQueen" and 'Terence Steven
+                "Steve" McQueen' score high because they mean the same thing. This is our
+                <strong>primary metric</strong>.</li>
+            <li><strong>F1 (0&ndash;1):</strong> Counts shared <em>words</em> between the
+                RAG answer and the gold answer. Strict and literal &mdash; penalizes correct
+                paraphrases. Used as a <strong>secondary check</strong> to confirm BERTScore
+                isn't being fooled.</li>
+        </ul>
+        <p>
+            <strong>Why two metrics?</strong> If both agree, we're confident. If they
+            diverge, the model is paraphrasing (high BERTScore, low F1) &mdash; which is
+            fine, but worth knowing.
+        </p>
+    </div>
+    """)
+    parts.append(_chart_block("BERTScore vs F1", """
+        Each dot is one RAG answer. Upper-right: both literally and semantically correct.
+        Upper-left: correct paraphrase (high BERTScore, low F1). The cluster in the
+        upper-left shows the model frequently gives correct answers in different words.
+        <strong>This validates using BERTScore over F1 as the primary measure.</strong>
+    """))
+    parts.append(_chart_block("BERTScore Distribution", """
+        Distribution of BERTScores across all 50 answers. Values cluster high
+        (0.8&ndash;1.0) because even mediocre answers share some meaning with the gold
+        answer, but the differences in this range are still meaningful. Median: 0.986,
+        mean: 0.931 &mdash; Qwen3 4B + NaiveRAG produces semantically strong answers.
+    """))
+    parts.append(_chart_block("F1 Distribution", """
+        Distribution of word-overlap F1. Mean F1 is 0.611 &mdash; much lower than the
+        BERTScore mean of 0.931. This gap confirms the model paraphrases frequently,
+        which is why BERTScore is the better quality signal.
+    """))
+
+    # ------------------------------------------------------------------
+    # Section 6: Deep Dive (detailed charts for those who want more)
+    # ------------------------------------------------------------------
+    parts.append("""
+    <div class="card" style="margin-top: 40px;">
+        <h2>Deep Dive: Judge Behavior</h2>
+        <p>
+            The sections above cover the key results. Below is a deeper look at how each
+            judge behaves &mdash; scoring patterns, biases, agreement between judges, and
+            effects of answer/question length.
+        </p>
+    </div>
+    """)
+    parts.append(_chart_block("Score Distributions", """
+        Violin plots of each judge's score distribution. A judge that gives everything
+        a 5 isn't discriminating &mdash; it's rubber-stamping. The ideal scorer uses
+        the full 1&ndash;5 range.
+        <br><br>
+        <strong>Key takeaway:</strong> Claude Opus has the narrowest range (3&ndash;5,
+        std&nbsp;=&nbsp;0.50) &mdash; the most lenient. Flash and Flash-Lite use the
+        full 1&ndash;5 range, making them better at separating quality levels.
+    """))
+    parts.append(_chart_block("Score Heatmap", """
+        Every cell is one judge scoring one question. Vertical stripes of similar color
+        mean judges agree; scattered colors mean disagreement.
+        <br><br>
+        <strong>Key takeaway:</strong> Most rows are consistently dark (high scores),
+        reflecting that Qwen3 4B answered most questions well. The few light rows are
+        consistent across judges &mdash; genuinely bad answers.
+    """))
+    parts.append(_chart_block("Metric Breakdown", """
+        Quality decomposed into faithfulness, relevance, and conciseness for each judge.
+        <br><br>
+        <strong>Key takeaway:</strong> All judges rate faithfulness and relevance higher
+        than conciseness, suggesting the model gives correct but somewhat verbose answers.
+    """))
+    parts.append(_chart_block("Inter-Judge Correlation", """
+        Pearson correlation between every pair of judges. High agreement (r &gt; 0.6)
+        suggests they're measuring something real, not random noise.
+        <br><br>
+        <strong>Key takeaway:</strong> Flash and Gemini 3.1 Pro are nearly identical
+        (r&nbsp;=&nbsp;0.96). Cross-provider agreement is moderate: Flash vs Sonnet
+        (r&nbsp;=&nbsp;0.63). Flash-Lite is the outlier, agreeing weakly with everyone.
+    """))
+    parts.append(_chart_block("Score vs Answer Length", """
+        Whether longer answers systematically receive higher or lower scores. A strong
+        correlation could mean the judge rewards verbosity rather than quality.
+        <br><br>
+        <strong>Key takeaway:</strong> All judges penalize longer answers
+        (r&nbsp;=&nbsp;&minus;0.39 to &minus;0.73). This is appropriate &mdash; gold
+        answers average 16 characters, so verbose RAG answers are genuinely lower quality.
+    """))
+    parts.append(_chart_block("Score vs Question Length", """
+        Whether harder (longer) questions tend to receive lower scores.
+        <br><br>
+        <strong>Key takeaway:</strong> Almost no effect (r&nbsp;&lt;&nbsp;0.15 for all
+        judges). The model handles long and short questions roughly equally well.
+    """))
+    parts.append(_chart_block("Question Length Distribution", """
+        Questions range from 48 to 254 characters (median 94) &mdash; a reasonable spread
+        of complexity. The sample isn't skewed toward trivially short or unusually long
+        questions.
+    """))
+    parts.append(_chart_block("Answer Length Comparison", """
+        Gold answers are terse (median 14 chars). RAG answers average 189 chars but have
+        a median of only 19 &mdash; most are concise but a few verbose outliers drive the
+        length-vs-score penalty seen above.
+    """))
+
+    # ------------------------------------------------------------------
+    # Section 7: Conclusions
+    # ------------------------------------------------------------------
+    parts.append("""
+    <div class="card" style="margin-top: 40px;">
         <h2>Conclusions</h2>
         <p>
-            <strong>Best cost/quality scorer: Gemini 2.5 Flash.</strong>
-            It showed strong correlation with both BERTScore (r&nbsp;=&nbsp;0.60) and
-            F1 (r&nbsp;=&nbsp;0.49), used the full 1&ndash;5 scoring range (good
-            discrimination), and costs ~$0.0001 per call &mdash; 23&times; cheaper than
-            Claude Sonnet.
+            <strong>Best scorer: Claude Sonnet.</strong>
+            Highest correlation with both BERTScore (r&nbsp;=&nbsp;0.68) and
+            F1 (r&nbsp;=&nbsp;0.60), good discrimination across the full scoring range.
+            At ~$0.005 per call, scoring Experiments 1 and 2 (~9,200 answers) will cost
+            roughly $46.
         </p>
         <p>
-            <strong>Claude Sonnet had the highest gold correlation</strong>
-            (BERTScore r&nbsp;=&nbsp;0.68, F1 r&nbsp;=&nbsp;0.60) but at 50&times;
-            the cost of Flash. For 2,000+ scoring calls in Experiments 1 and 2,
-            the cost difference matters.
+            <strong>Budget alternative: Gemini 2.5 Flash.</strong>
+            Nearly as accurate (BERTScore r&nbsp;=&nbsp;0.60, F1 r&nbsp;=&nbsp;0.49) at
+            $0.0001 per call &mdash; 50&times; cheaper. For larger experiments or
+            tighter budgets, Flash is an excellent choice that sacrifices little accuracy.
+        </p>
+        <p>
+            <strong>Gemini 3.1 Pro is not cost-effective</strong> &mdash; it scores
+            between Sonnet and Flash on accuracy but costs 2&times; more than Sonnet
+            per call ($0.01 vs $0.005).
         </p>
         <p>
             <strong>Flash-Lite is unreliable</strong> &mdash; near-zero correlation
@@ -667,8 +1003,12 @@ def _generate_experiment_0(csv_path: Path) -> str:
             highly without distinguishing quality.
         </p>
         <p>
-            <strong>Decision:</strong> Experiments 1 and 2 will use Gemini 2.5 Flash
-            as the primary scorer, with the option to spot-check a sample with Sonnet.
+            <strong>Decision:</strong> Experiments 1 and 2 will use Claude Sonnet
+            as the primary scorer for maximum accuracy.
+        </p>
+        <p style="margin-top: 16px; font-size: 0.9em;">
+            <a href="raw_scores.csv" style="color: #648FFF;">Download the raw data (CSV)</a>
+            &mdash; all 50 questions, 6 judges, and gold metrics in one file.
         </p>
     </div>
     """)
@@ -1102,6 +1442,9 @@ def main(
             logger.info("Generating Experiment 0 dashboard from %s", exp0_csv)
             exp0_html = _generate_experiment_0(exp0_csv)
             (output_dir / "experiment_0.html").write_text(exp0_html, encoding="utf-8")
+            # Copy raw CSV so the download link works
+            import shutil
+            shutil.copy2(exp0_csv, output_dir / "raw_scores.csv")
         else:
             print(f"WARNING: {exp0_csv} not found — generating placeholder for Experiment 0")
             experiments_info.append({
