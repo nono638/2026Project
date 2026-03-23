@@ -24,6 +24,9 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+from src.retriever import Retriever
+from src.diagnostics import detect_failure_stage, _gold_in_text
+
 logger = logging.getLogger(__name__)
 
 
@@ -193,18 +196,18 @@ def generate_answer(
     Returns:
         Dict with answer text, timing, gold metrics, and pipeline metadata.
     """
-    from src.retriever import Retriever
-
     try:
         chunks = chunker.chunk(doc.text)
         retriever = Retriever(chunks, embedder, mode=retrieval_mode)
 
-        # Retrieve for metadata capture
-        retrieved = retriever.retrieve(query.text)
+        # Diagnostics dict captures pipeline internals from inside the strategy
+        diagnostics: dict = {}
 
         # Time the strategy run
         start = time.perf_counter()
-        answer = strategy.run(query.text, retriever, model)
+        answer = strategy.run(
+            query.text, retriever, model, diagnostics=diagnostics,
+        )
         strategy_latency_ms = (time.perf_counter() - start) * 1000
     except Exception as exc:
         logger.error("Generation failed: %s", exc)
@@ -215,17 +218,60 @@ def generate_answer(
             "num_chunks_retrieved": 0,
             "context_char_length": 0,
             "error": str(exc),
+            "failure_stage": "unknown",
+            "failure_stage_confidence": "n/a",
+            "failure_stage_method": "substring",
+            "context_sent_to_llm": "",
+            "gold_in_chunks": False,
+            "gold_in_retrieved": False,
+            "gold_in_context": False,
         }
 
     gold_answer = query.reference_answer or ""
+
+    # Extract diagnostics data with safe defaults
+    context_sent = diagnostics.get("context_sent_to_llm", "")
+    retrieved_chunks = diagnostics.get("retrieved_chunks", [])
+    retrieved_texts = [r["text"] for r in retrieved_chunks] if retrieved_chunks else []
+    skipped = diagnostics.get("skipped_retrieval", False)
+
+    # Failure attribution — only meaningful when gold answer exists
+    stage, confidence = detect_failure_stage(
+        gold_answer=gold_answer or None,
+        rag_answer=answer,
+        all_chunks=chunks,
+        retrieved_chunk_texts=retrieved_texts,
+        context_sent_to_llm=context_sent,
+        skipped_retrieval=skipped,
+    )
+
+    # Gold presence booleans for analysis
+    gold_in_chunks = any(
+        _gold_in_text(gold_answer, c) for c in chunks
+    ) if gold_answer else False
+    gold_in_retrieved = any(
+        _gold_in_text(gold_answer, t) for t in retrieved_texts
+    ) if gold_answer else False
+    gold_in_context = (
+        _gold_in_text(gold_answer, context_sent) if gold_answer else False
+    )
+
     return {
         "answer": answer,
         "strategy_latency_ms": strategy_latency_ms,
         "num_chunks": len(chunks),
-        "num_chunks_retrieved": len(retrieved),
-        "context_char_length": sum(len(r.get("text", "")) for r in retrieved),
+        "num_chunks_retrieved": len(retrieved_chunks),
+        # Use actual context from diagnostics instead of pre-strategy estimate
+        "context_char_length": len(context_sent),
         "gold_f1": compute_f1(answer, gold_answer) if gold_answer else float("nan"),
         "gold_exact_match": exact_match(answer, gold_answer) if gold_answer else False,
+        "context_sent_to_llm": context_sent,
+        "failure_stage": stage,
+        "failure_stage_confidence": confidence,
+        "failure_stage_method": "substring",
+        "gold_in_chunks": gold_in_chunks,
+        "gold_in_retrieved": gold_in_retrieved,
+        "gold_in_context": gold_in_context,
     }
 
 

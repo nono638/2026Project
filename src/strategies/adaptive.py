@@ -69,33 +69,57 @@ class AdaptiveRAG:
                 return level
         return "moderate"  # Safe middle ground if classification fails
 
-    def _simple_path(self, query: str, model: str) -> str:
+    def _simple_path(
+        self, query: str, model: str, diagnostics: dict | None = None,
+    ) -> str:
         """Generate answer directly without retrieval.
 
         Args:
             query: The user's question.
             model: Model name for generation.
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's generated answer.
         """
+        if diagnostics is not None:
+            diagnostics["retrieved_chunks"] = []
+            diagnostics["filtered_chunks"] = []
+            diagnostics["context_sent_to_llm"] = ""
+            diagnostics["retrieval_queries"] = [query]
+            diagnostics["skipped_retrieval"] = True
+
         return self._llm.generate(
             model, f"Answer this question:\n{query}\n\nAnswer:"
         )
 
-    def _moderate_path(self, query: str, retriever: Retriever, model: str) -> str:
+    def _moderate_path(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Standard retrieve + generate (same as NaiveRAG).
 
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
             model: Model name for generation.
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's generated answer.
         """
         retrieved = retriever.retrieve(query)
         context = "\n\n".join(r["text"] for r in retrieved)
+
+        if diagnostics is not None:
+            diagnostics["retrieved_chunks"] = retrieved
+            diagnostics["filtered_chunks"] = [r["text"] for r in retrieved]
+            diagnostics["context_sent_to_llm"] = context
+            diagnostics["retrieval_queries"] = [query]
+            diagnostics["skipped_retrieval"] = False
 
         prompt = (
             f"Answer the following question using only the provided context.\n\n"
@@ -106,16 +130,23 @@ class AdaptiveRAG:
 
         return self._llm.generate(model, prompt)
 
-    def _complex_path(self, query: str, retriever: Retriever, model: str) -> str:
+    def _complex_path(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Two-pass retrieval with iterative refinement.
 
-        First retrieval → intermediate answer → follow-up query →
-        second retrieval → final answer combining both contexts.
+        First retrieval -> intermediate answer -> follow-up query ->
+        second retrieval -> final answer combining both contexts.
 
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
             model: Model name for generation.
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's generated answer.
@@ -148,6 +179,17 @@ class AdaptiveRAG:
 
         # Final answer combining both contexts
         combined_context = f"{context1}\n\n---\n\n{context2}"
+
+        if diagnostics is not None:
+            # Union of both retrieval rounds
+            diagnostics["retrieved_chunks"] = list(retrieved1) + list(retrieved2)
+            diagnostics["filtered_chunks"] = (
+                [r["text"] for r in retrieved1] + [r["text"] for r in retrieved2]
+            )
+            diagnostics["context_sent_to_llm"] = combined_context
+            diagnostics["retrieval_queries"] = [query, followup]
+            diagnostics["skipped_retrieval"] = False
+
         return self._llm.generate(
             model,
             f"Answer the following question using only the provided context.\n\n"
@@ -156,13 +198,20 @@ class AdaptiveRAG:
             f"Answer:",
         )
 
-    def run(self, query: str, retriever: Retriever, model: str) -> str:
+    def run(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Run Adaptive RAG: classify complexity, then route accordingly.
 
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
             model: Model name for generation.
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's generated answer.
@@ -170,8 +219,8 @@ class AdaptiveRAG:
         complexity = self._classify(query, model)
 
         if complexity == "simple":
-            return self._simple_path(query, model)
+            return self._simple_path(query, model, diagnostics=diagnostics)
         elif complexity == "complex":
-            return self._complex_path(query, retriever, model)
+            return self._complex_path(query, retriever, model, diagnostics=diagnostics)
         else:
-            return self._moderate_path(query, retriever, model)
+            return self._moderate_path(query, retriever, model, diagnostics=diagnostics)

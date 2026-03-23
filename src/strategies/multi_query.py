@@ -45,13 +45,20 @@ class MultiQueryRAG:
         """Return strategy identifier."""
         return "multi_query"
 
-    def run(self, query: str, retriever: Retriever, model: str) -> str:
+    def run(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Run Multi-Query RAG: rephrase, multi-retrieve, merge, generate.
 
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
             model: Model name for generation.
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's generated answer.
@@ -81,7 +88,17 @@ class MultiQueryRAG:
 
         # Step 3: Re-rank by score (descending)
         ranked = sorted(merged.values(), key=lambda x: x["score"], reverse=True)
-        context = "\n\n".join(r["text"] for r in ranked[:5])
+        top_ranked = ranked[:5]
+        context = "\n\n".join(r["text"] for r in top_ranked)
+
+        if diagnostics is not None:
+            # All merged results from all queries (before top-5 filtering)
+            diagnostics["retrieved_chunks"] = list(merged.values())
+            # Top-5 ranked texts that made it into the context
+            diagnostics["filtered_chunks"] = [r["text"] for r in top_ranked]
+            diagnostics["context_sent_to_llm"] = context
+            diagnostics["retrieval_queries"] = all_queries
+            diagnostics["skipped_retrieval"] = False
 
         # Step 4: Generate answer
         prompt = (

@@ -74,13 +74,20 @@ class SelfRAG:
         """Return strategy identifier."""
         return "self_rag"
 
-    def run(self, query: str, retriever: Retriever, model: str) -> str:
+    def run(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Run Self-RAG: decide, retrieve, evaluate, generate, critique.
 
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
             model: Model name for generation.
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's final answer after self-critique.
@@ -91,7 +98,14 @@ class SelfRAG:
         ).strip().lower()
 
         if "no" in decision:
-            # Generate without retrieval
+            # No retrieval path
+            if diagnostics is not None:
+                diagnostics["retrieved_chunks"] = []
+                diagnostics["filtered_chunks"] = []
+                diagnostics["context_sent_to_llm"] = ""
+                diagnostics["retrieval_queries"] = [query]
+                diagnostics["skipped_retrieval"] = True
+
             return self._llm.generate(
                 model, f"Answer this question:\n{query}\n\nAnswer:"
             )
@@ -114,6 +128,13 @@ class SelfRAG:
             relevant_chunks = [r["text"] for r in retrieved[:2]]
 
         context = "\n\n".join(relevant_chunks)
+
+        if diagnostics is not None:
+            diagnostics["retrieved_chunks"] = retrieved
+            diagnostics["filtered_chunks"] = relevant_chunks
+            diagnostics["context_sent_to_llm"] = context
+            diagnostics["retrieval_queries"] = [query]
+            diagnostics["skipped_retrieval"] = False
 
         # Step 4: Generate
         answer = self._llm.generate(

@@ -36,19 +36,34 @@ class NaiveRAG:
         """Return strategy identifier."""
         return "naive"
 
-    def run(self, query: str, retriever: Retriever, model: str) -> str:
+    def run(
+        self,
+        query: str,
+        retriever: Retriever,
+        model: str,
+        diagnostics: dict | None = None,
+    ) -> str:
         """Run naive RAG: retrieve chunks, generate answer.
 
         Args:
             query: The user's question.
             retriever: A Retriever instance for chunk retrieval.
             model: Model name (e.g., 'qwen3:0.6b').
+            diagnostics: Optional dict populated with pipeline internals.
 
         Returns:
             The model's generated answer string.
         """
         retrieved = retriever.retrieve(query)
         context = "\n\n".join(r["text"] for r in retrieved)
+
+        if diagnostics is not None:
+            diagnostics["retrieved_chunks"] = retrieved
+            # NaiveRAG doesn't filter — filtered texts == retrieved texts
+            diagnostics["filtered_chunks"] = [r["text"] for r in retrieved]
+            diagnostics["context_sent_to_llm"] = context
+            diagnostics["retrieval_queries"] = [query]
+            diagnostics["skipped_retrieval"] = False
 
         prompt = (
             f"Answer the following question using only the provided context.\n\n"
