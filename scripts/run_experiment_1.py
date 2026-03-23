@@ -152,6 +152,8 @@ def parse_args() -> argparse.Namespace:
                         help="Re-score existing answers without re-generating")
     parser.add_argument("--scorer", type=str, default="google:gemini-2.5-flash",
                         help="Scorer as provider:model (default: google:gemini-2.5-flash)")
+    parser.add_argument("--no-gallery", action="store_true",
+                        help="Skip automatic gallery regeneration after experiment completes")
     return parser.parse_args()
 
 
@@ -597,6 +599,18 @@ def main() -> None:
     if cost_limit_hit:
         print("  WARNING: Cost limit was reached — results are partial.")
     print("=" * 60)
+
+    # Auto-regenerate gallery unless --no-gallery is set
+    if not args.no_gallery:
+        try:
+            # Lazy import to avoid breaking experiment if gallery deps are missing
+            from scripts.generate_gallery import main as generate_gallery
+            print("\nRegenerating gallery...")
+            generate_gallery(experiments=[1])
+            print("Gallery updated in site/")
+        except Exception as exc:
+            print(f"Gallery regeneration failed: {exc}")
+            logger.warning("Gallery regeneration failed: %s", exc)
 
 
 if __name__ == "__main__":

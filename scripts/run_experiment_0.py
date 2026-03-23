@@ -194,6 +194,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--judges", type=str, nargs="+", default=None,
                         help="Run only these judges (substring match on model name). "
                              "E.g. --judges pro flash-lite   or   --judges gemini-2.5-pro")
+    parser.add_argument("--no-gallery", action="store_true",
+                        help="Skip automatic gallery regeneration after experiment completes")
     return parser.parse_args()
 
 
@@ -660,6 +662,18 @@ def main() -> None:
     print(f"  Raw scores: {raw_scores_path}")
     print(f"  Report:     {report_path}")
     print("=" * 60)
+
+    # Auto-regenerate gallery unless --no-gallery is set
+    if not args.no_gallery:
+        try:
+            # Lazy import to avoid breaking experiment if gallery deps are missing
+            from scripts.generate_gallery import main as generate_gallery
+            print("\nRegenerating gallery...")
+            generate_gallery(experiments=[0])
+            print("Gallery updated in site/")
+        except Exception as exc:
+            print(f"Gallery regeneration failed: {exc}")
+            logger.warning("Gallery regeneration failed: %s", exc)
 
 
 if __name__ == "__main__":
