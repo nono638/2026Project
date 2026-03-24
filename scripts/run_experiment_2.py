@@ -387,10 +387,12 @@ def main() -> None:
         print(f"  Ollama host:      {args.ollama_host}")
     print()
 
-    # Check for resume — checkpoint key is (chunker_name, model)
+    # Check for resume — checkpoint key is (chunker, model) not (strategy, model)
     completed_configs = set()
     if args.resume:
-        completed_configs = load_checkpoint(raw_scores_path)
+        completed_configs = load_checkpoint(
+            raw_scores_path, key_cols=("chunker", "model"),
+        )
         if completed_configs:
             logger.info("Resuming — %d configs already completed: %s",
                         len(completed_configs),
@@ -408,10 +410,13 @@ def main() -> None:
         logger.info("Loading existing answers for re-scoring...")
         existing_df = pd.read_csv(raw_scores_path)
 
+        # Re-score each row using context_sent_to_llm (what the model saw)
         logger.info("Re-scoring %d answers...", len(existing_df))
         for idx, row in existing_df.iterrows():
             scores = score_answer(
-                scorer, row["question"], row.get("doc_text", ""), row["rag_answer"]
+                scorer, row["question"],
+                row.get("context_sent_to_llm", ""),
+                row["rag_answer"],
             )
             for k, v in scores.items():
                 existing_df.at[idx, k] = v
@@ -510,10 +515,12 @@ def main() -> None:
                     ollama_host=args.ollama_host,
                 )
 
-                # Score answer
+                # Score answer — use context_sent_to_llm so faithfulness is
+                # judged against what the model actually saw (Exp 0 v2 fix)
+                scorer_context = result.get("context_sent_to_llm", "")
                 try:
                     scores = score_answer(
-                        scorer, query.text, doc.text, result["answer"]
+                        scorer, query.text, scorer_context, result["answer"]
                     )
                 except CostLimitExceeded as exc:
                     logger.error("\nCOST LIMIT REACHED: %s", exc)
@@ -552,6 +559,14 @@ def main() -> None:
                         result.get("strategy_latency_ms", 0) +
                         scores.get("scorer_latency_ms", 0)
                     ),
+                    # Diagnostics
+                    "context_sent_to_llm": result.get("context_sent_to_llm", ""),
+                    "failure_stage": result.get("failure_stage"),
+                    "failure_stage_confidence": result.get("failure_stage_confidence"),
+                    "failure_stage_method": result.get("failure_stage_method"),
+                    "gold_in_chunks": result.get("gold_in_chunks"),
+                    "gold_in_retrieved": result.get("gold_in_retrieved"),
+                    "gold_in_context": result.get("gold_in_context"),
                     # Pipeline metadata
                     **chunk_meta,
                     "num_chunks": result.get("num_chunks", 0),
