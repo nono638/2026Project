@@ -800,7 +800,17 @@
     "daytime_created": "2026-03-23T15:20:30",
     "daytime_comments": "Fixes 5 oversights from Exp 0 v1: no pipeline observability, scorer saw full doc instead of retrieved chunks, no reranker, ceiling effect from easy questions, no composite answer quality metric. Results go to results/experiment_0_v2/. v1 data untouched.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-24T00:06:09"
+    "status": "done",
+    "nighttime_started": "2026-03-24T00:06:09",
+    "nighttime_completed": "2026-03-24T00:18:45",
+    "nighttime_comments": "Added _RerankedRetriever, refactored run_experiment_0.py with diagnostics/reranker/difficulty/answer_quality, updated gallery for v1/v2. 18 task + 576 project tests pass.",
+    "branch": "night/task-043-exp0-v2",
+    "commit_sha": "1b43147f1774dce2d7a91533294d5258c600e995",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": [
+      "Gallery v2 page adds '0v2' entry to experiments_info — index page may need tweaking if it expects integer experiment numbers",
+      "build_experiment0_figures() may fail on v2 data if column names differ — v2-specific charts will still render"
+    ]
   }
 ]
