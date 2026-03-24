@@ -31,6 +31,52 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
+# Reranked retriever wrapper
+# ---------------------------------------------------------------------------
+
+class _RerankedRetriever:
+    """Wraps a Retriever and a reranker to chain retrieval then reranking.
+
+    Strategies call .retrieve() as normal and get reranked results. This avoids
+    modifying the Retriever class itself, preventing double-reranking conflicts
+    with the Experiment class which does its own reranking.
+
+    Args:
+        retriever: The underlying Retriever instance.
+        reranker: A reranker with .rerank(query, chunks, top_k) method.
+        top_k: Number of results to keep after reranking.
+    """
+
+    def __init__(self, retriever: object, reranker: object, top_k: int) -> None:
+        self._retriever = retriever
+        self._reranker = reranker
+        self._top_k = top_k
+
+    @property
+    def chunks(self) -> list:
+        """Proxy .chunks from the underlying retriever."""
+        return self._retriever.chunks
+
+    def retrieve(self, query: str, top_k: int | None = None) -> list[dict]:
+        """Retrieve then rerank.
+
+        Calls the underlying retriever with top_k=None (retrieve all it would
+        normally return), then applies the reranker to select the best top_k.
+
+        Args:
+            query: The search query.
+            top_k: Ignored — reranker_top_k from __init__ is used instead.
+
+        Returns:
+            Reranked list of chunk dicts.
+        """
+        # Retrieve full candidate set from underlying retriever
+        candidates = self._retriever.retrieve(query, top_k=None)
+        # Rerank down to top_k
+        return self._reranker.rerank(query, candidates, self._top_k)
+
+
+# ---------------------------------------------------------------------------
 # Gold metrics — pure functions, no side effects
 # ---------------------------------------------------------------------------
 
@@ -177,11 +223,15 @@ def generate_answer(
     doc: object,
     model: str,
     ollama_host: str | None = None,
+    reranker: object | None = None,
+    reranker_top_k: int | None = None,
 ) -> dict:
     """Generate a single RAG answer with timing and metadata.
 
     Builds a Retriever per document, runs the strategy, and captures
-    latency and pipeline metadata.
+    latency and pipeline metadata. When a reranker is provided, wraps the
+    Retriever in _RerankedRetriever so strategies get reranked results
+    transparently.
 
     Args:
         strategy: A Strategy instance (e.g., NaiveRAG).
@@ -192,6 +242,8 @@ def generate_answer(
         doc: A Document object with .text attribute.
         model: Ollama model name for generation.
         ollama_host: Ollama server URL, or None for localhost.
+        reranker: Optional reranker with .rerank(query, chunks, top_k) method.
+        reranker_top_k: Number of chunks to keep after reranking.
 
     Returns:
         Dict with answer text, timing, gold metrics, and pipeline metadata.
@@ -199,6 +251,12 @@ def generate_answer(
     try:
         chunks = chunker.chunk(doc.text)
         retriever = Retriever(chunks, embedder, mode=retrieval_mode)
+
+        # Wrap retriever with reranker if provided
+        if reranker is not None:
+            retriever = _RerankedRetriever(
+                retriever, reranker, top_k=reranker_top_k or 3,
+            )
 
         # Diagnostics dict captures pipeline internals from inside the strategy
         diagnostics: dict = {}
