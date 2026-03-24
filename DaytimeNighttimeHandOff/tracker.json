@@ -811,6 +811,7 @@
     "flags": [
       "Gallery v2 page adds '0v2' entry to experiments_info — index page may need tweaking if it expects integer experiment numbers",
       "build_experiment0_figures() may fail on v2 data if column names differ — v2-specific charts will still render"
-    ]
+    ],
+    "daytime_reviewed": "2026-03-24T14:33:09"
   }
 ]
