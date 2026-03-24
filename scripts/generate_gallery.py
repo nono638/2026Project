@@ -654,6 +654,138 @@ def _build_row_examiner(scores_df: pd.DataFrame, answers_df: pd.DataFrame) -> st
     """
 
 
+def _generate_experiment_0_v2(csv_path: Path) -> str:
+    """Build the Experiment 0 v2 dashboard page with v2-specific charts.
+
+    v2 adds answer_quality distribution, failure_stage breakdown, and
+    reuses the standard Experiment 0 charts (correlation, distributions, etc.)
+    from the v2 data.
+
+    Args:
+        csv_path: Path to ``results/experiment_0_v2/raw_scores.csv``.
+
+    Returns:
+        Full HTML page string.
+    """
+    import plotly.graph_objects as go
+
+    df = pd.read_csv(csv_path)
+
+    # Try to reuse the standard Exp 0 chart builder for scorer charts
+    try:
+        from scripts.generate_experiment0_dashboard import (
+            build_experiment0_figures,
+            _fig_to_html,
+        )
+        figures = build_experiment0_figures(df)
+    except Exception:
+        figures = []
+
+        def _fig_to_html(fig: Any) -> str:
+            """Convert a Plotly figure to inline HTML."""
+            return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+
+    # Build v2-specific charts
+    v2_charts: list[str] = []
+
+    # Chart 1: answer_quality distribution
+    if "answer_quality" in df.columns:
+        counts = df["answer_quality"].value_counts()
+        labels = ["good", "questionable", "poor"]
+        values = [counts.get(l, 0) for l in labels]
+        colors = ["#22A884", "#FFB000", "#DC267F"]  # teal, gold, magenta
+
+        fig_aq = go.Figure(data=[
+            go.Bar(x=labels, y=values, marker_color=colors, text=values, textposition="auto")
+        ])
+        fig_aq.update_layout(
+            title="Answer Quality Distribution",
+            xaxis_title="Quality Label",
+            yaxis_title="Count",
+            template="plotly_white",
+            height=400,
+        )
+        v2_charts.append(f"""
+        <div class="chart-container">
+            <h3>Answer Quality Distribution</h3>
+            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
+                Triangulates BERTScore (semantic), F1 (lexical), and Sonnet (LLM judgment) to classify
+                each answer. All three must agree for "good"; any single metric below threshold flags "poor".
+            </p>
+            {_fig_to_html(fig_aq)}
+        </div>""")
+
+    # Chart 2: failure_stage breakdown
+    if "failure_stage" in df.columns:
+        stage_counts = df["failure_stage"].value_counts()
+        stage_labels = stage_counts.index.tolist()
+        stage_values = stage_counts.values.tolist()
+
+        fig_fs = go.Figure(data=[
+            go.Bar(
+                x=stage_labels, y=stage_values,
+                marker_color=_COLORS[:len(stage_labels)],
+                text=stage_values, textposition="auto",
+            )
+        ])
+        fig_fs.update_layout(
+            title="Failure Stage Breakdown",
+            xaxis_title="Pipeline Stage",
+            yaxis_title="Count",
+            template="plotly_white",
+            height=400,
+        )
+        v2_charts.append(f"""
+        <div class="chart-container">
+            <h3>Failure Stage Breakdown</h3>
+            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
+                Where in the pipeline did wrong answers go wrong? "correct" means the answer matched
+                the gold standard. Other stages show where information was lost.
+            </p>
+            {_fig_to_html(fig_fs)}
+        </div>""")
+
+    # Standard scorer charts from build_experiment0_figures
+    scorer_charts: list[str] = []
+    for title, fig in figures:
+        scorer_charts.append(f"""
+        <div class="chart-container">
+            <h3>{title}</h3>
+            {_fig_to_html(fig)}
+        </div>""")
+
+    # Assemble page
+    content = f"""
+    <div class="card">
+        <h2>Experiment 0 v2: Scorer Validation (Revised)</h2>
+        <p>
+            Version 2 fixes five oversights from v1: (1) captures what the LLM actually saw
+            (context_sent_to_llm), (2) scorer judges against retrieved chunks not the full document,
+            (3) adds BGE reranker (retrieve 10, keep 3), (4) filters to medium+hard questions only
+            (150 total) to avoid ceiling effects, (5) adds composite answer_quality column.
+        </p>
+        <p style="margin-top: 8px; font-size: 0.9em;">
+            <a href="raw_scores_v2.csv" style="color: #648FFF;">Download the v2 raw data (CSV)</a>
+        </p>
+    </div>
+
+    {"".join(v2_charts)}
+
+    <div class="card">
+        <h2>Scorer Comparison Charts</h2>
+        <p>Same scorer analysis as v1, but on the v2 dataset (harder questions, better context).</p>
+    </div>
+
+    {"".join(scorer_charts)}
+    """
+
+    return _build_page_template(
+        "Experiment 0 v2 — Scorer Validation (Revised)",
+        nav_active="exp0",
+        content_html=content,
+    )
+
+
 def _generate_experiment_0(csv_path: Path) -> str:
     """Build the Experiment 0 dashboard page content with Plotly charts.
 
@@ -1533,24 +1665,73 @@ def main(
     # Discover available experiment data
     experiments_info: list[dict[str, Any]] = []
 
-    # Experiment 0
+    # Experiment 0 — supports both v1 and v2 results
     if 0 in experiments:
-        exp0_csv = results_dir / "experiment_0" / "raw_scores.csv"
-        if exp0_csv.exists() and exp0_csv.stat().st_size > 0:
+        import shutil
+
+        exp0_v1_csv = results_dir / "experiment_0" / "raw_scores.csv"
+        exp0_v2_csv = results_dir / "experiment_0_v2" / "raw_scores.csv"
+        has_v1 = exp0_v1_csv.exists() and exp0_v1_csv.stat().st_size > 0
+        has_v2 = exp0_v2_csv.exists() and exp0_v2_csv.stat().st_size > 0
+
+        if has_v1 or has_v2:
+            desc_parts = []
+            if has_v1:
+                desc_parts.append("v1: 50 HotpotQA × NaiveRAG × Qwen3 4B")
+            if has_v2:
+                desc_parts.append("v2: 150 medium+hard × BGE reranker × diagnostics")
             experiments_info.append({
                 "num": 0,
                 "title": "Scorer Validation",
                 "status": "ready",
-                "description": "50 HotpotQA × NaiveRAG × Qwen3 4B, scored by 6 LLM judges.",
+                "description": "; ".join(desc_parts),
             })
-            logger.info("Generating Experiment 0 dashboard from %s", exp0_csv)
-            exp0_html = _generate_experiment_0(exp0_csv)
-            (output_dir / "experiment_0.html").write_text(exp0_html, encoding="utf-8")
-            # Copy raw CSV so the download link works
-            import shutil
-            shutil.copy2(exp0_csv, output_dir / "raw_scores.csv")
+
+            # Build the page content — v1 first, then v2 below
+            page_parts = []
+
+            if has_v1:
+                logger.info("Generating Experiment 0 v1 dashboard from %s", exp0_v1_csv)
+                exp0_v1_html = _generate_experiment_0(exp0_v1_csv)
+                # Copy raw CSV for download link
+                shutil.copy2(exp0_v1_csv, output_dir / "raw_scores.csv")
+
+                if has_v2:
+                    # Both versions: wrap v1 content and add v2 below
+                    (output_dir / "experiment_0.html").write_text(
+                        exp0_v1_html, encoding="utf-8",
+                    )
+                else:
+                    (output_dir / "experiment_0.html").write_text(
+                        exp0_v1_html, encoding="utf-8",
+                    )
+
+            if has_v2:
+                logger.info("Generating Experiment 0 v2 dashboard from %s", exp0_v2_csv)
+                try:
+                    exp0_v2_html = _generate_experiment_0_v2(exp0_v2_csv)
+                    (output_dir / "experiment_0_v2.html").write_text(
+                        exp0_v2_html, encoding="utf-8",
+                    )
+                    shutil.copy2(exp0_v2_csv, output_dir / "raw_scores_v2.csv")
+                    # Update experiments_info for navigation
+                    experiments_info.append({
+                        "num": "0v2",
+                        "title": "Scorer Validation v2",
+                        "status": "ready",
+                        "description": "150 medium+hard HotpotQA × NaiveRAG + BGE reranker × diagnostics + answer quality.",
+                    })
+                except Exception as exc:
+                    logger.warning("Experiment 0 v2 dashboard generation failed: %s", exc)
+
+            if not has_v1:
+                # Only v2 exists — make it the main page
+                shutil.copy2(
+                    output_dir / "experiment_0_v2.html",
+                    output_dir / "experiment_0.html",
+                )
         else:
-            print(f"WARNING: {exp0_csv} not found — generating placeholder for Experiment 0")
+            print(f"WARNING: No Experiment 0 data found — generating placeholder")
             experiments_info.append({
                 "num": 0,
                 "title": "Scorer Validation",

@@ -1,36 +1,35 @@
-"""Experiment 0: Scorer Validation — compare up to 6 LLM judges (4 Gemini + 2 Claude).
+"""Experiment 0: Scorer Validation — compare up to 7 LLM judges (4 Gemini + 3 Claude).
 
-Generates 50 RAG answers using NaiveRAG + Qwen3 4B on HotpotQA, then scores
-each answer with up to 6 LLM judges. Gemini judges run via free Google AI Studio;
-Anthropic judges are optional and skipped if ANTHROPIC_API_KEY is not set.
+v2 improvements over v1:
+- Uses experiment_utils.generate_answer() for diagnostics, failure attribution, timing
+- BGE reranker (retrieve 10, keep 3) for better context quality
+- Scorer receives context_sent_to_llm (not full doc_text) — faithfulness is judged
+  against what the LLM actually saw
+- Medium+hard questions only (150 default) to avoid ceiling effect from easy questions
+- answer_quality column: triangulates BERTScore + F1 + Sonnet agreement
 
 Judges (in order):
   - gemini-2.5-flash-lite  (cheapest baseline)
   - gemini-2.5-flash
   - gemini-2.5-pro
+  - gemini-3.1-pro-preview
   - claude-haiku-4-5        (optional)
   - claude-sonnet-4         (optional)
+  - claude-opus-4           (optional)
 
-Produces a comparison report showing:
-- Per-judge mean scores
-- Inter-scorer correlation matrix (Pearson on quality)
-- Each judge's correlation with gold F1
-- Cost breakdown
-
-This is the methodological safety net — it tells us whether cheap scorers
-(Gemini Flash-Lite, Flash) give meaningfully different results than expensive
-ones (Gemini Pro, Claude).
+Results go to results/experiment_0_v2/ by default. v1 data in results/experiment_0/
+is untouched.
 
 Usage:
-    python scripts/run_experiment_0.py                          # full run
+    python scripts/run_experiment_0.py                          # full v2 run
     python scripts/run_experiment_0.py --n 10 --model qwen3:0.6b  # quick test
     python scripts/run_experiment_0.py --skip-generation        # re-score only
+    python scripts/run_experiment_0.py --output-dir results/experiment_0  # v1 compat
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import logging
 import math
 import os
@@ -56,9 +55,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Import shared gold metrics from experiment_utils to avoid duplication
+from scripts.experiment_utils import compute_f1, exact_match
+
 
 # ---------------------------------------------------------------------------
-# Scorer configurations — 5 LLM judges
+# Scorer configurations — 7 LLM judges (4 Gemini + 3 Claude)
 # ---------------------------------------------------------------------------
 JUDGE_CONFIGS = [
     # Gemini judges (free via Google AI Studio)
@@ -74,59 +76,14 @@ JUDGE_CONFIGS = [
 
 
 # ---------------------------------------------------------------------------
-# Utility functions — pure, no side effects
+# Utility functions
 # ---------------------------------------------------------------------------
-
-def compute_f1(prediction: str, gold: str) -> float:
-    """Word-level F1 between prediction and gold answer.
-
-    Uses set-based token overlap — simple but effective for short answers.
-
-    Args:
-        prediction: The RAG-generated answer.
-        gold: The gold reference answer.
-
-    Returns:
-        F1 score between 0.0 and 1.0.
-    """
-    pred_tokens = set(prediction.lower().split())
-    gold_tokens = set(gold.lower().split())
-    if not pred_tokens or not gold_tokens:
-        return 0.0
-    common = pred_tokens & gold_tokens
-    precision = len(common) / len(pred_tokens)
-    recall = len(common) / len(gold_tokens)
-    if precision + recall == 0:
-        return 0.0
-    return 2 * precision * recall / (precision + recall)
-
-
-def exact_match(prediction: str, gold: str) -> bool:
-    """Case-insensitive check: does prediction contain the gold answer?
-
-    Uses string containment (not equality) because RAG answers are usually
-    longer than the gold answer. "The capital is Paris" should match gold
-    "Paris". Strict equality would penalize verbose-but-correct answers.
-
-    Args:
-        prediction: The RAG-generated answer.
-        gold: The gold reference answer.
-
-    Returns:
-        True if gold appears in prediction (case-insensitive).
-    """
-    return gold.lower() in prediction.lower()
-
 
 def compute_bertscores(predictions: list[str], golds: list[str]) -> list[float]:
     """Compute BERTScore F1 between each prediction-gold pair.
 
     Uses RoBERTa-large, the standard BERTScore model for English. Runs
     locally — no API calls. The model (~1.4GB) downloads on first run.
-
-    Token-level semantic matching is more appropriate than word-overlap F1
-    for evaluating generated text against short gold answers, because it
-    captures meaning rather than exact word choice.
 
     Reference: Zhang et al., "BERTScore: Evaluating Text Generation with
     BERT", ICLR 2020. https://arxiv.org/abs/1904.09675
@@ -163,6 +120,57 @@ def _safe_scorer_name(name: str) -> str:
     return name.replace(":", "_").replace("-", "_").replace(".", "_")
 
 
+def _build_reranker(name: str) -> object | None:
+    """Build a reranker by name.
+
+    Args:
+        name: Reranker name ("bge", "minilm", or "none").
+
+    Returns:
+        A reranker instance, or None if name is "none".
+    """
+    if name == "none":
+        return None
+    elif name == "bge":
+        from src.rerankers.bge import BGEReranker
+        return BGEReranker()
+    elif name == "minilm":
+        from src.rerankers.minilm import MiniLMReranker
+        return MiniLMReranker()
+    else:
+        raise ValueError(f"Unknown reranker: {name}. Choose from: bge, minilm, none")
+
+
+def compute_answer_quality(
+    bertscore: float, f1: float, sonnet_quality: float
+) -> str:
+    """Compute answer quality label from three metrics.
+
+    Triangulates BERTScore (semantic), F1 (lexical), and Sonnet (LLM judgment)
+    to classify answer quality. All three must agree for "good"; any single
+    metric can flag "poor". Everything else is "questionable" (metrics disagree).
+
+    Args:
+        bertscore: BERTScore F1 (0.0 to 1.0).
+        f1: Word-overlap F1 (0.0 to 1.0).
+        sonnet_quality: Sonnet judge's quality score (1.0 to 5.0).
+
+    Returns:
+        "good", "poor", or "questionable".
+    """
+    # Poor thresholds — any single metric below these flags the answer
+    is_poor = bertscore < 0.85 or f1 < 0.30 or sonnet_quality < 3.0
+    # Good thresholds — all metrics must be above these
+    is_good = bertscore >= 0.90 and f1 >= 0.50 and sonnet_quality >= 4.0
+
+    if is_poor:
+        return "poor"
+    elif is_good:
+        return "good"
+    else:
+        return "questionable"
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -174,16 +182,16 @@ def parse_args() -> argparse.Namespace:
         Parsed argument namespace.
     """
     parser = argparse.ArgumentParser(
-        description="Experiment 0: Scorer Validation — compare up to 6 LLM judges on HotpotQA.",
+        description="Experiment 0: Scorer Validation — compare up to 7 LLM judges on HotpotQA.",
     )
-    parser.add_argument("--n", type=int, default=50,
-                        help="Number of HotpotQA examples (default: 50)")
+    parser.add_argument("--n", type=int, default=150,
+                        help="Number of HotpotQA examples (default: 150)")
     parser.add_argument("--seed", type=int, default=42,
                         help="Random seed for sampling (default: 42)")
     parser.add_argument("--model", type=str, default="qwen3:4b",
                         help="Ollama model for answer generation (default: qwen3:4b)")
-    parser.add_argument("--output-dir", type=str, default="results/experiment_0",
-                        help="Output directory (default: results/experiment_0)")
+    parser.add_argument("--output-dir", type=str, default="results/experiment_0_v2",
+                        help="Output directory (default: results/experiment_0_v2)")
     parser.add_argument("--skip-generation", action="store_true",
                         help="Load previously generated answers instead of re-running NaiveRAG")
     parser.add_argument("--ollama-host", type=str, default=None,
@@ -196,77 +204,17 @@ def parse_args() -> argparse.Namespace:
                              "E.g. --judges pro flash-lite   or   --judges gemini-2.5-pro")
     parser.add_argument("--no-gallery", action="store_true",
                         help="Skip automatic gallery regeneration after experiment completes")
+    # v2 flags
+    parser.add_argument("--reranker", type=str, default="bge",
+                        choices=["bge", "minilm", "none"],
+                        help="Reranker to use (default: bge). 'none' disables reranking.")
+    parser.add_argument("--reranker-top-k", type=int, default=3,
+                        help="Number of chunks to keep after reranking (default: 3)")
+    parser.add_argument("--retrieval-top-k", type=int, default=10,
+                        help="Number of chunks to retrieve before reranking (default: 10)")
+    parser.add_argument("--difficulty", type=str, default="medium,hard",
+                        help="Comma-separated HotpotQA difficulties to include (default: medium,hard)")
     return parser.parse_args()
-
-
-# ---------------------------------------------------------------------------
-# Answer generation
-# ---------------------------------------------------------------------------
-
-def generate_answers(
-    documents: list,
-    queries: list,
-    model: str,
-    ollama_host: str | None = None,
-) -> list[dict]:
-    """Generate RAG answers for each (document, query) pair using NaiveRAG.
-
-    Args:
-        documents: List of Document objects from HotpotQA.
-        queries: List of Query objects (parallel to documents).
-        model: Ollama model name for generation.
-        ollama_host: Ollama server URL, or None for localhost.
-
-    Returns:
-        List of dicts with example_id, question, gold_answer, rag_answer, doc_text.
-    """
-    from src.strategies.naive import NaiveRAG
-    from src.llms import OllamaLLM
-    from src.chunkers.recursive import RecursiveChunker
-    from src.embedders import OllamaEmbedder
-    from src.retriever import Retriever
-
-    # Set up pipeline components — held constant across all examples
-    # Pass host to both LLM and embedder for remote Ollama support
-    llm = OllamaLLM(host=ollama_host)
-    strategy = NaiveRAG(llm=llm)
-    chunker = RecursiveChunker(500, 100)
-    embedder = OllamaEmbedder(host=ollama_host)
-
-    results = []
-    total = len(documents)
-
-    for i, (doc, query) in enumerate(zip(documents, queries)):
-        logger.info("[%d/%d] Generating answer for: %s", i + 1, total, query.text[:60])
-
-        try:
-            # Build retriever for this document
-            chunks = chunker.chunk(doc.text)
-            retriever = Retriever(chunks, embedder)
-
-            # Retrieve once for metadata
-            retrieved = retriever.retrieve(query.text)
-
-            # Generate answer
-            answer = strategy.run(query.text, retriever, model)
-        except Exception as exc:
-            logger.error("Generation failed for example %d: %s", i, exc)
-            answer = ""
-            chunks = []
-            retrieved = []
-
-        results.append({
-            "example_id": i,
-            "question": query.text,
-            "gold_answer": query.reference_answer or "",
-            "rag_answer": answer,
-            "doc_text": doc.text,
-            "num_chunks": len(chunks),
-            "num_chunks_retrieved": len(retrieved),
-            "context_char_length": sum(len(r.get("text", "")) for r in retrieved),
-        })
-
-    return results
 
 
 # ---------------------------------------------------------------------------
@@ -281,8 +229,12 @@ def score_all_answers(
 ) -> pd.DataFrame:
     """Score each answer with all available LLM judges.
 
+    v2 change: scorer receives context_sent_to_llm (from diagnostics) instead
+    of the full doc_text. This means faithfulness is evaluated against what the
+    LLM actually saw during generation, not information it never received.
+
     Args:
-        answers: List of dicts from generate_answers().
+        answers: List of dicts from generate_answer() pipeline.
         output_dir: Directory for output files.
         cost_guard: Optional CostGuard instance for tracking API spend.
         judge_filters: If provided, only run judges whose model name contains
@@ -346,7 +298,7 @@ def score_all_answers(
             "rag_answer": ans["rag_answer"],
             "gold_exact_match": exact_match(ans["rag_answer"], ans["gold_answer"]),
             "gold_f1": compute_f1(ans["rag_answer"], ans["gold_answer"]),
-            # Pipeline metadata (constant for Exp 0)
+            # Pipeline metadata
             "chunk_type": "recursive",
             "chunk_size": 500,
             "chunk_overlap": 100,
@@ -355,24 +307,37 @@ def score_all_answers(
             "embed_model": "mxbai-embed-large",
             "embed_dimension": 1024,
             "retrieval_mode": "hybrid",
-            "retrieval_top_k": 5,
+            "retrieval_top_k": ans.get("retrieval_top_k", 10),
             "num_chunks_retrieved": ans.get("num_chunks_retrieved"),
             "context_char_length": ans.get("context_char_length"),
-            "reranker_model": None,
-            "reranker_top_k": None,
+            "reranker_model": ans.get("reranker_model"),
+            "reranker_top_k": ans.get("reranker_top_k"),
             "llm_provider": "ollama",
             "llm_host": "local",
             "dataset_name": "hotpotqa",
             "dataset_sample_seed": 42,
+            # v2 metadata columns
+            "difficulty": ans.get("difficulty"),
+            "question_type": ans.get("question_type"),
+            # v2 diagnostics columns
+            "strategy_latency_ms": ans.get("strategy_latency_ms"),
+            "failure_stage": ans.get("failure_stage"),
+            "failure_stage_confidence": ans.get("failure_stage_confidence"),
+            "failure_stage_method": ans.get("failure_stage_method"),
+            "context_sent_to_llm": ans.get("context_sent_to_llm", ""),
+            "gold_in_chunks": ans.get("gold_in_chunks"),
+            "gold_in_retrieved": ans.get("gold_in_retrieved"),
+            "gold_in_context": ans.get("gold_in_context"),
         }
 
-        # Score with each judge
+        # Score with each judge — v2 fix: use context_sent_to_llm, not doc_text
+        scorer_context = ans.get("context_sent_to_llm", ans.get("doc_text", ""))
         for scorer in scorers:
             safe_name = _safe_scorer_name(scorer.name)
             try:
                 scores = scorer.score(
                     query=ans["question"],
-                    context=ans["doc_text"],
+                    context=scorer_context,
                     answer=ans["rag_answer"],
                 )
                 for metric, value in scores.items():
@@ -401,6 +366,43 @@ def score_all_answers(
         logger.error("BERTScore computation failed: %s", exc)
 
     return result_df
+
+
+def add_answer_quality(df: pd.DataFrame) -> pd.DataFrame:
+    """Add answer_quality column to results DataFrame.
+
+    Requires gold_bertscore, gold_f1, and Sonnet quality columns. If Sonnet
+    column is missing, logs a warning and returns df unchanged.
+
+    Args:
+        df: Results DataFrame with scorer columns.
+
+    Returns:
+        DataFrame with answer_quality column added (or unchanged if Sonnet missing).
+    """
+    sonnet_col = "anthropic_claude_sonnet_4_20250514_quality"
+    if sonnet_col not in df.columns:
+        logger.warning(
+            "answer_quality requires Sonnet scores — column omitted. "
+            "Missing column: %s", sonnet_col
+        )
+        return df
+
+    if "gold_bertscore" not in df.columns or "gold_f1" not in df.columns:
+        logger.warning(
+            "answer_quality requires gold_bertscore and gold_f1 — column omitted."
+        )
+        return df
+
+    df["answer_quality"] = df.apply(
+        lambda r: compute_answer_quality(
+            r["gold_bertscore"], r["gold_f1"], r[sonnet_col]
+        ),
+        axis=1,
+    )
+    quality_counts = df["answer_quality"].value_counts().to_dict()
+    logger.info("answer_quality distribution: %s", quality_counts)
+    return df
 
 
 # ---------------------------------------------------------------------------
@@ -488,7 +490,6 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
     lines.append("| Judge | Calls | Est. Cost/Call | Est. Total |")
     lines.append("|-------|-------|----------------|------------|")
 
-    # Rough per-call cost estimates (input + output for ~500 token prompt)
     cost_estimates = {
         "google:gemini-2.5-flash-lite": 0.00005,
         "google:gemini-2.5-flash": 0.0001,
@@ -514,6 +515,23 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
         bs_mean = df["gold_bertscore"].mean()
         lines.append(f"- Mean BERTScore F1: {bs_mean:.3f}")
 
+    # v2: answer_quality distribution
+    if "answer_quality" in df.columns:
+        lines.append("\n## Answer Quality Distribution\n")
+        counts = df["answer_quality"].value_counts()
+        for label in ["good", "questionable", "poor"]:
+            c = counts.get(label, 0)
+            pct = c / len(df) * 100
+            lines.append(f"- **{label}**: {c} ({pct:.1f}%)")
+
+    # v2: failure stage breakdown
+    if "failure_stage" in df.columns:
+        lines.append("\n## Failure Stage Breakdown\n")
+        stage_counts = df["failure_stage"].value_counts()
+        for stage, count in stage_counts.items():
+            pct = count / len(df) * 100
+            lines.append(f"- **{stage}**: {count} ({pct:.1f}%)")
+
     # Recommendation
     lines.append("\n## Recommendation\n")
     lines.append("*Review the correlation matrix and gold metric correlations above.*")
@@ -537,11 +555,20 @@ def main() -> None:
     raw_scores_path = output_dir / "raw_scores.csv"
     report_path = output_dir / "report.md"
 
+    # Parse difficulty filter
+    allowed_difficulties = set(d.strip() for d in args.difficulty.split(",") if d.strip())
+    if not allowed_difficulties:
+        print("ERROR: --difficulty must specify at least one difficulty level.")
+        sys.exit(1)
+
     print("=" * 60)
-    print("Experiment 0: Scorer Validation")
+    print("Experiment 0: Scorer Validation (v2)")
     print("=" * 60)
     print(f"  HotpotQA examples: {args.n}")
+    print(f"  Difficulty filter: {', '.join(sorted(allowed_difficulties))}")
     print(f"  Generation model:  {args.model}")
+    print(f"  Reranker:          {args.reranker} (top_k={args.reranker_top_k})")
+    print(f"  Retrieval top_k:   {args.retrieval_top_k}")
     print(f"  Seed:              {args.seed}")
     print(f"  Output:            {output_dir}")
     print(f"  Skip generation:   {args.skip_generation}")
@@ -550,16 +577,37 @@ def main() -> None:
         print(f"  Judge filter:      {', '.join(args.judges)}")
     print()
 
-    # Step 1: Load HotpotQA
+    # Step 1: Load and filter HotpotQA
     if not args.skip_generation:
-        logger.info("Loading HotpotQA (n=%d, seed=%d)...", args.n, args.seed)
+        logger.info("Loading HotpotQA (seed=%d)...", args.seed)
         from src.datasets.hotpotqa import load_hotpotqa, sample_hotpotqa
 
         docs, queries = load_hotpotqa(split="train")
-        docs, queries = sample_hotpotqa(docs, queries, n=args.n, seed=args.seed)
-        logger.info("Loaded %d examples.", len(docs))
 
-        # Step 2: Check Ollama is running (use remote host if specified)
+        # Filter by difficulty before sampling
+        filtered_docs, filtered_queries = [], []
+        for d, q in zip(docs, queries):
+            if q.metadata.get("difficulty") in allowed_difficulties:
+                filtered_docs.append(d)
+                filtered_queries.append(q)
+
+        if not filtered_docs:
+            print(f"ERROR: No questions match difficulty filter {allowed_difficulties}.")
+            print(f"Available difficulties: {set(q.metadata.get('difficulty') for q in queries)}")
+            sys.exit(1)
+
+        logger.info(
+            "Filtered to %d %s questions (from %d total).",
+            len(filtered_docs), "+".join(sorted(allowed_difficulties)), len(docs),
+        )
+
+        # Sample from filtered set
+        docs, queries = sample_hotpotqa(
+            filtered_docs, filtered_queries, n=args.n, seed=args.seed,
+        )
+        logger.info("Sampled %d examples.", len(docs))
+
+        # Step 2: Check Ollama is running
         try:
             from ollama import Client
             client = Client(host=args.ollama_host) if args.ollama_host else Client()
@@ -569,9 +617,69 @@ def main() -> None:
             print("Please start Ollama and try again.")
             sys.exit(1)
 
-        # Step 3: Generate answers
-        logger.info("Generating answers with NaiveRAG + %s...", args.model)
-        answers = generate_answers(docs, queries, args.model, ollama_host=args.ollama_host)
+        # Step 3: Set up pipeline components
+        from scripts.experiment_utils import generate_answer
+        from src.strategies.naive import NaiveRAG
+        from src.llms import OllamaLLM
+        from src.chunkers.recursive import RecursiveChunker
+        from src.embedders import OllamaEmbedder
+
+        llm = OllamaLLM(host=args.ollama_host)
+        strategy = NaiveRAG(llm=llm)
+        chunker = RecursiveChunker(500, 100)
+        embedder = OllamaEmbedder(host=args.ollama_host)
+        reranker = _build_reranker(args.reranker)
+
+        reranker_model_name = args.reranker if args.reranker != "none" else None
+
+        logger.info("Generating answers with NaiveRAG + %s (reranker=%s)...",
+                     args.model, args.reranker)
+
+        answers = []
+        total = len(docs)
+        for i, (doc, query) in enumerate(zip(docs, queries)):
+            logger.info("[%d/%d] Generating answer for: %s",
+                        i + 1, total, query.text[:60])
+
+            result = generate_answer(
+                strategy=strategy,
+                chunker=chunker,
+                embedder=embedder,
+                retrieval_mode="hybrid",
+                query=query,
+                doc=doc,
+                model=args.model,
+                ollama_host=args.ollama_host,
+                reranker=reranker,
+                reranker_top_k=args.reranker_top_k,
+            )
+
+            answers.append({
+                "example_id": i,
+                "question": query.text,
+                "gold_answer": query.reference_answer or "",
+                "rag_answer": result["answer"],
+                "doc_text": doc.text,
+                # v2 metadata
+                "difficulty": query.metadata.get("difficulty", ""),
+                "question_type": query.metadata.get("question_type", ""),
+                # v2 diagnostics
+                "strategy_latency_ms": result.get("strategy_latency_ms"),
+                "num_chunks": result.get("num_chunks"),
+                "num_chunks_retrieved": result.get("num_chunks_retrieved"),
+                "context_char_length": result.get("context_char_length"),
+                "context_sent_to_llm": result.get("context_sent_to_llm", ""),
+                "failure_stage": result.get("failure_stage"),
+                "failure_stage_confidence": result.get("failure_stage_confidence"),
+                "failure_stage_method": result.get("failure_stage_method"),
+                "gold_in_chunks": result.get("gold_in_chunks"),
+                "gold_in_retrieved": result.get("gold_in_retrieved"),
+                "gold_in_context": result.get("gold_in_context"),
+                # v2 reranker info
+                "reranker_model": reranker_model_name,
+                "reranker_top_k": args.reranker_top_k if reranker_model_name else None,
+                "retrieval_top_k": args.retrieval_top_k,
+            })
 
         # Save raw answers for --skip-generation reruns
         answers_df = pd.DataFrame(answers)
@@ -603,14 +711,11 @@ def main() -> None:
         logger.error("COST LIMIT REACHED: %s", exc)
         logger.error("Saving partial results...")
         cost_limit_hit = True
-        # Partial results — score_all_answers doesn't return on exception,
-        # so we build a minimal DataFrame from the raw answers
         results_df = pd.DataFrame(answers)
 
     # Merge new scores into existing CSV if it exists (preserves prior judge columns)
     if raw_scores_path.exists():
         existing_df = pd.read_csv(raw_scores_path)
-        # Find new scorer columns (not in existing)
         base_cols = {
             "example_id", "question", "gold_answer", "rag_answer",
             "gold_exact_match", "gold_f1", "gold_bertscore",
@@ -620,6 +725,12 @@ def main() -> None:
             "retrieval_mode", "retrieval_top_k", "num_chunks_retrieved",
             "context_char_length", "reranker_model", "reranker_top_k",
             "llm_provider", "llm_host", "dataset_name", "dataset_sample_seed",
+            # v2 columns
+            "difficulty", "question_type",
+            "strategy_latency_ms", "failure_stage", "failure_stage_confidence",
+            "failure_stage_method", "context_sent_to_llm",
+            "gold_in_chunks", "gold_in_retrieved", "gold_in_context",
+            "answer_quality",
         }
         new_scorer_cols = [c for c in results_df.columns
                           if c not in base_cols and c not in existing_df.columns]
@@ -632,12 +743,14 @@ def main() -> None:
             )
             results_df = existing_df
 
+    # Step 5: Add answer_quality column (requires Sonnet + gold metrics)
+    results_df = add_answer_quality(results_df)
+
     # Save raw scores (full or partial)
     results_df.to_csv(raw_scores_path, index=False)
     logger.info("Saved raw scores to %s", raw_scores_path)
 
-    # Step 5: Generate and save report
-    # Determine which scorers were actually used (have columns in the df)
+    # Step 6: Generate and save report
     scorers_used = []
     for config in JUDGE_CONFIGS:
         name = f"{config['provider']}:{config['model']}"
@@ -658,7 +771,7 @@ def main() -> None:
         print("WARNING: Cost limit was reached — results are partial.")
 
     print("\n" + "=" * 60)
-    print("Experiment 0 complete.")
+    print("Experiment 0 (v2) complete.")
     print(f"  Raw scores: {raw_scores_path}")
     print(f"  Report:     {report_path}")
     print("=" * 60)
@@ -666,7 +779,6 @@ def main() -> None:
     # Auto-regenerate gallery unless --no-gallery is set
     if not args.no_gallery:
         try:
-            # Lazy import to avoid breaking experiment if gallery deps are missing
             from scripts.generate_gallery import main as generate_gallery
             print("\nRegenerating gallery...")
             generate_gallery(experiments=[0])
