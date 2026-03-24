@@ -29,6 +29,34 @@ from src.diagnostics import detect_failure_stage, _gold_in_text
 
 logger = logging.getLogger(__name__)
 
+# Retry settings — applies to Ollama generation, API scoring, and model pulls
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 2.0  # seconds; doubles each retry (2s, 4s, 8s)
+
+
+def _is_transient(exc: Exception) -> bool:
+    """Check if an exception is likely transient and worth retrying.
+
+    Catches connection drops, timeouts, rate limits, and server errors
+    without importing every library's specific exception classes.
+
+    Args:
+        exc: The exception to check.
+
+    Returns:
+        True if the error looks transient.
+    """
+    if isinstance(exc, (ConnectionError, TimeoutError, OSError)):
+        return True
+    msg = str(exc).lower()
+    transient_patterns = [
+        "timeout", "timed out", "connection", "reset by peer",
+        "rate limit", "429", "500", "502", "503", "504",
+        "overloaded", "temporarily", "unavailable", "broken pipe",
+        "server error", "internal error", "resource exhausted",
+    ]
+    return any(p in msg for p in transient_patterns)
+
 
 # ---------------------------------------------------------------------------
 # Reranked retriever wrapper
@@ -156,30 +184,47 @@ def ensure_model(client: object, model_name: str) -> None:
     """Verify an Ollama model is available; pull it if not.
 
     Uses client.show() to check availability, then client.pull(stream=True)
-    to download if missing. Logs pull progress.
+    to download if missing. Retries on transient network failures.
 
     Args:
         client: An ollama.Client instance.
         model_name: The model tag (e.g., "qwen3:4b").
 
     Raises:
-        Exception: If the pull itself fails (network error, invalid model).
+        Exception: If the pull fails after all retries.
     """
     try:
         client.show(model_name)
         logger.info("Model %s already available.", model_name)
+        return
     except Exception:
-        logger.info("Pulling model %s...", model_name)
-        for progress in client.pull(model_name, stream=True):
-            status = progress.get("status", "")
-            if "pulling" in status or "downloading" in status:
-                total = progress.get("total", 0)
-                completed = progress.get("completed", 0)
-                if total > 0:
-                    pct = completed / total * 100
-                    logger.info("  %s: %.1f%%", model_name, pct)
-            elif status == "success":
-                logger.info("Model %s pulled successfully.", model_name)
+        pass  # model not present — pull it
+
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            logger.info("Pulling model %s (attempt %d/%d)...",
+                        model_name, attempt + 1, MAX_RETRIES + 1)
+            for progress in client.pull(model_name, stream=True):
+                status = progress.get("status", "")
+                if "pulling" in status or "downloading" in status:
+                    total = progress.get("total", 0)
+                    completed = progress.get("completed", 0)
+                    if total > 0:
+                        pct = completed / total * 100
+                        logger.info("  %s: %.1f%%", model_name, pct)
+                elif status == "success":
+                    logger.info("Model %s pulled successfully.", model_name)
+            return  # success
+        except Exception as exc:
+            if attempt < MAX_RETRIES and _is_transient(exc):
+                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(
+                    "Model pull retry %d/%d for %s: %s (waiting %.0fs)",
+                    attempt + 1, MAX_RETRIES, model_name, exc, delay,
+                )
+                time.sleep(delay)
+                continue
+            raise
 
 
 # ---------------------------------------------------------------------------
@@ -248,42 +293,55 @@ def generate_answer(
     Returns:
         Dict with answer text, timing, gold metrics, and pipeline metadata.
     """
-    try:
-        chunks = chunker.chunk(doc.text)
-        retriever = Retriever(chunks, embedder, mode=retrieval_mode)
+    last_exc = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            chunks = chunker.chunk(doc.text)
+            retriever = Retriever(chunks, embedder, mode=retrieval_mode)
 
-        # Wrap retriever with reranker if provided
-        if reranker is not None:
-            retriever = _RerankedRetriever(
-                retriever, reranker, top_k=reranker_top_k or 3,
+            # Wrap retriever with reranker if provided
+            if reranker is not None:
+                retriever = _RerankedRetriever(
+                    retriever, reranker, top_k=reranker_top_k or 3,
+                )
+
+            # Diagnostics dict captures pipeline internals from inside the strategy
+            diagnostics: dict = {}
+
+            # Time the strategy run
+            start = time.perf_counter()
+            answer = strategy.run(
+                query.text, retriever, model, diagnostics=diagnostics,
             )
-
-        # Diagnostics dict captures pipeline internals from inside the strategy
-        diagnostics: dict = {}
-
-        # Time the strategy run
-        start = time.perf_counter()
-        answer = strategy.run(
-            query.text, retriever, model, diagnostics=diagnostics,
-        )
-        strategy_latency_ms = (time.perf_counter() - start) * 1000
-    except Exception as exc:
-        logger.error("Generation failed: %s", exc)
-        return {
-            "answer": "",
-            "strategy_latency_ms": float("nan"),
-            "num_chunks": 0,
-            "num_chunks_retrieved": 0,
-            "context_char_length": 0,
-            "error": str(exc),
-            "failure_stage": "unknown",
-            "failure_stage_confidence": "n/a",
-            "failure_stage_method": "substring",
-            "context_sent_to_llm": "",
-            "gold_in_chunks": False,
-            "gold_in_retrieved": False,
-            "gold_in_context": False,
-        }
+            strategy_latency_ms = (time.perf_counter() - start) * 1000
+            break  # success
+        except Exception as exc:
+            last_exc = exc
+            if attempt < MAX_RETRIES and _is_transient(exc):
+                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(
+                    "Generation retry %d/%d: %s (waiting %.0fs)",
+                    attempt + 1, MAX_RETRIES, exc, delay,
+                )
+                time.sleep(delay)
+                continue
+            logger.error("Generation failed after %d attempt(s): %s",
+                         attempt + 1, exc)
+            return {
+                "answer": "",
+                "strategy_latency_ms": float("nan"),
+                "num_chunks": 0,
+                "num_chunks_retrieved": 0,
+                "context_char_length": 0,
+                "error": str(exc),
+                "failure_stage": "unknown",
+                "failure_stage_confidence": "n/a",
+                "failure_stage_method": "substring",
+                "context_sent_to_llm": "",
+                "gold_in_chunks": False,
+                "gold_in_retrieved": False,
+                "gold_in_context": False,
+            }
 
     gold_answer = query.reference_answer or ""
 
@@ -359,25 +417,35 @@ def score_answer(
         metrics are NaN.
     """
     start = time.perf_counter()
-    try:
-        scores = scorer.score(query=query, context=context, answer=answer)
-        scorer_latency_ms = (time.perf_counter() - start) * 1000
-        quality = sum(scores.values()) / len(scores)
-        return {
-            **scores,
-            "quality": quality,
-            "scorer_latency_ms": scorer_latency_ms,
-        }
-    except Exception as exc:
-        scorer_latency_ms = (time.perf_counter() - start) * 1000
-        logger.error("Scorer failed: %s", exc)
-        return {
-            "faithfulness": float("nan"),
-            "relevance": float("nan"),
-            "conciseness": float("nan"),
-            "quality": float("nan"),
-            "scorer_latency_ms": scorer_latency_ms,
-        }
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            scores = scorer.score(query=query, context=context, answer=answer)
+            scorer_latency_ms = (time.perf_counter() - start) * 1000
+            quality = sum(scores.values()) / len(scores)
+            return {
+                **scores,
+                "quality": quality,
+                "scorer_latency_ms": scorer_latency_ms,
+            }
+        except Exception as exc:
+            if attempt < MAX_RETRIES and _is_transient(exc):
+                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(
+                    "Scorer retry %d/%d: %s (waiting %.0fs)",
+                    attempt + 1, MAX_RETRIES, exc, delay,
+                )
+                time.sleep(delay)
+                continue
+            scorer_latency_ms = (time.perf_counter() - start) * 1000
+            logger.error("Scorer failed after %d attempt(s): %s",
+                         attempt + 1, exc)
+            return {
+                "faithfulness": float("nan"),
+                "relevance": float("nan"),
+                "conciseness": float("nan"),
+                "quality": float("nan"),
+                "scorer_latency_ms": scorer_latency_ms,
+            }
 
 
 # ---------------------------------------------------------------------------
