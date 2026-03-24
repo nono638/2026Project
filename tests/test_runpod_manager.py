@@ -88,6 +88,28 @@ class TestRunPodManager:
                     gpu_types=["GPU-A", "GPU-B"],
                 )
 
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_create_pod_skips_null_response(self, mock_sleep: MagicMock) -> None:
+        """GraphQL returning null pod falls through to next GPU."""
+        mgr = self._make_manager()
+        with patch.object(mgr, "_graphql_query", side_effect=[
+            {"podFindAndDeployOnDemand": None},
+            {
+                "podFindAndDeployOnDemand": {
+                    "id": "pod999",
+                    "desiredStatus": "RUNNING",
+                    "machine": {"gpuDisplayName": "GPU-B"},
+                },
+            },
+        ]) as mock_gql:
+            result = mgr.create_pod(
+                name="null-test", image_name="img",
+                gpu_types=["GPU-A", "GPU-B"],
+            )
+
+        assert result["id"] == "pod999"
+        assert mock_gql.call_count == 2
+
     # -- terminate_pod --
 
     @patch("deploy.runpod_manager.requests.delete")
@@ -184,6 +206,18 @@ class TestRunPodManager:
         }):
             result = mgr.wait_for_ready("pod1", timeout_s=3, poll_interval_s=1)
         assert result is False
+
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_wait_for_ready_survives_network_error(self, mock_sleep: MagicMock) -> None:
+        """Network blip during polling doesn't crash — retries and succeeds."""
+        import requests as req
+        mgr = self._make_manager()
+        with patch.object(mgr, "_graphql_query", side_effect=[
+            req.ConnectionError("connection reset by peer"),
+            {"pod": {"id": "pod1", "desiredStatus": "RUNNING", "runtime": {"uptimeInSeconds": 5}}},
+        ]):
+            result = mgr.wait_for_ready("pod1", timeout_s=30, poll_interval_s=1)
+        assert result is True
 
     # -- get_balance --
 
