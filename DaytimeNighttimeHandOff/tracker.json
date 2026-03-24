@@ -800,6 +800,7 @@
     "daytime_created": "2026-03-23T15:20:30",
     "daytime_comments": "Fixes 5 oversights from Exp 0 v1: no pipeline observability, scorer saw full doc instead of retrieved chunks, no reranker, ceiling effect from easy questions, no composite answer quality metric. Results go to results/experiment_0_v2/. v1 data untouched.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-24T00:06:09"
   }
 ]
