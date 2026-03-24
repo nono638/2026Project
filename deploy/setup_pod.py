@@ -48,9 +48,9 @@ logger = logging.getLogger(__name__)
 # Default models to pull — embedding model + generation model for Experiment 0
 DEFAULT_MODELS = ["mxbai-embed-large", "qwen3:4b"]
 
-# Timeouts
-OLLAMA_POLL_TIMEOUT_S = 120
-OLLAMA_POLL_INTERVAL_S = 5
+# Timeouts — community cloud Docker pulls can take 3-5 minutes
+OLLAMA_POLL_TIMEOUT_S = 300
+OLLAMA_POLL_INTERVAL_S = 10
 MODEL_PULL_TIMEOUT_S = 600
 
 
@@ -337,6 +337,14 @@ def main() -> None:
         print("  1. Check the pod logs in the RunPod console")
         print("  2. Ensure the pod image is ollama/ollama")
         print("  3. Ensure OLLAMA_HOST=0.0.0.0 is set in pod env")
+        if not args.pull_only:
+            print(f"\nTerminating pod {pod_id} to stop billing...")
+            try:
+                manager.terminate_pod(pod_id)
+                print("Pod terminated.")
+            except RunPodError as exc:
+                print(f"WARNING: Could not terminate pod: {exc}")
+                print(f"Terminate manually: https://www.runpod.io/console/pods")
         sys.exit(1)
 
     # Pull models

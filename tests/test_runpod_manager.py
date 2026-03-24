@@ -18,60 +18,75 @@ class TestRunPodManager:
         from deploy.runpod_manager import RunPodManager
         return RunPodManager(api_key="test-key-123")
 
-    # -- create_pod --
+    # -- create_pod (uses GraphQL podFindAndDeployOnDemand) --
 
-    @patch("deploy.runpod_manager.requests.post")
-    def test_create_pod_success(self, mock_post: MagicMock) -> None:
-        """Successful pod creation returns pod dict with correct request body."""
-        mock_post.return_value = MagicMock(
-            status_code=201,
-            json=MagicMock(return_value={
-                "id": "pod123",
-                "name": "test-pod",
-                "desiredStatus": "RUNNING",
-            }),
-        )
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_create_pod_success(self, mock_sleep: MagicMock) -> None:
+        """Successful pod creation returns pod dict from GraphQL."""
         mgr = self._make_manager()
-        result = mgr.create_pod(name="test-pod", image_name="runpod/pytorch")
+        with patch.object(mgr, "_graphql_query", return_value={
+            "podFindAndDeployOnDemand": {
+                "id": "pod123",
+                "desiredStatus": "RUNNING",
+                "machine": {"gpuDisplayName": "NVIDIA RTX A5000"},
+            },
+        }):
+            result = mgr.create_pod(name="test-pod", image_name="runpod/pytorch")
 
         assert result["id"] == "pod123"
+        assert result["desiredStatus"] == "RUNNING"
 
-        # Verify request body
-        call_kwargs = mock_post.call_args
-        body = call_kwargs.kwargs.get("json") or json.loads(call_kwargs.kwargs.get("data", "{}"))
-        assert body["name"] == "test-pod"
-        assert body["gpuTypePriority"] == "availability"
-        assert isinstance(body["gpuTypeIds"], list)
-        assert len(body["gpuTypeIds"]) >= 1
-
-    @patch("deploy.runpod_manager.requests.post")
-    def test_create_pod_custom_gpu_types(self, mock_post: MagicMock) -> None:
-        """Custom gpu_types override defaults."""
-        mock_post.return_value = MagicMock(
-            status_code=201,
-            json=MagicMock(return_value={"id": "pod456"}),
-        )
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_create_pod_custom_gpu_types(self, mock_sleep: MagicMock) -> None:
+        """Custom gpu_types are tried in order; first success wins."""
         mgr = self._make_manager()
         custom_gpus = ["NVIDIA A100 80GB PCIe"]
-        mgr.create_pod(name="big-pod", image_name="img", gpu_types=custom_gpus)
+        with patch.object(mgr, "_graphql_query", return_value={
+            "podFindAndDeployOnDemand": {
+                "id": "pod456",
+                "desiredStatus": "RUNNING",
+                "machine": {"gpuDisplayName": "NVIDIA A100 80GB PCIe"},
+            },
+        }) as mock_gql:
+            mgr.create_pod(name="big-pod", image_name="img", gpu_types=custom_gpus)
 
-        call_kwargs = mock_post.call_args
-        body = call_kwargs.kwargs.get("json") or json.loads(call_kwargs.kwargs.get("data", "{}"))
-        assert body["gpuTypeIds"] == custom_gpus
+        # Verify the GraphQL query included our custom GPU
+        query_str = mock_gql.call_args.args[0]
+        assert "NVIDIA A100 80GB PCIe" in query_str
 
-    @patch("deploy.runpod_manager.requests.post")
-    def test_create_pod_api_error(self, mock_post: MagicMock) -> None:
-        """Non-2xx response raises RunPodError."""
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_create_pod_falls_back_to_next_gpu(self, mock_sleep: MagicMock) -> None:
+        """When first GPU fails, tries the next one."""
         from deploy.runpod_manager import RunPodError
-        mock_post.return_value = MagicMock(
-            status_code=400,
-            text="Bad Request: no GPUs available",
-            ok=False,
-        )
         mgr = self._make_manager()
-        with pytest.raises(RunPodError) as exc_info:
-            mgr.create_pod(name="fail-pod", image_name="img")
-        assert exc_info.value.status_code == 400
+        with patch.object(mgr, "_graphql_query", side_effect=[
+            RunPodError("No machines available for NVIDIA RTX A5000"),
+            {
+                "podFindAndDeployOnDemand": {
+                    "id": "pod789",
+                    "desiredStatus": "RUNNING",
+                    "machine": {"gpuDisplayName": "NVIDIA RTX A4000"},
+                },
+            },
+        ]):
+            result = mgr.create_pod(
+                name="fallback-pod", image_name="img",
+                gpu_types=["NVIDIA RTX A5000", "NVIDIA RTX A4000"],
+            )
+
+        assert result["id"] == "pod789"
+
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_create_pod_all_gpus_fail(self, mock_sleep: MagicMock) -> None:
+        """All GPUs failing raises RunPodError."""
+        from deploy.runpod_manager import RunPodError
+        mgr = self._make_manager()
+        with patch.object(mgr, "_graphql_query", side_effect=RunPodError("No machines")):
+            with pytest.raises(RunPodError, match="no GPU available"):
+                mgr.create_pod(
+                    name="fail-pod", image_name="img",
+                    gpu_types=["GPU-A", "GPU-B"],
+                )
 
     # -- terminate_pod --
 
@@ -202,42 +217,47 @@ class TestRunPodManager:
         rate = mgr.get_spend_per_hour()
         assert rate == 0.17
 
-    # -- env dict conversion --
+    # -- env dict in GraphQL query --
 
-    @patch("deploy.runpod_manager.requests.post")
-    def test_env_dict_converted(self, mock_post: MagicMock) -> None:
-        """Dict env is passed through as a flat dict in the request body."""
-        mock_post.return_value = MagicMock(
-            status_code=201,
-            json=MagicMock(return_value={"id": "pod789"}),
-        )
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_env_dict_in_graphql_query(self, mock_sleep: MagicMock) -> None:
+        """Env vars are included in the GraphQL mutation."""
         mgr = self._make_manager()
-        mgr.create_pod(
-            name="env-test",
-            image_name="img",
-            env={"FOO": "bar", "BAZ": "qux"},
-        )
+        with patch.object(mgr, "_graphql_query", return_value={
+            "podFindAndDeployOnDemand": {
+                "id": "pod789",
+                "desiredStatus": "RUNNING",
+                "machine": {"gpuDisplayName": "NVIDIA RTX A5000"},
+            },
+        }) as mock_gql:
+            mgr.create_pod(
+                name="env-test",
+                image_name="img",
+                env={"FOO": "bar", "BAZ": "qux"},
+            )
 
-        call_kwargs = mock_post.call_args
-        body = call_kwargs.kwargs.get("json") or json.loads(call_kwargs.kwargs.get("data", "{}"))
-        env_data = body.get("env", {})
-        # create_pod sends env as a flat dict — RunPod REST API accepts this format
-        assert env_data["FOO"] == "bar"
-        assert env_data["BAZ"] == "qux"
+        query_str = mock_gql.call_args.args[0]
+        assert 'key: "FOO"' in query_str
+        assert 'value: "bar"' in query_str
+        assert 'key: "BAZ"' in query_str
+        assert 'value: "qux"' in query_str
 
     # -- default GPU types --
 
-    @patch("deploy.runpod_manager.requests.post")
-    def test_default_gpu_types_used(self, mock_post: MagicMock) -> None:
-        """When no gpu_types passed, defaults are used."""
+    @patch("deploy.runpod_manager.time.sleep")
+    def test_default_gpu_types_used(self, mock_sleep: MagicMock) -> None:
+        """When no gpu_types passed, defaults are tried in order."""
         from deploy.runpod_manager import DEFAULT_GPU_TYPES
-        mock_post.return_value = MagicMock(
-            status_code=201,
-            json=MagicMock(return_value={"id": "pod000"}),
-        )
         mgr = self._make_manager()
-        mgr.create_pod(name="default-test", image_name="img")
+        # Succeed on the first GPU type
+        with patch.object(mgr, "_graphql_query", return_value={
+            "podFindAndDeployOnDemand": {
+                "id": "pod000",
+                "desiredStatus": "RUNNING",
+                "machine": {"gpuDisplayName": DEFAULT_GPU_TYPES[0]},
+            },
+        }) as mock_gql:
+            mgr.create_pod(name="default-test", image_name="img")
 
-        call_kwargs = mock_post.call_args
-        body = call_kwargs.kwargs.get("json") or json.loads(call_kwargs.kwargs.get("data", "{}"))
-        assert body["gpuTypeIds"] == DEFAULT_GPU_TYPES
+        query_str = mock_gql.call_args.args[0]
+        assert DEFAULT_GPU_TYPES[0] in query_str

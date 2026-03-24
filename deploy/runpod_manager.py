@@ -26,11 +26,16 @@ RUNPOD_GRAPHQL_URL = "https://api.runpod.io/graphql"
 
 # Ordered by price — cheapest viable first, widely-available last resort
 # Pricing as of March 2026 on RunPod Community Cloud
+# IDs match RunPod's GraphQL gpuTypes.id field
 DEFAULT_GPU_TYPES = [
-    "NVIDIA RTX A5000",                 # 24GB, ~$0.27/hr — cheapest 24GB option
-    "NVIDIA RTX 4000 Ada Generation",   # 20GB, ~$0.26/hr — good fallback (exact ID may vary)
-    "NVIDIA RTX A4000",                 # 16GB — may still be available, cheapest if so
-    "NVIDIA GeForce RTX 4090",          # 24GB, ~$0.59/hr — widely available last resort
+    "NVIDIA RTX A5000",                     # 24GB, ~$0.16/hr
+    "NVIDIA RTX A4000",                     # 16GB, ~$0.17/hr
+    "NVIDIA RTX 4000 SFF Ada Generation",   # 20GB, ~$0.18/hr
+    "NVIDIA RTX A4500",                     # 20GB, ~$0.19/hr
+    "NVIDIA RTX 4000 Ada Generation",       # 20GB, ~$0.20/hr
+    "NVIDIA GeForce RTX 3090",              # 24GB, ~$0.22/hr
+    "NVIDIA GeForce RTX 3090 Ti",           # 24GB, ~$0.27/hr
+    "NVIDIA GeForce RTX 4090",              # 24GB, ~$0.34/hr
 ]
 
 DEFAULT_PORTS = ["11434/http", "8000/http"]  # Ollama + FastAPI
@@ -82,57 +87,75 @@ class RunPodManager:
         image_name: str,
         ports: list[str] | None = None,
         volume_gb: int = 20,
+        container_disk_gb: int = 10,
         env: dict[str, str] | None = None,
         gpu_types: list[str] | None = None,
     ) -> dict:
-        """Create a new pod with GPU fallback.
+        """Create a new pod, trying each GPU type until one succeeds.
+
+        Uses the GraphQL podFindAndDeployOnDemand mutation because the REST
+        API's gpuTypePriority:"availability" field consistently fails with
+        "This machine does not have the resources" errors (as of March 2026).
+        GraphQL tries each GPU individually, which actually works.
 
         Args:
             name: Human-readable pod name.
             image_name: Docker image to run.
             ports: Ports to expose. Defaults to Ollama (11434) + FastAPI (8000).
             volume_gb: Volume size in GB. Defaults to 20.
+            container_disk_gb: Container disk size in GB. Defaults to 10.
             env: Environment variables as a flat dict (e.g., {"KEY": "value"}).
             gpu_types: Ordered GPU fallback list. Overrides constructor default.
 
         Returns:
-            Full pod dict from RunPod's response (includes id, desiredStatus, etc.).
+            Pod dict with at least 'id' and 'desiredStatus'.
 
         Raises:
-            RunPodError: On non-2xx response from RunPod API.
+            RunPodError: If no GPU type could be provisioned.
         """
         gpu_list = gpu_types or self._default_gpu_types
-        port_list = ports or DEFAULT_PORTS
+        port_str = ", ".join(f'"{p}"' for p in (ports or DEFAULT_PORTS))
 
-        body = {
-            "name": name,
-            "imageName": image_name,
-            "gpuTypeIds": gpu_list,
-            "gpuTypePriority": "availability",
-            "gpuCount": 1,
-            "volumeInGb": volume_gb,
-            "ports": port_list,
-            "cloudType": "COMMUNITY",
-            "env": env or {},
-        }
-
-        logger.info("Creating pod '%s' with GPU fallback: %s", name, gpu_list)
-        resp = requests.post(
-            f"{RUNPOD_REST_BASE}/pods",
-            headers=self._headers,
-            json=body,
+        # Build env list for GraphQL
+        env_dict = env or {}
+        env_entries = ", ".join(
+            f'{{key: "{k}", value: "{v}"}}' for k, v in env_dict.items()
         )
 
-        if not resp.ok:
-            raise RunPodError(
-                f"Failed to create pod '{name}': {resp.text}",
-                status_code=resp.status_code,
-                response_body=resp.text,
+        errors = []
+        for gpu in gpu_list:
+            logger.info("Trying GPU: %s", gpu)
+            query = (
+                "mutation { podFindAndDeployOnDemand(input: {"
+                f'name: "{name}", '
+                f'imageName: "{image_name}", '
+                f'gpuTypeId: "{gpu}", '
+                "cloudType: COMMUNITY, "
+                "gpuCount: 1, "
+                f"volumeInGb: {volume_gb}, "
+                f"containerDiskInGb: {container_disk_gb}, "
+                f"ports: \"{', '.join(ports or ['11434/http'])}\", "
+                f"env: [{env_entries}]"
+                "}) { id desiredStatus machine { gpuDisplayName } } }"
             )
 
-        pod = resp.json()
-        logger.info("Pod created: id=%s", pod.get("id"))
-        return pod
+            try:
+                data = self._graphql_query(query)
+                pod = data.get("podFindAndDeployOnDemand")
+                if pod and pod.get("id"):
+                    gpu_name = pod.get("machine", {}).get("gpuDisplayName", gpu)
+                    logger.info("Pod created: id=%s, gpu=%s", pod["id"], gpu_name)
+                    return pod
+            except RunPodError as exc:
+                errors.append(f"{gpu}: {exc}")
+                logger.info("GPU %s unavailable, trying next...", gpu)
+                time.sleep(1)
+
+        raise RunPodError(
+            f"Failed to create pod '{name}': no GPU available. "
+            f"Tried: {', '.join(gpu_list)}. "
+            f"Errors: {'; '.join(errors)}"
+        )
 
     def terminate_pod(self, pod_id: str) -> None:
         """Terminate (permanently delete) a pod.
@@ -275,7 +298,7 @@ class RunPodManager:
                     logger.info("Pod %s is ready (uptime: %ss)",
                                 pod_id, runtime.get("uptimeInSeconds", "?"))
                     return True
-            except RunPodError as exc:
+            except (RunPodError, requests.RequestException) as exc:
                 logger.debug("GraphQL poll error (retrying): %s", exc)
 
             time.sleep(poll_interval_s)
