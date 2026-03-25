@@ -48,12 +48,12 @@ Running `python scripts/generate_gallery.py` should produce the following in `si
 - A "View Experiments" button/link that scrolls to the experiment cards section
 
 **Key Findings section** (below hero, above experiment cards):
-- Show 3-4 headline findings from Experiment 0 as styled cards/callouts. Use these findings
-  (hardcoded text is fine — these are established results):
-  1. "Claude Sonnet is the most accurate LLM judge (r=0.42 with gold BERTScore)"
-  2. "Gemini Flash is the best budget scorer — 95% of Sonnet's accuracy at 1/23 the cost"
-  3. "Inter-judge agreement is moderate (mean Pearson r ~0.5), confirming LLM-as-judge needs validation"
-  4. "Answer quality varies more by judge choice than by scoring rubric"
+- Show 3-4 headline findings from Experiment 0v2 as styled cards/callouts. Use these findings
+  (hardcoded text is fine — these are established results from v2, 150 medium+hard questions):
+  1. "Claude Haiku is the most accurate LLM judge (r=0.640 with gold BERTScore) — and the cheapest Anthropic option"
+  2. "Gemini 2.5 Pro is the best free scorer (r=0.518 with BERTScore) — no API cost via Google AI Studio"
+  3. "Inter-judge agreement is strong among top judges (Sonnet-Opus r=0.884, Flash-Pro r=0.841)"
+  4. "74% exact match on medium+hard HotpotQA — retrieval and generation failures split evenly (13% each)"
 - Each finding card: icon/emoji-free, just a bold headline and one sentence of context
 
 **Experiment Cards section** (existing, but improved):
@@ -97,7 +97,7 @@ Validated Queries x (Chunker x Embedder x Strategy x Model) --> Answers
 **Experiment Design** — Table or cards describing each experiment:
 | Experiment | Tests | Matrix | Held Constant |
 |---|---|---|---|
-| 0 (Scorer Validation) | Which LLM judge is most accurate? | 50 HotpotQA x 6 judges | Qwen3-4B, NaiveRAG |
+| 0 (Scorer Validation) | Which LLM judge is most accurate? | 150 medium+hard HotpotQA x 7 judges | Qwen3-4B, NaiveRAG + BGE reranker |
 | 1 (Strategy x Model) | Does strategy compensate for model size? | 5 strategies x 6 models | Recursive chunker, mxbai-embed-large |
 | 2 (Chunking x Model) | Does chunking strategy interact with model capability? | 4 chunkers x 4 models | NaiveRAG, mxbai-embed-large |
 

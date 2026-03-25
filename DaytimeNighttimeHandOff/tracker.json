@@ -781,7 +781,7 @@
     "task_id": "task-042",
     "description": "Pipeline diagnostics: log context sent to LLM, retrieved/filtered chunks, and auto-detect failure attribution stage (chunker/retrieval/filtering/generation)",
     "daytime_created": "2026-03-23T11:51:09",
-    "daytime_comments": "Motivated by Exp 0 analysis — Church of St. Anne question showed retrieval failure but we couldn't diagnose it from the CSV. Adds diagnostics kwarg to all 5 strategy run() methods plus detect_failure_stage() utility. Experiments 1 & 2 get diagnostics automatically via experiment_utils.generate_answer().",
+    "daytime_comments": "Motivated by Exp 0 analysis \u00e2\u20ac\u201d Church of St. Anne question showed retrieval failure but we couldn't diagnose it from the CSV. Adds diagnostics kwarg to all 5 strategy run() methods plus detect_failure_stage() utility. Experiments 1 & 2 get diagnostics automatically via experiment_utils.generate_answer().",
     "depends_on": null,
     "status": "done",
     "nighttime_started": "2026-03-23T13:09:47",
@@ -809,8 +809,8 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": [
-      "Gallery v2 page adds '0v2' entry to experiments_info — index page may need tweaking if it expects integer experiment numbers",
-      "build_experiment0_figures() may fail on v2 data if column names differ — v2-specific charts will still render"
+      "Gallery v2 page adds '0v2' entry to experiments_info \u00e2\u20ac\u201d index page may need tweaking if it expects integer experiment numbers",
+      "build_experiment0_figures() may fail on v2 data if column names differ \u00e2\u20ac\u201d v2-specific charts will still render"
     ],
     "daytime_reviewed": "2026-03-24T14:33:09"
   },
@@ -820,6 +820,16 @@
     "daytime_created": "2026-03-25T09:47:01",
     "daytime_comments": "MVP demo is April 11. Gallery needs a proper landing page (hero, key findings), a methodology page explaining the pipeline, and polished navigation. All changes in generate_gallery.py only.",
     "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-045",
+    "description": "Regenerate gallery with Experiment 0v2 data \u2014 handle partial judge data gracefully",
+    "daytime_created": "2026-03-25T18:08:58",
+    "daytime_comments": "gemini-3.1-pro-preview only has 11/150 scores (rate limited). Dashboard must exclude it from correlations and flag it in bar charts. Add v2 findings summary at top of dashboard. Run after task-044 since task-044 updates nav/layout.",
+    "depends_on": [
+      "task-044"
+    ],
     "status": "todo"
   }
 ]
