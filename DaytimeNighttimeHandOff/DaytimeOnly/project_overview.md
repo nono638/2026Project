@@ -99,7 +99,9 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - [x] CLI flags for chunker/embedder/dataset/retrieval-mode/llm-backend (task 022)
 
 ### Next — Experiments
-- [x] Experiment 0: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 6 LLM judges. Results in `results/experiment_0/`. Finding: Claude Sonnet is the most accurate scorer; Gemini Flash is the best budget alternative.
+- [x] Experiment 0v1: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 6 LLM judges. Results in `results/experiment_0/`. Finding: Claude Sonnet best (r=0.682), Gemini Flash budget alternative.
+- [x] Experiment 0v2: Scorer validation — 150 medium+hard HotpotQA × NaiveRAG + BGE reranker × Qwen3-4B, scored by 7 judges. Results in `results/experiment_0_v2/`. Finding: Haiku best (r=0.640), Sonnet dropped to r=0.561. gemini-3.1-pro-preview partial (11/150, rate limited).
+- [ ] Experiment 0v3: Tiebreaker — 500 medium+hard HotpotQA, 6 judges (drops gemini-3.1-pro). Resolves v1 vs v2 scorer ranking discrepancy before Experiments 1 & 2.
 - [ ] Experiment 1: Strategy × Model Size — 5 strategies × 6 models = 30 configs. Held constant: Recursive chunker (500/100), mxbai-embed-large.
 - [ ] Experiment 2: Chunking × Model Size — 4 chunkers × 4 Qwen3 models = 16 configs. Held constant: NaiveRAG strategy, mxbai-embed-large.
 
