@@ -306,11 +306,30 @@ def score_all_answers(
         logger.info("Skipped %d judges (missing API keys): %s",
                      len(skipped_names), ", ".join(skipped_names))
 
-    # Build result rows
+    # Incremental checkpoint: write each scored row to disk as it completes
+    # so that crashes only lose the current row, not all prior work.
+    checkpoint_path = output_dir / "raw_scores_checkpoint.csv"
+
+    # Load already-scored example_ids from checkpoint (if resuming after crash)
+    scored_ids: set[int] = set()
+    if checkpoint_path.exists():
+        try:
+            checkpoint_df = pd.read_csv(checkpoint_path)
+            scored_ids = set(checkpoint_df["example_id"].tolist())
+            logger.info("Resuming from checkpoint: %d/%d already scored.",
+                        len(scored_ids), len(answers))
+        except Exception as exc:
+            logger.warning("Could not read checkpoint, starting fresh: %s", exc)
+
     rows = []
     total = len(answers)
 
     for i, ans in enumerate(answers):
+        # Skip rows already in checkpoint
+        if ans["example_id"] in scored_ids:
+            logger.info("[%d/%d] Already scored (checkpoint), skipping.", i + 1, total)
+            continue
+
         logger.info("[%d/%d] Scoring: %s", i + 1, total, ans["question"][:60])
 
         # Base columns
@@ -376,7 +395,17 @@ def score_all_answers(
 
         rows.append(row)
 
-    result_df = pd.DataFrame(rows)
+        # Write row to checkpoint immediately — survives crashes
+        row_df = pd.DataFrame([row])
+        write_header = not checkpoint_path.exists()
+        row_df.to_csv(checkpoint_path, mode="a", header=write_header, index=False)
+
+    # Build full result from checkpoint (includes rows from prior runs + this run)
+    if checkpoint_path.exists():
+        result_df = pd.read_csv(checkpoint_path)
+        logger.info("Loaded %d total scored rows from checkpoint.", len(result_df))
+    else:
+        result_df = pd.DataFrame(rows)
 
     # Compute BERTScore in batch (loads model once, much faster than per-row)
     logger.info("Computing BERTScore (local model, no API cost)...")
@@ -772,6 +801,12 @@ def main() -> None:
     # Save raw scores (full or partial)
     results_df.to_csv(raw_scores_path, index=False)
     logger.info("Saved raw scores to %s", raw_scores_path)
+
+    # Clean up checkpoint now that final CSV is written
+    checkpoint_path = output_dir / "raw_scores_checkpoint.csv"
+    if checkpoint_path.exists():
+        checkpoint_path.unlink()
+        logger.info("Removed checkpoint file (final CSV written successfully).")
 
     # Step 6: Generate and save report
     scorers_used = []
