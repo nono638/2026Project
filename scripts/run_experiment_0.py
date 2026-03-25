@@ -85,6 +85,11 @@ def compute_bertscores(predictions: list[str], golds: list[str]) -> list[float]:
     Uses RoBERTa-large, the standard BERTScore model for English. Runs
     locally — no API calls. The model (~1.4GB) downloads on first run.
 
+    Empty strings are replaced with a placeholder token ("[EMPTY]") before
+    scoring because the bert_score library crashes on empty input (the
+    tokenizer produces zero tokens, triggering an AttributeError). Pairs
+    where either side is empty get a score of 0.0 instead of crashing.
+
     Reference: Zhang et al., "BERTScore: Evaluating Text Generation with
     BERT", ICLR 2020. https://arxiv.org/abs/1904.09675
 
@@ -97,13 +102,31 @@ def compute_bertscores(predictions: list[str], golds: list[str]) -> list[float]:
     """
     from bert_score import score
 
+    # Track which pairs have empty strings — these get score 0.0
+    empty_mask = [
+        not p or not p.strip() or not g or not g.strip()
+        for p, g in zip(predictions, golds)
+    ]
+
+    # Replace empty strings with placeholder to avoid bert_score crash
+    PLACEHOLDER = "[EMPTY]"
+    safe_preds = [p if (p and p.strip()) else PLACEHOLDER for p in predictions]
+    safe_golds = [g if (g and g.strip()) else PLACEHOLDER for g in golds]
+
     _, _, f1 = score(
-        cands=predictions,
-        refs=golds,
+        cands=safe_preds,
+        refs=safe_golds,
         lang="en",
         verbose=True,
     )
-    return f1.tolist()
+    results = f1.tolist()
+
+    # Zero out scores for pairs that had empty input
+    for i, is_empty in enumerate(empty_mask):
+        if is_empty:
+            results[i] = 0.0
+
+    return results
 
 
 def _safe_scorer_name(name: str) -> str:

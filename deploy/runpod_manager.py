@@ -87,9 +87,11 @@ class RunPodManager:
         image_name: str,
         ports: list[str] | None = None,
         volume_gb: int = 20,
-        container_disk_gb: int = 10,
+        container_disk_gb: int = 40,
         env: dict[str, str] | None = None,
         gpu_types: list[str] | None = None,
+        docker_args: str = "",
+        volume_mount_path: str = "/workspace",
     ) -> dict:
         """Create a new pod, trying each GPU type until one succeeds.
 
@@ -103,9 +105,15 @@ class RunPodManager:
             image_name: Docker image to run.
             ports: Ports to expose. Defaults to Ollama (11434) + FastAPI (8000).
             volume_gb: Volume size in GB. Defaults to 20.
-            container_disk_gb: Container disk size in GB. Defaults to 10.
+            container_disk_gb: Container disk size in GB. Defaults to 40.
+                RunPod official examples use 40; 10 is too small for most
+                Docker images and causes containers to fail silently.
             env: Environment variables as a flat dict (e.g., {"KEY": "value"}).
             gpu_types: Ordered GPU fallback list. Overrides constructor default.
+            docker_args: Docker CMD override. Used to run startup commands
+                (e.g., installing Ollama on a PyTorch template).
+            volume_mount_path: Where to mount the persistent volume.
+                Defaults to "/workspace" per RunPod convention.
 
         Returns:
             Pod dict with at least 'id' and 'desiredStatus'.
@@ -114,13 +122,15 @@ class RunPodManager:
             RunPodError: If no GPU type could be provisioned.
         """
         gpu_list = gpu_types or self._default_gpu_types
-        port_str = ", ".join(f'"{p}"' for p in (ports or DEFAULT_PORTS))
 
         # Build env list for GraphQL
         env_dict = env or {}
         env_entries = ", ".join(
             f'{{key: "{k}", value: "{v}"}}' for k, v in env_dict.items()
         )
+
+        # Escape docker_args for GraphQL string embedding
+        escaped_docker_args = docker_args.replace("\\", "\\\\").replace('"', '\\"')
 
         errors = []
         for gpu in gpu_list:
@@ -134,6 +144,8 @@ class RunPodManager:
                 "gpuCount: 1, "
                 f"volumeInGb: {volume_gb}, "
                 f"containerDiskInGb: {container_disk_gb}, "
+                f'volumeMountPath: "{volume_mount_path}", '
+                f'dockerArgs: "{escaped_docker_args}", '
                 f"ports: \"{', '.join(ports or ['11434/http'])}\", "
                 f"env: [{env_entries}]"
                 "}) { id desiredStatus machine { gpuDisplayName } } }"

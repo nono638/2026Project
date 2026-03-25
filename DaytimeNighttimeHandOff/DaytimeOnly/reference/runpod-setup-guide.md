@@ -224,8 +224,9 @@ else:
 
 ## 6. Create a Pod with Ollama
 
-This creates a GPU machine in the cloud with Ollama (the AI model server) pre-installed.
-Our `deploy/setup_pod.py` script handles everything automatically.
+This creates a GPU machine in the cloud using RunPod's PyTorch template, then
+installs Ollama via its install script. Our `deploy/setup_pod.py` script handles
+everything automatically.
 
 **This step costs real money** — roughly $0.01-0.03 for setup time.
 
@@ -267,12 +268,13 @@ You'll paste this into the experiment command in Step 9.
 ### What just happened?
 
 The script:
-1. Created a GPU pod using the `ollama/ollama` Docker image (Ollama pre-installed)
-2. Waited for it to boot up (~1-2 minutes)
-3. Downloaded two AI models onto the pod (~3-5 minutes):
+1. Created a GPU pod using RunPod's PyTorch template (CUDA/drivers pre-configured)
+2. Installed Ollama via the startup script (~1-2 minutes)
+3. Waited for the pod and Ollama to be ready (~2-5 minutes)
+4. Downloaded two AI models onto the persistent volume (~3-5 minutes):
    - `mxbai-embed-large` — the embedding model (converts text to vectors)
    - `qwen3:4b` — the language model (generates answers)
-4. Verified both models respond correctly
+5. Verified both models respond correctly
 
 ### If it fails
 

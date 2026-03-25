@@ -813,5 +813,13 @@
       "build_experiment0_figures() may fail on v2 data if column names differ — v2-specific charts will still render"
     ],
     "daytime_reviewed": "2026-03-24T14:33:09"
+  },
+  {
+    "task_id": "task-044",
+    "description": "Gallery MVP polish: landing page upgrade, methodology page, navigation improvements",
+    "daytime_created": "2026-03-25T09:47:01",
+    "daytime_comments": "MVP demo is April 11. Gallery needs a proper landing page (hero, key findings), a methodology page explaining the pipeline, and polished navigation. All changes in generate_gallery.py only.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]

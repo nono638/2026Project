@@ -8,6 +8,15 @@ Why ollama/ollama image: it has Ollama pre-installed and auto-starts the server.
 No startup scripts, no waiting for installation. Simpler and faster.
 Docs: https://hub.docker.com/r/ollama/ollama
 
+Why 40GB container disk: the ollama/ollama image is based on NVIDIA CUDA
+(~5-8GB). With the default 10GB container disk, the image can't fully extract
+and the container silently fails to start (runtime stays null). RunPod's
+official examples all use 40GB. Ref: https://docs.runpod.io/sdks/graphql/manage-pods
+
+Why volumeMountPath + OLLAMA_MODELS: models are stored on the persistent
+volume (/workspace) instead of the container disk. This prevents disk
+exhaustion when pulling large models and survives pod restarts.
+
 Why HTTP API for model pulling: RunPod doesn't have a command execution API.
 SSH requires key setup. Ollama's HTTP API (/api/pull) does the same thing.
 Docs: https://github.com/ollama/ollama/blob/main/docs/api.md#pull-a-model
@@ -48,8 +57,9 @@ logger = logging.getLogger(__name__)
 # Default models to pull — embedding model + generation model for Experiment 0
 DEFAULT_MODELS = ["mxbai-embed-large", "qwen3:4b"]
 
-# Timeouts — community cloud Docker pulls can take 3-5 minutes
-OLLAMA_POLL_TIMEOUT_S = 300
+# Timeouts — community cloud image pull + Ollama boot can take a few minutes
+POD_READY_TIMEOUT_S = 600
+OLLAMA_POLL_TIMEOUT_S = 600
 OLLAMA_POLL_INTERVAL_S = 10
 MODEL_PULL_TIMEOUT_S = 600
 
@@ -142,7 +152,7 @@ def wait_for_ollama(url: str, timeout_s: int = OLLAMA_POLL_TIMEOUT_S) -> bool:
 
     Args:
         url: Base Ollama URL (e.g., https://pod-id-11434.proxy.runpod.net).
-        timeout_s: Maximum seconds to wait. Defaults to 120.
+        timeout_s: Maximum seconds to wait. Defaults to 600.
 
     Returns:
         True if Ollama responded within timeout, False otherwise.
@@ -302,15 +312,25 @@ def main() -> None:
             print("\nERROR: Balance is below $1.00. Add credits before creating a pod.")
             sys.exit(1)
 
-        # Create pod with ollama/ollama image
-        # OLLAMA_HOST=0.0.0.0 is required so Ollama accepts external connections
+        # Create pod with ollama/ollama image.
+        # OLLAMA_HOST=0.0.0.0: accept external connections (required for proxy)
+        # OLLAMA_MODELS=/workspace/ollama_models: store models on persistent
+        #   volume so they survive pod restarts and don't fill container disk.
+        # container_disk_gb=40: ollama/ollama is a large CUDA-based image;
+        #   10GB (old default) caused silent container startup failures.
+        # Ref: https://docs.runpod.io/tutorials/pods/run-ollama
         try:
             pod = manager.create_pod(
                 name=args.name,
                 image_name=args.image,
-                env={"OLLAMA_HOST": "0.0.0.0"},
+                env={
+                    "OLLAMA_HOST": "0.0.0.0",
+                    "OLLAMA_MODELS": "/workspace/ollama_models",
+                },
                 ports=["11434/http"],
                 volume_gb=args.volume_gb,
+                container_disk_gb=40,
+                volume_mount_path="/workspace",
             )
         except RunPodError as exc:
             print(f"\nERROR: Failed to create pod: {exc}")
@@ -320,9 +340,9 @@ def main() -> None:
         print(f"Pod created: {pod_id}")
 
         # Wait for pod to be ready in RunPod
-        if not manager.wait_for_ready(pod_id, timeout_s=300):
+        if not manager.wait_for_ready(pod_id, timeout_s=POD_READY_TIMEOUT_S):
             url = f"https://www.runpod.io/console/pods/{pod_id}"
-            print(f"\nERROR: Pod did not become ready within 300s.")
+            print(f"\nERROR: Pod did not become ready within {POD_READY_TIMEOUT_S}s.")
             print(f"Check the RunPod console: {url}")
             sys.exit(1)
 
@@ -337,6 +357,7 @@ def main() -> None:
         print("  1. Check the pod logs in the RunPod console")
         print("  2. Ensure the pod image is ollama/ollama")
         print("  3. Ensure OLLAMA_HOST=0.0.0.0 is set in pod env")
+        print("  4. Ensure port 11434 is exposed as HTTP")
         if not args.pull_only:
             print(f"\nTerminating pod {pod_id} to stop billing...")
             try:
