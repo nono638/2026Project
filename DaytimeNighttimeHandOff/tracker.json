@@ -831,5 +831,13 @@
       "task-044"
     ],
     "status": "todo"
+  },
+  {
+    "task_id": "task-046",
+    "description": "Experiment 0v3: n=500 scorer validation tiebreaker (6 judges, no gemini-3.1-pro)",
+    "daytime_created": "2026-03-25T18:37:25",
+    "daytime_comments": "v1 and v2 disagree on best scorer (Sonnet vs Haiku). v3 with n=500 settles it. Drops gemini-3.1-pro-preview (250/day rate limit). Night instance: implement --generation-only flag, write run_v3.py wrapper, then launch it. Pod auto-terminates after generation; scoring runs on cloud APIs only. ~9 hours total runtime.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
