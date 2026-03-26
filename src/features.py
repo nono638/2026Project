@@ -39,6 +39,7 @@ from __future__ import annotations
 import math
 import string
 from collections import Counter
+from typing import Any
 
 import faiss
 import numpy as np
@@ -56,7 +57,7 @@ _PUNCT_TABLE = str.maketrans("", "", string.punctuation)
 _spacy_nlp = None
 
 
-def _get_spacy_nlp():
+def _get_spacy_nlp() -> Any:
     """Lazy-load the spaCy English NER model from the project venv.
 
     Returns:

@@ -142,8 +142,16 @@ def predict(features: dict) -> dict:
         }
 
     # Classification path
-    pred_idx = _model.predict(X)[0]
+    pred_idx = int(_model.predict(X)[0])
     probas = _model.predict_proba(X)[0]
+
+    # Guard against label encoder / model class mismatch
+    if pred_idx < 0 or pred_idx >= len(_label_classes):
+        raise ValueError(
+            f"Predicted class index {pred_idx} out of range "
+            f"[0, {len(_label_classes) - 1}]. "
+            f"Model and label_encoder.json may be out of sync."
+        )
 
     config = _label_classes[pred_idx]
     # Config format: chunker__embedder__strategy__model (4 parts)
