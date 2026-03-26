@@ -752,7 +752,9 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
 
     v2 adds answer_quality distribution, failure_stage breakdown, and
     reuses the standard Experiment 0 charts (correlation, distributions, etc.)
-    from the v2 data.
+    from the v2 data.  Judges with < 50% non-null scores are flagged as
+    "partial" and excluded from correlations/gold charts to avoid misleading
+    statistics from too few data points.
 
     Args:
         csv_path: Path to ``results/experiment_0_v2/raw_scores.csv``.
@@ -763,14 +765,37 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
     import plotly.graph_objects as go
 
     df = pd.read_csv(csv_path)
+    total_rows = len(df)
+
+    # --- Detect partial judges (< 50% non-null quality scores) ---
+    # Correlations from very few data points are statistically meaningless,
+    # so partial judges are excluded from correlation/gold charts and flagged
+    # with a distinct color + asterisk in bar charts.
+    quality_cols = [c for c in df.columns if c.endswith("_quality") and c != "answer_quality"]
+    partial_judges: dict[str, int] = {}  # prefix -> valid count
+
+    for col in quality_cols:
+        prefix = col.replace("_quality", "")
+        valid_count = int(df[col].notna().sum())
+        if valid_count < total_rows * 0.5:
+            partial_judges[prefix] = valid_count
+
+    # Build a filtered DataFrame for correlation/gold charts —
+    # drop all columns belonging to partial judges so
+    # build_experiment0_figures() never sees them.
+    df_filtered = df.copy()
+    for prefix in partial_judges:
+        cols_to_drop = [c for c in df_filtered.columns if c.startswith(prefix + "_")]
+        df_filtered = df_filtered.drop(columns=cols_to_drop, errors="ignore")
 
     # Try to reuse the standard Exp 0 chart builder for scorer charts
+    # (using filtered data that excludes partial judges from correlations)
     try:
         from scripts.generate_experiment0_dashboard import (
             build_experiment0_figures,
             _fig_to_html,
         )
-        figures = build_experiment0_figures(df)
+        figures = build_experiment0_figures(df_filtered)
     except Exception:
         figures = []
 
@@ -778,7 +803,19 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
             """Convert a Plotly figure to inline HTML."""
             return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
 
-    # Build v2-specific charts
+    # --- Partial judge exclusion note ---
+    partial_notes: list[str] = []
+    for prefix, count in partial_judges.items():
+        name = prefix.replace("_", " ").replace("google ", "").replace("anthropic ", "")
+        partial_notes.append(f"{name} excluded ({count}/{total_rows} scores due to API rate limit)")
+    partial_note_html = ""
+    if partial_notes:
+        partial_note_html = (
+            '<p style="color: #888; font-size: 0.85em; font-style: italic; margin-top: 8px;">'
+            "Note: " + "; ".join(partial_notes) + ".</p>"
+        )
+
+    # --- Build v2-specific charts ---
     v2_charts: list[str] = []
 
     # Chart 1: answer_quality distribution
@@ -838,6 +875,50 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
             {_fig_to_html(fig_fs)}
         </div>""")
 
+    # Chart 3: Mean quality scores per judge — partial judges shown in gray
+    # with asterisk, full judges in blue, so the reader can see all judges
+    # but knows which ones have incomplete data.
+    judge_means: list[tuple[str, float, bool]] = []
+    for col in quality_cols:
+        prefix = col.replace("_quality", "")
+        mean_val = float(df[col].dropna().mean()) if df[col].notna().any() else 0.0
+        is_partial = prefix in partial_judges
+        name = prefix.replace("_", " ").replace("google ", "").replace("anthropic ", "")
+        if is_partial:
+            count = partial_judges[prefix]
+            name += f" * ({count}/{total_rows})"
+        judge_means.append((name, mean_val, is_partial))
+
+    if judge_means:
+        names = [j[0] for j in judge_means]
+        means = [j[1] for j in judge_means]
+        bar_colors = ["#aaa" if j[2] else "#648FFF" for j in judge_means]
+
+        fig_means = go.Figure(data=[
+            go.Bar(
+                x=names, y=means,
+                marker_color=bar_colors,
+                text=[f"{m:.3f}" for m in means],
+                textposition="auto",
+            )
+        ])
+        fig_means.update_layout(
+            title="Mean Quality Score per Judge",
+            xaxis_title="Judge",
+            yaxis_title="Mean Quality (0-1)",
+            template="plotly_white",
+            height=400,
+        )
+        footnote = ""
+        if partial_judges:
+            footnote = '<p style="color: #888; font-size: 0.85em; margin-top: 4px;">* partial data (gray bars) — excluded from correlation analysis</p>'
+        v2_charts.append(f"""
+        <div class="chart-container">
+            <h3>Mean Quality Score per Judge</h3>
+            {_fig_to_html(fig_means)}
+            {footnote}
+        </div>""")
+
     # Standard scorer charts from build_experiment0_figures
     scorer_charts: list[str] = []
     for title, fig in figures:
@@ -846,6 +927,24 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
             <h3>{title}</h3>
             {_fig_to_html(fig)}
         </div>""")
+
+    # --- Findings summary at top of page ---
+    findings_html = """
+    <div class="card" style="border-left: 4px solid #648FFF;">
+        <h2>Key Findings</h2>
+        <p style="color: #555; margin-bottom: 12px;">
+            v2 — 150 medium+hard HotpotQA questions, 7 LLM judges
+        </p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin: 8px 0;"><strong>Best judge by BERTScore correlation:</strong> Claude Haiku (r=0.640)</li>
+            <li style="margin: 8px 0;"><strong>Best free judge:</strong> Gemini 2.5 Pro (r=0.518)</li>
+            <li style="margin: 8px 0;"><strong>Pipeline accuracy:</strong> 74% exact match, 0.917 mean BERTScore</li>
+            <li style="margin: 8px 0;"><strong>Answer quality:</strong> 49% good, 47% poor, 5% questionable</li>
+            <li style="margin: 8px 0;"><strong>Failure stages:</strong> 74% none, 13% retrieval, 13% generation</li>
+            <li style="margin: 8px 0; color: #888; font-style: italic;">Note: gemini-3.1-pro-preview scored only 11/150 (API rate limit) — excluded from correlations</li>
+        </ul>
+    </div>
+    """
 
     # Assemble page
     content = f"""
@@ -862,11 +961,14 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
         </p>
     </div>
 
+    {findings_html}
+
     {"".join(v2_charts)}
 
     <div class="card">
         <h2>Scorer Comparison Charts</h2>
         <p>Same scorer analysis as v1, but on the v2 dataset (harder questions, better context).</p>
+        {partial_note_html}
     </div>
 
     {"".join(scorer_charts)}
