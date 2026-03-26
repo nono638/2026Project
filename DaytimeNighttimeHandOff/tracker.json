@@ -820,7 +820,8 @@
     "daytime_created": "2026-03-25T09:47:01",
     "daytime_comments": "MVP demo is April 11. Gallery needs a proper landing page (hero, key findings), a methodology page explaining the pipeline, and polished navigation. All changes in generate_gallery.py only.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-26T00:21:17"
   },
   {
     "task_id": "task-045",
