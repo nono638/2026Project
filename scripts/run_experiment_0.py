@@ -225,6 +225,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--judges", type=str, nargs="+", default=None,
                         help="Run only these judges (substring match on model name). "
                              "E.g. --judges pro flash-lite   or   --judges gemini-2.5-pro")
+    parser.add_argument("--generation-only", action="store_true",
+                        help="Generate answers and save raw_answers.csv, then exit "
+                             "(skip scoring). Use with --skip-generation later to score.")
     parser.add_argument("--no-gallery", action="store_true",
                         help="Skip automatic gallery regeneration after experiment completes")
     # v2 flags
@@ -737,6 +740,14 @@ def main() -> None:
         answers_df = pd.DataFrame(answers)
         answers_df.to_csv(raw_answers_path, index=False)
         logger.info("Saved raw answers to %s", raw_answers_path)
+
+        # Early exit for --generation-only: answers saved, skip scoring phase.
+        # This allows terminating a GPU pod before the scoring phase that only
+        # needs cloud APIs (no local GPU). Re-run with --skip-generation to score.
+        if args.generation_only:
+            print(f"\n--generation-only: answers saved to {raw_answers_path}")
+            print(f"Run again with --skip-generation to score.")
+            return
     else:
         # Load previously generated answers
         if not raw_answers_path.exists():
