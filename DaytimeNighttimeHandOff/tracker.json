@@ -854,8 +854,15 @@
     "daytime_created": "2026-03-25T18:37:25",
     "daytime_comments": "v1 and v2 disagree on best scorer (Sonnet vs Haiku). v3 with n=500 settles it. Drops gemini-3.1-pro-preview (250/day rate limit). Night instance: implement --generation-only flag, write run_v3.py wrapper, then launch it. Pod auto-terminates after generation; scoring runs on cloud APIs only. ~9 hours total runtime.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-26T00:46:36"
+    "status": "done",
+    "nighttime_started": "2026-03-26T00:46:36",
+    "nighttime_completed": "2026-03-26T00:53:10",
+    "nighttime_comments": "Added --generation-only flag to run_experiment_0.py, wrote run_v3.py orchestrator. 6 tests pass. Experiment not run (network blocked).",
+    "branch": "night/task-046-experiment-0-v3",
+    "commit_sha": "760993ccd869b8c6ac8029b6c2c1c88f7429c55e",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Part 3 (running experiment) not executed — network blocked in nighttime. Run manually: python scripts/run_v3.py"]
   },
   {
     "task_id": "task-047",
