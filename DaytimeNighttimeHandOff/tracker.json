@@ -838,8 +838,15 @@
     "depends_on": [
       "task-044"
     ],
-    "status": "in_progress",
-    "nighttime_started": "2026-03-26T00:36:09"
+    "status": "done",
+    "nighttime_started": "2026-03-26T00:36:09",
+    "nighttime_completed": "2026-03-26T00:44:36",
+    "nighttime_comments": "Partial judge handling (gemini-3.1-pro excluded from correlations, flagged in bar charts), findings summary, gallery regenerated.",
+    "branch": "night/task-045-gallery-v2-data",
+    "commit_sha": "99c9f3a7628071a016b5f7991071696412435c71",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Branch merges task-044 — merge task-044 first during morning review"]
   },
   {
     "task_id": "task-046",
