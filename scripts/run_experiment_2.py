@@ -403,6 +403,8 @@ def main() -> None:
 
     scorer = build_scorer(args.scorer, max_cost=args.max_cost)
 
+    cost_limit_hit = False  # May be set True during generation; stays False for --skip-generation
+
     if args.skip_generation:
         if not raw_scores_path.exists():
             print(f"\nERROR: {raw_scores_path} not found. Run without --skip-generation first.")

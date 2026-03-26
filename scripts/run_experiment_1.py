@@ -383,6 +383,8 @@ def main() -> None:
 
     scorer = build_scorer(args.scorer, max_cost=args.max_cost)
 
+    cost_limit_hit = False  # May be set True during generation; stays False for --skip-generation
+
     if args.skip_generation:
         # Re-score existing answers
         if not raw_scores_path.exists():
