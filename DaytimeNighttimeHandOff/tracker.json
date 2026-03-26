@@ -820,8 +820,15 @@
     "daytime_created": "2026-03-25T09:47:01",
     "daytime_comments": "MVP demo is April 11. Gallery needs a proper landing page (hero, key findings), a methodology page explaining the pipeline, and polished navigation. All changes in generate_gallery.py only.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-26T00:21:17"
+    "status": "done",
+    "nighttime_started": "2026-03-26T00:21:17",
+    "nighttime_completed": "2026-03-26T00:33:33",
+    "nighttime_comments": "Hero section, 4 key findings cards, methodology page, updated nav with Methodology link, responsive CSS, footer update.",
+    "branch": "night/task-044-gallery-mvp-polish",
+    "commit_sha": "c4d214dac682abb937eee3aed7d4e9bf20ebfa14",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Pre-written test has PROJECT_ROOT bug (4 parents instead of 5) — all 20 assertions verified manually"]
   },
   {
     "task_id": "task-045",
