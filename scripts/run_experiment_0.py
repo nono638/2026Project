@@ -259,6 +259,11 @@ def score_all_answers(
     of the full doc_text. This means faithfulness is evaluated against what the
     LLM actually saw during generation, not information it never received.
 
+    v3 changes (task-048):
+    - Per-judge resume: only scores judges whose columns are missing or NaN
+    - Cost guard abort: CostLimitExceeded breaks both loops immediately
+    - Merges checkpoint + existing raw_scores.csv for fullest picture
+
     Args:
         answers: List of dicts from generate_answer() pipeline.
         output_dir: Directory for output files.
@@ -270,6 +275,7 @@ def score_all_answers(
         DataFrame with all base columns + scorer columns.
     """
     from src.scorers.llm import LLMScorer, ScorerError
+    from src.cost_guard import CostLimitExceeded
 
     # Filter judge configs if --judges was specified
     configs_to_run = JUDGE_CONFIGS
@@ -309,40 +315,120 @@ def score_all_answers(
         logger.info("Skipped %d judges (missing API keys): %s",
                      len(skipped_names), ", ".join(skipped_names))
 
+    # Build safe names for the active scorers (used for NaN checks)
+    scorer_safe_names = [_safe_scorer_name(s.name) for s in scorers]
+
     # Incremental checkpoint: write each scored row to disk as it completes
     # so that crashes only lose the current row, not all prior work.
     checkpoint_path = output_dir / "raw_scores_checkpoint.csv"
+    raw_scores_path = output_dir / "raw_scores.csv"
 
-    # Load already-scored example_ids from checkpoint (if resuming after crash)
-    scored_ids: set[int] = set()
-    if checkpoint_path.exists():
-        try:
-            checkpoint_df = pd.read_csv(checkpoint_path)
-            scored_ids = set(checkpoint_df["example_id"].tolist())
-            logger.info("Resuming from checkpoint: %d/%d already scored.",
-                        len(scored_ids), len(answers))
-        except Exception as exc:
-            logger.warning("Could not read checkpoint, starting fresh: %s", exc)
+    # Per-judge resume: merge checkpoint + existing raw_scores.csv to seed
+    # scored data. Checkpoint takes priority (more recent) over raw_scores.csv.
+    # This handles: adding new judges, filling cost-limited judges, retries.
+    existing_scores_df: pd.DataFrame | None = None
+    for path_to_load, label in [
+        (raw_scores_path, "raw_scores.csv"),
+        (checkpoint_path, "checkpoint"),
+    ]:
+        if path_to_load.exists():
+            try:
+                loaded = pd.read_csv(path_to_load)
+                if existing_scores_df is None:
+                    existing_scores_df = loaded
+                    logger.info("Loaded %d rows from %s for resume.", len(loaded), label)
+                else:
+                    # Merge: checkpoint values override raw_scores where non-NaN
+                    loaded_indexed = loaded.set_index("example_id")
+                    existing_indexed = existing_scores_df.set_index("example_id")
+                    # Add any new columns from checkpoint
+                    for col in loaded_indexed.columns:
+                        if col not in existing_indexed.columns:
+                            existing_indexed[col] = float("nan")
+                    # Update non-NaN values from checkpoint
+                    for eid in loaded_indexed.index:
+                        if eid in existing_indexed.index:
+                            for col in loaded_indexed.columns:
+                                val = loaded_indexed.loc[eid, col]
+                                if pd.notna(val):
+                                    existing_indexed.loc[eid, col] = val
+                        else:
+                            # New row from checkpoint — add it
+                            existing_indexed.loc[eid] = loaded_indexed.loc[eid]
+                    existing_scores_df = existing_indexed.reset_index()
+                    logger.info("Merged %d rows from %s.", len(loaded), label)
+            except Exception as exc:
+                logger.warning("Could not read %s: %s", label, exc)
+
+    # Build a lookup dict: example_id -> {safe_name -> quality_value}
+    # Used to skip judges that already have non-NaN scores for a row
+    existing_judge_scores: dict[int, dict[str, float]] = {}
+    if existing_scores_df is not None:
+        for _, erow in existing_scores_df.iterrows():
+            eid = int(erow["example_id"])
+            judge_vals: dict[str, float] = {}
+            for safe_name in scorer_safe_names:
+                q_col = f"{safe_name}_quality"
+                val = erow.get(q_col, float("nan"))
+                if pd.notna(val):
+                    judge_vals[safe_name] = float(val)
+            existing_judge_scores[eid] = judge_vals
+
+    # Check if all rows × all judges are already scored — skip entirely if so
+    all_answer_ids = {ans["example_id"] for ans in answers}
+    total_needing_scoring = 0
+    for ans in answers:
+        eid = ans["example_id"]
+        existing = existing_judge_scores.get(eid, {})
+        for safe_name in scorer_safe_names:
+            if safe_name not in existing:
+                total_needing_scoring += 1
+
+    if total_needing_scoring == 0:
+        logger.info("All rows already scored for requested judges — nothing to do.")
+        result_df = existing_scores_df if existing_scores_df is not None else pd.DataFrame(answers)
+        # Still compute BERTScore if missing
+        if "gold_bertscore" not in result_df.columns:
+            logger.info("Computing BERTScore (local model, no API cost)...")
+            try:
+                preds = result_df["rag_answer"].fillna("").tolist()
+                golds = result_df["gold_answer"].fillna("").tolist()
+                result_df["gold_bertscore"] = compute_bertscores(preds, golds)
+            except Exception as exc:
+                logger.error("BERTScore computation failed: %s", exc)
+        return result_df
+
+    logger.info("%d judge×row pairs need scoring.", total_needing_scoring)
 
     rows = []
     total = len(answers)
+    cost_limit_hit = False
 
     for i, ans in enumerate(answers):
-        # Skip rows already in checkpoint
-        if ans["example_id"] in scored_ids:
-            logger.info("[%d/%d] Already scored (checkpoint), skipping.", i + 1, total)
+        eid = ans["example_id"]
+        existing_for_row = existing_judge_scores.get(eid, {})
+
+        # Check if all requested judges already scored for this row
+        judges_needed = [
+            safe_name for safe_name in scorer_safe_names
+            if safe_name not in existing_for_row
+        ]
+        if not judges_needed:
+            logger.info("[%d/%d] All judges already scored, skipping.", i + 1, total)
             continue
 
-        logger.info("[%d/%d] Scoring: %s", i + 1, total, ans["question"][:60])
+        logger.info("[%d/%d] Scoring: %s (judges needed: %d/%d)",
+                    i + 1, total, str(ans["question"])[:60],
+                    len(judges_needed), len(scorers))
 
         # Base columns
         row = {
-            "example_id": ans["example_id"],
+            "example_id": eid,
             "question": ans["question"],
             "gold_answer": ans["gold_answer"],
             "rag_answer": ans["rag_answer"],
-            "gold_exact_match": exact_match(ans["rag_answer"], ans["gold_answer"]),
-            "gold_f1": compute_f1(ans["rag_answer"], ans["gold_answer"]),
+            "gold_exact_match": exact_match(str(ans["rag_answer"]), str(ans["gold_answer"])),
+            "gold_f1": compute_f1(str(ans["rag_answer"]), str(ans["gold_answer"])),
             # Pipeline metadata
             "chunk_type": "recursive",
             "chunk_size": 500,
@@ -375,23 +461,55 @@ def score_all_answers(
             "gold_in_context": ans.get("gold_in_context"),
         }
 
+        # Carry forward existing judge scores for this row
+        for safe_name, val in existing_for_row.items():
+            # Restore all 4 metric columns from existing data
+            if existing_scores_df is not None:
+                emask = existing_scores_df["example_id"] == eid
+                if emask.any():
+                    for metric in ["faithfulness", "relevance", "conciseness", "quality"]:
+                        col = f"{safe_name}_{metric}"
+                        if col in existing_scores_df.columns:
+                            existing_val = existing_scores_df.loc[emask, col].iloc[0]
+                            if pd.notna(existing_val):
+                                row[col] = existing_val
+
         # Score with each judge — v2 fix: use context_sent_to_llm, not doc_text
         scorer_context = ans.get("context_sent_to_llm", ans.get("doc_text", ""))
-        for scorer in scorers:
-            safe_name = _safe_scorer_name(scorer.name)
+        for scorer, safe_name in zip(scorers, scorer_safe_names):
+            # Per-judge resume: skip judges that already have non-NaN quality
+            if safe_name in existing_for_row:
+                continue
+
+            # CostLimitExceeded must be caught BEFORE the generic Exception
+            # to prevent it from being swallowed by the error handler.
+            # This was the v3 bug: CostLimitExceeded was caught as Exception,
+            # logged, NaN recorded, and scoring continued — wasting API calls.
             try:
                 scores = scorer.score(
-                    query=ans["question"],
+                    query=str(ans["question"]),
                     context=scorer_context,
-                    answer=ans["rag_answer"],
+                    answer=str(ans["rag_answer"]),
                 )
                 for metric, value in scores.items():
                     row[f"{safe_name}_{metric}"] = value
                 # Compute quality as mean of the three metrics
                 row[f"{safe_name}_quality"] = sum(scores.values()) / len(scores)
+            except CostLimitExceeded:
+                # Break immediately — no further API calls
+                logger.error(
+                    "COST LIMIT HIT during scoring of example %d with %s. "
+                    "Breaking scoring loop.",
+                    eid, scorer.name,
+                )
+                # Record NaN for remaining metrics on this judge
+                for metric in ["faithfulness", "relevance", "conciseness", "quality"]:
+                    row[f"{safe_name}_{metric}"] = float("nan")
+                cost_limit_hit = True
+                break  # Break inner (per-scorer) loop
             except (ScorerError, Exception) as exc:
                 logger.error("Scorer %s failed on example %d: %s",
-                             scorer.name, i, exc)
+                             scorer.name, eid, exc)
                 # Record NaN for all metrics on failure
                 for metric in ["faithfulness", "relevance", "conciseness", "quality"]:
                     row[f"{safe_name}_{metric}"] = float("nan")
@@ -403,12 +521,45 @@ def score_all_answers(
         write_header = not checkpoint_path.exists()
         row_df.to_csv(checkpoint_path, mode="a", header=write_header, index=False)
 
-    # Build full result from checkpoint (includes rows from prior runs + this run)
+        # Break outer (per-answer) loop if cost limit was hit
+        if cost_limit_hit:
+            logger.error("Cost limit reached — stopping all scoring. Partial checkpoint saved.")
+            break
+
+    # Build full result by merging existing data with newly scored rows.
+    # Re-read checkpoint to get all rows (prior + this run).
     if checkpoint_path.exists():
-        result_df = pd.read_csv(checkpoint_path)
-        logger.info("Loaded %d total scored rows from checkpoint.", len(result_df))
+        new_df = pd.read_csv(checkpoint_path)
     else:
-        result_df = pd.DataFrame(rows)
+        new_df = pd.DataFrame(rows) if rows else pd.DataFrame()
+
+    if existing_scores_df is not None and not new_df.empty:
+        # Merge: update existing_scores_df with new scoring data
+        result_df = existing_scores_df.copy()
+        new_indexed = new_df.set_index("example_id")
+        result_indexed = result_df.set_index("example_id")
+        # Add any new columns
+        for col in new_indexed.columns:
+            if col not in result_indexed.columns:
+                result_indexed[col] = float("nan")
+        # Update with new values (non-NaN from checkpoint overrides)
+        for eid in new_indexed.index:
+            if eid in result_indexed.index:
+                for col in new_indexed.columns:
+                    val = new_indexed.loc[eid, col]
+                    if pd.notna(val):
+                        result_indexed.loc[eid, col] = val
+            else:
+                result_indexed.loc[eid] = new_indexed.loc[eid]
+        result_df = result_indexed.reset_index()
+    elif existing_scores_df is not None:
+        result_df = existing_scores_df
+    elif not new_df.empty:
+        result_df = new_df
+    else:
+        result_df = pd.DataFrame(answers)
+
+    logger.info("Total scored rows: %d", len(result_df))
 
     # Compute BERTScore in batch (loads model once, much faster than per-row)
     logger.info("Computing BERTScore (local model, no API cost)...")
@@ -690,9 +841,35 @@ def main() -> None:
         logger.info("Generating answers with NaiveRAG + %s (reranker=%s)...",
                      args.model, args.reranker)
 
+        # Resume support: load existing answers to skip already-generated IDs.
+        # Append-per-row ensures crash only loses the current question (~10s),
+        # not all prior work. The CSV write overhead (~1ms) is negligible
+        # compared to generation time.
+        existing_ids: set[int] = set()
+        if raw_answers_path.exists():
+            try:
+                existing_df = pd.read_csv(
+                    raw_answers_path, on_bad_lines="skip",
+                )
+                existing_ids = set(existing_df["example_id"].tolist())
+                logger.info(
+                    "Found existing raw_answers.csv with %d rows — "
+                    "will skip already-generated example_ids.",
+                    len(existing_ids),
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Could not read existing raw_answers.csv, starting fresh: %s", exc,
+                )
+
         answers = []
         total = len(docs)
         for i, (doc, query) in enumerate(zip(docs, queries)):
+            # Skip already-generated IDs (resume after crash)
+            if i in existing_ids:
+                logger.info("[%d/%d] Already generated (resume), skipping.", i + 1, total)
+                continue
+
             logger.info("[%d/%d] Generating answer for: %s",
                         i + 1, total, query.text[:60])
 
@@ -709,7 +886,7 @@ def main() -> None:
                 reranker_top_k=args.reranker_top_k,
             )
 
-            answers.append({
+            answer_row = {
                 "example_id": i,
                 "question": query.text,
                 "gold_answer": query.reference_answer or "",
@@ -734,12 +911,19 @@ def main() -> None:
                 "reranker_model": reranker_model_name,
                 "reranker_top_k": args.reranker_top_k if reranker_model_name else None,
                 "retrieval_top_k": args.retrieval_top_k,
-            })
+            }
 
-        # Save raw answers for --skip-generation reruns
-        answers_df = pd.DataFrame(answers)
-        answers_df.to_csv(raw_answers_path, index=False)
-        logger.info("Saved raw answers to %s", raw_answers_path)
+            answers.append(answer_row)
+
+            # Append to CSV immediately — survives crashes
+            row_df = pd.DataFrame([answer_row])
+            write_header = not raw_answers_path.exists()
+            row_df.to_csv(raw_answers_path, mode="a", header=write_header, index=False)
+
+        # Reload full answers (existing + newly generated) for scoring phase
+        answers_df = pd.read_csv(raw_answers_path, on_bad_lines="skip")
+        answers = answers_df.to_dict("records")
+        logger.info("Total answers available: %d", len(answers))
 
         # Early exit for --generation-only: answers saved, skip scoring phase.
         # This allows terminating a GPU pod before the scoring phase that only
@@ -764,6 +948,9 @@ def main() -> None:
     cost_guard = CostGuard(max_cost_usd=args.max_cost)
     logger.info("Scoring with judges (cost limit: $%.2f)...", args.max_cost)
 
+    # score_all_answers now handles CostLimitExceeded internally — it breaks
+    # both loops and returns partial results. The outer catch is a safety net
+    # in case a CostLimitExceeded propagates from scorer initialization.
     cost_limit_hit = False
     try:
         results_df = score_all_answers(
@@ -771,40 +958,23 @@ def main() -> None:
             judge_filters=args.judges,
         )
     except CostLimitExceeded as exc:
-        logger.error("COST LIMIT REACHED: %s", exc)
-        logger.error("Saving partial results...")
+        logger.error("COST LIMIT REACHED during scorer init: %s", exc)
         cost_limit_hit = True
-        results_df = pd.DataFrame(answers)
+        # Try to load checkpoint for partial results
+        checkpoint_path_fallback = output_dir / "raw_scores_checkpoint.csv"
+        if checkpoint_path_fallback.exists():
+            results_df = pd.read_csv(checkpoint_path_fallback)
+        elif raw_scores_path.exists():
+            results_df = pd.read_csv(raw_scores_path)
+        else:
+            results_df = pd.DataFrame(answers)
 
-    # Merge new scores into existing CSV if it exists (preserves prior judge columns)
-    if raw_scores_path.exists():
-        existing_df = pd.read_csv(raw_scores_path)
-        base_cols = {
-            "example_id", "question", "gold_answer", "rag_answer",
-            "gold_exact_match", "gold_f1", "gold_bertscore",
-            # Pipeline metadata columns
-            "chunk_type", "chunk_size", "chunk_overlap", "num_chunks",
-            "embed_provider", "embed_model", "embed_dimension",
-            "retrieval_mode", "retrieval_top_k", "num_chunks_retrieved",
-            "context_char_length", "reranker_model", "reranker_top_k",
-            "llm_provider", "llm_host", "dataset_name", "dataset_sample_seed",
-            # v2 columns
-            "difficulty", "question_type",
-            "strategy_latency_ms", "failure_stage", "failure_stage_confidence",
-            "failure_stage_method", "context_sent_to_llm",
-            "gold_in_chunks", "gold_in_retrieved", "gold_in_context",
-            "answer_quality",
-        }
-        new_scorer_cols = [c for c in results_df.columns
-                          if c not in base_cols and c not in existing_df.columns]
-        if new_scorer_cols:
-            logger.info("Merging new judge columns into existing CSV: %s",
-                        ", ".join(new_scorer_cols))
-            merge_cols = ["example_id"] + new_scorer_cols
-            existing_df = existing_df.merge(
-                results_df[merge_cols], on="example_id", how="left",
-            )
-            results_df = existing_df
+    # Check if cost limit was hit inside score_all_answers (via checkpoint state)
+    checkpoint_path_check = output_dir / "raw_scores_checkpoint.csv"
+    if checkpoint_path_check.exists():
+        judge_quality_cols = [c for c in results_df.columns if c.endswith("_quality")]
+        if judge_quality_cols and not results_df[judge_quality_cols].notna().all().all():
+            cost_limit_hit = True
 
     # Step 5: Add answer_quality column (requires Sonnet + gold metrics)
     results_df = add_answer_quality(results_df)
@@ -813,11 +983,24 @@ def main() -> None:
     results_df.to_csv(raw_scores_path, index=False)
     logger.info("Saved raw scores to %s", raw_scores_path)
 
-    # Clean up checkpoint now that final CSV is written
+    # Only delete checkpoint when ALL requested judge columns have non-NaN
+    # values for ALL rows. If scoring was interrupted (cost guard, crash),
+    # keep the checkpoint so the next resume can pick up where it left off.
     checkpoint_path = output_dir / "raw_scores_checkpoint.csv"
     if checkpoint_path.exists():
-        checkpoint_path.unlink()
-        logger.info("Removed checkpoint file (final CSV written successfully).")
+        judge_quality_cols = [c for c in results_df.columns if c.endswith("_quality")]
+        all_complete = (
+            len(judge_quality_cols) > 0
+            and results_df[judge_quality_cols].notna().all().all()
+        )
+        if all_complete:
+            checkpoint_path.unlink()
+            logger.info("Removed checkpoint file (all judges complete for all rows).")
+        else:
+            logger.info(
+                "Keeping checkpoint — some judge×row pairs still have NaN. "
+                "Re-run to fill remaining scores."
+            )
 
     # Step 6: Generate and save report
     scorers_used = []
