@@ -334,7 +334,7 @@ class TestCheckpointRetention:
         judge_cols = [c for c in df.columns if c.endswith("_quality")]
         all_complete = df[judge_cols].notna().all().all()
 
-        assert all_complete is False
+        assert not all_complete
         # Therefore checkpoint should NOT be deleted
         assert checkpoint_path.exists()
 
@@ -352,7 +352,7 @@ class TestCheckpointRetention:
         judge_cols = [c for c in df.columns if c.endswith("_quality")]
         all_complete = df[judge_cols].notna().all().all()
 
-        assert all_complete is True
+        assert all_complete
         # Safe to delete checkpoint
         if all_complete:
             checkpoint_path.unlink()

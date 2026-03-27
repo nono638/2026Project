@@ -907,7 +907,8 @@
     "commit_sha": "41312b29090c3268aec2459cb0d14ba84bb146f1",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["2 pre-written test failures due to numpy boolean identity check (np.True_ is True -> False); fix: use == instead of is"]
+    "flags": ["2 pre-written test failures due to numpy boolean identity check (np.True_ is True -> False); fix: use == instead of is"],
+    "daytime_reviewed": "2026-03-27T12:15:18"
   },
   {
     "task_id": "task-049",
@@ -923,6 +924,7 @@
     "commit_sha": "b2d4d6d98a0108deb862b25b1dda52c36fae0e12",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Updated existing test_gallery.py assertion to expect experiment_0_v3.html instead of experiment_0.html", "v3 chart code is largely duplicated from v2 — DRY refactoring possible"]
+    "flags": ["Updated existing test_gallery.py assertion to expect experiment_0_v3.html instead of experiment_0.html", "v3 chart code is largely duplicated from v2 — DRY refactoring possible"],
+    "daytime_reviewed": "2026-03-27T12:15:18"
   }
 ]
