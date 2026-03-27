@@ -899,8 +899,15 @@
     "daytime_created": "2026-03-26T21:09:57",
     "daytime_comments": "Motivated by Exp 0v3 wasting ~200 questions \u00c3\u2014 6 judges of API calls when cost guard hit but didn't break the loop. Also: generation has no checkpoint (crash loses all answers), and re-runs re-score everything instead of filling gaps. Exp 1 & 2 already handle cost guard abort \u00e2\u20ac\u201d this task only touches run_experiment_0.py.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-27T00:03:40"
+    "status": "done",
+    "nighttime_started": "2026-03-27T00:03:40",
+    "nighttime_completed": "2026-03-27T00:13:35",
+    "nighttime_comments": "Implemented generation checkpointing, cost guard abort, per-judge scoring resume, and conditional checkpoint retention in run_experiment_0.py.",
+    "branch": "night/task-048-exp0-resume",
+    "commit_sha": "41312b29090c3268aec2459cb0d14ba84bb146f1",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["2 pre-written test failures due to numpy boolean identity check (np.True_ is True -> False); fix: use == instead of is"]
   },
   {
     "task_id": "task-049",
