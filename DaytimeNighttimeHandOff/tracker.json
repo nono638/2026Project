@@ -828,7 +828,9 @@
     "commit_sha": "c4d214dac682abb937eee3aed7d4e9bf20ebfa14",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Pre-written test has PROJECT_ROOT bug (4 parents instead of 5) — all 20 assertions verified manually"],
+    "flags": [
+      "Pre-written test has PROJECT_ROOT bug (4 parents instead of 5) \u00e2\u20ac\u201d all 20 assertions verified manually"
+    ],
     "daytime_reviewed": "2026-03-26T09:27:47"
   },
   {
@@ -847,7 +849,9 @@
     "commit_sha": "99c9f3a7628071a016b5f7991071696412435c71",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Branch merges task-044 — merge task-044 first during morning review"],
+    "flags": [
+      "Branch merges task-044 \u00e2\u20ac\u201d merge task-044 first during morning review"
+    ],
     "daytime_reviewed": "2026-03-26T09:27:47"
   },
   {
@@ -864,7 +868,9 @@
     "commit_sha": "760993ccd869b8c6ac8029b6c2c1c88f7429c55e",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Part 3 (running experiment) not executed — network blocked in nighttime. Run manually: python scripts/run_v3.py"],
+    "flags": [
+      "Part 3 (running experiment) not executed \u00e2\u20ac\u201d network blocked in nighttime. Run manually: python scripts/run_v3.py"
+    ],
     "daytime_reviewed": "2026-03-26T09:27:47"
   },
   {
@@ -881,14 +887,25 @@
     "commit_sha": "840b3d26658025394f9816742ff41241d14a07dd",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["cost_limit_hit bug fix is critical — without it --skip-generation crashes both experiment scripts", "bert_score module not installed — 13 pre-existing test failures"],
+    "flags": [
+      "cost_limit_hit bug fix is critical \u00e2\u20ac\u201d without it --skip-generation crashes both experiment scripts",
+      "bert_score module not installed \u00e2\u20ac\u201d 13 pre-existing test failures"
+    ],
     "daytime_reviewed": "2026-03-26T09:27:47"
   },
   {
     "task_id": "task-048",
     "description": "Experiment 0 resilient resume: generation checkpointing, per-judge scoring resume, cost guard abort",
     "daytime_created": "2026-03-26T21:09:57",
-    "daytime_comments": "Motivated by Exp 0v3 wasting ~200 questions × 6 judges of API calls when cost guard hit but didn't break the loop. Also: generation has no checkpoint (crash loses all answers), and re-runs re-score everything instead of filling gaps. Exp 1 & 2 already handle cost guard abort — this task only touches run_experiment_0.py.",
+    "daytime_comments": "Motivated by Exp 0v3 wasting ~200 questions \u00c3\u2014 6 judges of API calls when cost guard hit but didn't break the loop. Also: generation has no checkpoint (crash loses all answers), and re-runs re-score everything instead of filling gaps. Exp 1 & 2 already handle cost guard abort \u00e2\u20ac\u201d this task only touches run_experiment_0.py.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-049",
+    "description": "Gallery website overhaul: v3 front and center, v1/v2 as history, fix broken links",
+    "daytime_created": "2026-03-26T23:40:18",
+    "daytime_comments": "User wants v3 as the hero with \"third time's a charm\" framing. Exact prose provided in spec. v1/v2 stay as linked secondary pages.",
     "depends_on": null,
     "status": "todo"
   }
