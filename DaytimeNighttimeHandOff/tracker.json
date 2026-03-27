@@ -915,7 +915,14 @@
     "daytime_created": "2026-03-26T23:40:18",
     "daytime_comments": "User wants v3 as the hero with \"third time's a charm\" framing. Exact prose provided in spec. v1/v2 stay as linked secondary pages.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-03-27T00:16:18"
+    "status": "done",
+    "nighttime_started": "2026-03-27T00:16:18",
+    "nighttime_completed": "2026-03-27T00:30:30",
+    "nighttime_comments": "Gallery overhauled: v3 hero on home page, new v3 generator with Road to v3 narrative, nav updated, broken card links fixed.",
+    "branch": "night/task-049-gallery-overhaul",
+    "commit_sha": "b2d4d6d98a0108deb862b25b1dda52c36fae0e12",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": ["Updated existing test_gallery.py assertion to expect experiment_0_v3.html instead of experiment_0.html", "v3 chart code is largely duplicated from v2 — DRY refactoring possible"]
   }
 ]
