@@ -915,6 +915,7 @@
     "daytime_created": "2026-03-26T23:40:18",
     "daytime_comments": "User wants v3 as the hero with \"third time's a charm\" framing. Exact prose provided in spec. v1/v2 stay as linked secondary pages.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-27T00:16:18"
   }
 ]
