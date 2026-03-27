@@ -394,23 +394,23 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
     </div>
 
     <h2>Key Findings</h2>
-    <p>From Experiment 0v2 — 150 medium+hard HotpotQA questions scored by 7 LLM judges.</p>
+    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 6 LLM judges (3 Gemini + 3 Claude).</p>
     <div class="findings-grid">
         <div class="finding-card">
             <h4>Claude Haiku is the most accurate LLM judge</h4>
-            <p>Highest correlation with gold BERTScore (r=0.640) — and the cheapest Anthropic option.</p>
+            <p>Highest correlation with gold F1 (r=0.450) at n=500 — and the cheapest Anthropic option at $0.002/call.</p>
         </div>
         <div class="finding-card">
             <h4>Gemini 2.5 Pro is the best free budget scorer</h4>
-            <p>r=0.518 with BERTScore via Google AI Studio — no API cost for evaluation.</p>
+            <p>r=0.348 with gold F1 via Google AI Studio — no API cost for evaluation.</p>
         </div>
         <div class="finding-card">
             <h4>Strong inter-judge agreement among top scorers</h4>
-            <p>Sonnet-Opus r=0.884, Flash-Pro r=0.841 — judges broadly agree on answer quality.</p>
+            <p>Sonnet-Opus r=0.820, Flash-Pro r=0.892 — judges broadly agree on answer quality.</p>
         </div>
         <div class="finding-card">
-            <h4>74% exact match on medium+hard HotpotQA — answer quality is solid</h4>
-            <p>Retrieval and generation failures split evenly at 13% each.</p>
+            <h4>76% exact match on HotpotQA — answer quality is solid</h4>
+            <p>Retrieval failures at 14%, generation failures at 10%. Pipeline works well out of the box.</p>
         </div>
     </div>
 
@@ -1971,15 +1971,19 @@ def main(
 
         exp0_v1_csv = results_dir / "experiment_0" / "raw_scores.csv"
         exp0_v2_csv = results_dir / "experiment_0_v2" / "raw_scores.csv"
+        exp0_v3_csv = results_dir / "experiment_0_v3" / "raw_scores.csv"
         has_v1 = exp0_v1_csv.exists() and exp0_v1_csv.stat().st_size > 0
         has_v2 = exp0_v2_csv.exists() and exp0_v2_csv.stat().st_size > 0
+        has_v3 = exp0_v3_csv.exists() and exp0_v3_csv.stat().st_size > 0
 
-        if has_v1 or has_v2:
+        if has_v1 or has_v2 or has_v3:
             desc_parts = []
             if has_v1:
                 desc_parts.append("v1: 50 HotpotQA × NaiveRAG × Qwen3 4B")
             if has_v2:
                 desc_parts.append("v2: 150 medium+hard × BGE reranker × diagnostics")
+            if has_v3:
+                desc_parts.append("v3: 500 HotpotQA × BGE reranker × 6 judges (3 Gemini + 3 Claude)")
             experiments_info.append({
                 "num": 0,
                 "title": "Scorer Validation",
@@ -2024,12 +2028,35 @@ def main(
                 except Exception as exc:
                     logger.warning("Experiment 0 v2 dashboard generation failed: %s", exc)
 
+            if has_v3:
+                logger.info("Generating Experiment 0 v3 dashboard from %s", exp0_v3_csv)
+                try:
+                    exp0_v3_html = _generate_experiment_0_v2(exp0_v3_csv)
+                    (output_dir / "experiment_0_v3.html").write_text(
+                        exp0_v3_html, encoding="utf-8",
+                    )
+                    shutil.copy2(exp0_v3_csv, output_dir / "raw_scores_v3.csv")
+                    experiments_info.append({
+                        "num": "0v3",
+                        "title": "Scorer Validation v3",
+                        "status": "ready",
+                        "description": "500 HotpotQA × NaiveRAG + BGE reranker × 6 judges (3 Gemini + 3 Claude).",
+                    })
+                except Exception as exc:
+                    logger.warning("Experiment 0 v3 dashboard generation failed: %s", exc)
+
             if not has_v1:
-                # Only v2 exists — make it the main page
-                shutil.copy2(
-                    output_dir / "experiment_0_v2.html",
-                    output_dir / "experiment_0.html",
-                )
+                # Only v2/v3 exists — make the latest the main page
+                if has_v3:
+                    shutil.copy2(
+                        output_dir / "experiment_0_v3.html",
+                        output_dir / "experiment_0.html",
+                    )
+                elif has_v2:
+                    shutil.copy2(
+                        output_dir / "experiment_0_v2.html",
+                        output_dir / "experiment_0.html",
+                    )
         else:
             print(f"WARNING: No Experiment 0 data found — generating placeholder")
             experiments_info.append({

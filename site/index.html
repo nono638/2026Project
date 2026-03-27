@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGBench Findings Gallery — RAGBench</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fafafa;
+    color: #222;
+    line-height: 1.6;
+}
+
+/* Navigation bar */
+.nav {
+    background: #1a1a2e;
+    padding: 12px 24px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.nav a {
+    color: #aab;
+    text-decoration: none;
+    font-size: 0.95em;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+.nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav a.active { background: #648FFF; color: #fff; font-weight: 600; }
+.nav .brand {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #648FFF;
+    margin-right: 16px;
+}
+
+/* Main content */
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+h1 {
+    color: #1a1a2e;
+    border-bottom: 3px solid #648FFF;
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+}
+h2 {
+    color: #1a1a2e;
+    margin-top: 32px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+h3 { color: #333; margin-top: 24px; }
+p { margin: 12px 0; }
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Experiment list on index */
+.experiment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 24px 0;
+}
+.experiment-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.experiment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.experiment-card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.experiment-card h3 { color: #648FFF; margin-top: 0; }
+.experiment-card .status {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+.status-ready { background: #e8f5e9; color: #2e7d32; }
+.status-placeholder { background: #fff3e0; color: #e65100; }
+
+/* Chart container */
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* Placeholder page */
+.placeholder {
+    text-align: center;
+    padding: 60px 24px;
+}
+.placeholder h2 { border: none; color: #888; }
+.placeholder p { color: #666; max-width: 600px; margin: 16px auto; }
+
+/* Data tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 16px 0; }
+.data-table th, .data-table td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
+.data-table th { background: #f5f5f5; font-weight: 600; }
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 24px;
+    color: #888;
+    font-size: 0.85em;
+    border-top: 1px solid #eee;
+    margin-top: 40px;
+}
+.footer a { color: #648FFF; text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* Hero section — gradient background for visual impact on landing page */
+.hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+    color: #fff;
+    text-align: center;
+    padding: 64px 24px 48px;
+    margin: -32px -24px 32px -24px;
+    border-radius: 0 0 12px 12px;
+}
+.hero h1 { color: #fff; border-bottom: none; padding-bottom: 0; margin-bottom: 12px; font-size: 2.5em; }
+.hero .tagline { font-size: 1.2em; color: #aab; margin-bottom: 20px; }
+.hero .description { max-width: 700px; margin: 0 auto 28px; color: #ccc; line-height: 1.7; }
+.hero .cta-btn {
+    display: inline-block;
+    background: #648FFF;
+    color: #fff;
+    padding: 12px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1em;
+    transition: background 0.2s;
+}
+.hero .cta-btn:hover { background: #4a7aee; }
+
+/* Key findings cards — visual distinction with left border accent */
+.findings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 24px 0;
+}
+.finding-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #648FFF;
+}
+.finding-card:nth-child(2) { border-left-color: #785EF0; }
+.finding-card:nth-child(3) { border-left-color: #DC267F; }
+.finding-card:nth-child(4) { border-left-color: #FE6100; }
+.finding-card h4 { color: #1a1a2e; margin-bottom: 8px; font-size: 1em; }
+.finding-card p { color: #555; font-size: 0.9em; margin: 0; }
+
+/* Methodology page — readable prose width */
+.methodology-content { max-width: 800px; margin: 0 auto; }
+.methodology-content h2 { margin-top: 40px; }
+.methodology-content p { margin: 12px 0; color: #333; }
+.methodology-content pre {
+    background: #1a1a2e;
+    color: #aab;
+    padding: 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    line-height: 1.8;
+}
+
+/* Responsive — stack cards and scale hero on narrow screens */
+@media (max-width: 768px) {
+    .hero h1 { font-size: 1.8em; }
+    .hero .tagline { font-size: 1em; }
+    .hero { padding: 40px 16px 32px; }
+    .experiment-grid { grid-template-columns: 1fr; }
+    .findings-grid { grid-template-columns: 1fr; }
+    .nav { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+    .nav a { font-size: 0.85em; padding: 4px 8px; }
+}
+
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <span class="brand">RAGBench</span>
+        <a href="index.html" class="active">Home</a>
+    <a href="experiment_0.html">Exp 0: Scorer Validation</a>
+    <a href="experiment_1.html">Exp 1: Strategy × Model</a>
+    <a href="experiment_2.html">Exp 2: Chunking × Model</a>
+    <a href="methodology.html">Methodology</a>
+    </nav>
+    <div class="content">
+        <h1>RAGBench Findings Gallery</h1>
+        
+    <div class="hero">
+        <h1>RAGBench</h1>
+        <p class="tagline">A configurable evaluation pipeline for Retrieval-Augmented Generation</p>
+        <p class="description">
+            RAGBench runs the full cartesian product of RAG configurations
+            (chunker × embedder × strategy × language model), scores the results
+            with LLM judges, and identifies optimal configurations for different
+            constraints. It answers: when does a small model with a smart strategy
+            outperform a larger model with naive RAG?
+        </p>
+        <a href="#experiments" class="cta-btn">View Experiments</a>
+    </div>
+
+    <h2>Key Findings</h2>
+    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 6 LLM judges (3 Gemini + 3 Claude).</p>
+    <div class="findings-grid">
+        <div class="finding-card">
+            <h4>Claude Haiku is the most accurate LLM judge</h4>
+            <p>Highest correlation with gold F1 (r=0.450) at n=500 — and the cheapest Anthropic option at $0.002/call.</p>
+        </div>
+        <div class="finding-card">
+            <h4>Gemini 2.5 Pro is the best free budget scorer</h4>
+            <p>r=0.348 with gold F1 via Google AI Studio — no API cost for evaluation.</p>
+        </div>
+        <div class="finding-card">
+            <h4>Strong inter-judge agreement among top scorers</h4>
+            <p>Sonnet-Opus r=0.820, Flash-Pro r=0.892 — judges broadly agree on answer quality.</p>
+        </div>
+        <div class="finding-card">
+            <h4>76% exact match on HotpotQA — answer quality is solid</h4>
+            <p>Retrieval failures at 14%, generation failures at 10%. Pipeline works well out of the box.</p>
+        </div>
+    </div>
+
+    <h2 id="experiments">Experiments</h2>
+    <div class="experiment-grid">
+        
+        <div class="experiment-card">
+            <a href="experiment_0.html">
+                <span class="status status-ready">Results Available</span>
+                <h3>Experiment 0: Scorer Validation</h3>
+                <p>v1: 50 HotpotQA × NaiveRAG × Qwen3 4B; v2: 150 medium+hard × BGE reranker × diagnostics; v3: 500 HotpotQA × BGE reranker × 6 judges (3 Gemini + 3 Claude)</p>
+            </a>
+        </div>
+
+        <div class="experiment-card">
+            <a href="experiment_0v2.html">
+                <span class="status status-ready">Results Available</span>
+                <h3>Experiment 0v2: Scorer Validation v2</h3>
+                <p>150 medium+hard HotpotQA × NaiveRAG + BGE reranker × diagnostics + answer quality.</p>
+            </a>
+        </div>
+
+        <div class="experiment-card">
+            <a href="experiment_0v3.html">
+                <span class="status status-ready">Results Available</span>
+                <h3>Experiment 0v3: Scorer Validation v3</h3>
+                <p>500 HotpotQA × NaiveRAG + BGE reranker × 6 judges (3 Gemini + 3 Claude).</p>
+            </a>
+        </div>
+        
+        <div class="experiment-card">
+            <a href="methodology.html">
+                <span class="status status-ready">Reference</span>
+                <h3>Methodology</h3>
+                <p>How RAGBench works: pipeline overview, evaluation approach, and experiment design.</p>
+            </a>
+        </div>
+    </div>
+    
+    </div>
+    <div class="footer">
+        Built by Noah | CUNY SPS Spring 2026 | Powered by RAGBench
+        <br><a href="methodology.html">Methodology</a>
+    </div>
+</body>
+</html>

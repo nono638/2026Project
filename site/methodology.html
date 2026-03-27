@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Methodology — RAGBench</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #fafafa;
+    color: #222;
+    line-height: 1.6;
+}
+
+/* Navigation bar */
+.nav {
+    background: #1a1a2e;
+    padding: 12px 24px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.nav a {
+    color: #aab;
+    text-decoration: none;
+    font-size: 0.95em;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s;
+}
+.nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav a.active { background: #648FFF; color: #fff; font-weight: 600; }
+.nav .brand {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #648FFF;
+    margin-right: 16px;
+}
+
+/* Main content */
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+h1 {
+    color: #1a1a2e;
+    border-bottom: 3px solid #648FFF;
+    padding-bottom: 10px;
+    margin-bottom: 24px;
+}
+h2 {
+    color: #1a1a2e;
+    margin-top: 32px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+h3 { color: #333; margin-top: 24px; }
+p { margin: 12px 0; }
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    margin: 20px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Experiment list on index */
+.experiment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 24px 0;
+}
+.experiment-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.experiment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+.experiment-card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.experiment-card h3 { color: #648FFF; margin-top: 0; }
+.experiment-card .status {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+.status-ready { background: #e8f5e9; color: #2e7d32; }
+.status-placeholder { background: #fff3e0; color: #e65100; }
+
+/* Chart container */
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 20px 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* Placeholder page */
+.placeholder {
+    text-align: center;
+    padding: 60px 24px;
+}
+.placeholder h2 { border: none; color: #888; }
+.placeholder p { color: #666; max-width: 600px; margin: 16px auto; }
+
+/* Data tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 16px 0; }
+.data-table th, .data-table td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
+.data-table th { background: #f5f5f5; font-weight: 600; }
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 24px;
+    color: #888;
+    font-size: 0.85em;
+    border-top: 1px solid #eee;
+    margin-top: 40px;
+}
+.footer a { color: #648FFF; text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
+
+/* Hero section — gradient background for visual impact on landing page */
+.hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+    color: #fff;
+    text-align: center;
+    padding: 64px 24px 48px;
+    margin: -32px -24px 32px -24px;
+    border-radius: 0 0 12px 12px;
+}
+.hero h1 { color: #fff; border-bottom: none; padding-bottom: 0; margin-bottom: 12px; font-size: 2.5em; }
+.hero .tagline { font-size: 1.2em; color: #aab; margin-bottom: 20px; }
+.hero .description { max-width: 700px; margin: 0 auto 28px; color: #ccc; line-height: 1.7; }
+.hero .cta-btn {
+    display: inline-block;
+    background: #648FFF;
+    color: #fff;
+    padding: 12px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1em;
+    transition: background 0.2s;
+}
+.hero .cta-btn:hover { background: #4a7aee; }
+
+/* Key findings cards — visual distinction with left border accent */
+.findings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 24px 0;
+}
+.finding-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #648FFF;
+}
+.finding-card:nth-child(2) { border-left-color: #785EF0; }
+.finding-card:nth-child(3) { border-left-color: #DC267F; }
+.finding-card:nth-child(4) { border-left-color: #FE6100; }
+.finding-card h4 { color: #1a1a2e; margin-bottom: 8px; font-size: 1em; }
+.finding-card p { color: #555; font-size: 0.9em; margin: 0; }
+
+/* Methodology page — readable prose width */
+.methodology-content { max-width: 800px; margin: 0 auto; }
+.methodology-content h2 { margin-top: 40px; }
+.methodology-content p { margin: 12px 0; color: #333; }
+.methodology-content pre {
+    background: #1a1a2e;
+    color: #aab;
+    padding: 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.85em;
+    line-height: 1.8;
+}
+
+/* Responsive — stack cards and scale hero on narrow screens */
+@media (max-width: 768px) {
+    .hero h1 { font-size: 1.8em; }
+    .hero .tagline { font-size: 1em; }
+    .hero { padding: 40px 16px 32px; }
+    .experiment-grid { grid-template-columns: 1fr; }
+    .findings-grid { grid-template-columns: 1fr; }
+    .nav { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+    .nav a { font-size: 0.85em; padding: 4px 8px; }
+}
+
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <span class="brand">RAGBench</span>
+        <a href="index.html">Home</a>
+    <a href="experiment_0.html">Exp 0: Scorer Validation</a>
+    <a href="experiment_1.html">Exp 1: Strategy × Model</a>
+    <a href="experiment_2.html">Exp 2: Chunking × Model</a>
+    <a href="methodology.html" class="active">Methodology</a>
+    </nav>
+    <div class="content">
+        <h1>Methodology</h1>
+        
+    <div class="methodology-content">
+
+        <h2>Pipeline Overview</h2>
+        <p>
+            RAGBench evaluates RAG configurations by running each query through every
+            combination of four independent axes, scoring the outputs, and comparing
+            them against gold-standard answers when available.
+        </p>
+        <pre>
+Documents --&gt; QueryGenerator --&gt; Queries --&gt; QueryFilter --&gt; Validated Queries
+                                                                    |
+Validated Queries x (Chunker x Embedder x Strategy x Model) --&gt; Answers
+                                                                    |
+                                                         Scorer --&gt; Scores
+                                                                    |
+                                                      ExperimentResult --&gt; Analysis
+        </pre>
+
+        <h2>The Four Axes</h2>
+        <p>Each experiment varies one or two axes while holding the others constant,
+           isolating the effect of each design decision.</p>
+
+        <h3>Chunker</h3>
+        <p>How documents are split into passages for retrieval. Options: fixed-size (512 tokens),
+           recursive (500/100 overlap), sentence-boundary, and semantic (embedding-aware splits).</p>
+
+        <h3>Embedder</h3>
+        <p>How text chunks become vector representations for similarity search.
+           Held constant across experiments: mxbai-embed-large via Ollama.</p>
+
+        <h3>Strategy</h3>
+        <p>How retrieved context is used to generate answers. Five strategies tested:
+           NaiveRAG (single retrieval), SelfRAG (self-critique loop), CorrectiveRAG
+           (retrieval validation), AdaptiveRAG (complexity routing), and MultiQueryRAG
+           (query expansion).</p>
+
+        <h3>Model</h3>
+        <p>Which language model generates the final answer. Tested: Qwen3 (0.6B, 1.7B,
+           4B, 8B) and Gemma 3 (1B, 4B) — all running locally via Ollama.</p>
+
+        <h2>Evaluation Approach</h2>
+        <p>RAGBench uses dual evaluation to assess answer quality from two perspectives:</p>
+        <p><strong>Intrinsic evaluation</strong> (always available): An LLM judge scores each
+           answer on faithfulness, relevance, and conciseness against the retrieved context.
+           No external reference data needed.</p>
+        <p><strong>Extrinsic evaluation</strong> (when gold data exists): Answers are compared
+           against known-correct reference answers using BERTScore and token-level F1.
+           This enables scorer validation — Experiment 0 exists specifically to validate
+           the LLM-as-judge approach against gold-standard metrics.</p>
+
+        <h2>Experiment Design</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Experiment</th>
+                    <th>Research Question</th>
+                    <th>Matrix</th>
+                    <th>Held Constant</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>0 (Scorer Validation)</td>
+                    <td>Which LLM judge is most accurate?</td>
+                    <td>150 medium+hard HotpotQA x 7 judges</td>
+                    <td>Qwen3-4B, NaiveRAG + BGE reranker</td>
+                </tr>
+                <tr>
+                    <td>1 (Strategy x Model)</td>
+                    <td>Does strategy compensate for model size?</td>
+                    <td>5 strategies x 6 models</td>
+                    <td>Recursive chunker, mxbai-embed-large</td>
+                </tr>
+                <tr>
+                    <td>2 (Chunking x Model)</td>
+                    <td>Does chunking strategy interact with model capability?</td>
+                    <td>4 chunkers x 4 models</td>
+                    <td>NaiveRAG, mxbai-embed-large</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Dataset</h2>
+        <p>The primary corpus is <strong>HotpotQA</strong> — 113K multi-hop Wikipedia
+           question-answer pairs with gold-standard answers and difficulty labels (easy,
+           medium, hard). Multi-hop questions require reasoning across multiple passages,
+           making them a rigorous test of retrieval and generation quality.</p>
+        <p>Secondary: SQuAD 2.0 (simple factoid Q&amp;A for easy-baseline calibration).</p>
+
+    </div>
+    
+    </div>
+    <div class="footer">
+        Built by Noah | CUNY SPS Spring 2026 | Powered by RAGBench
+        <br><a href="methodology.html">Methodology</a>
+    </div>
+</body>
+</html>

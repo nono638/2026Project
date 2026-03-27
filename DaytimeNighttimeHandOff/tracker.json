@@ -883,5 +883,13 @@
     "attempted_approaches": [],
     "flags": ["cost_limit_hit bug fix is critical — without it --skip-generation crashes both experiment scripts", "bert_score module not installed — 13 pre-existing test failures"],
     "daytime_reviewed": "2026-03-26T09:27:47"
+  },
+  {
+    "task_id": "task-048",
+    "description": "Experiment 0 resilient resume: generation checkpointing, per-judge scoring resume, cost guard abort",
+    "daytime_created": "2026-03-26T21:09:57",
+    "daytime_comments": "Motivated by Exp 0v3 wasting ~200 questions × 6 judges of API calls when cost guard hit but didn't break the loop. Also: generation has no checkpoint (crash loses all answers), and re-runs re-score everything instead of filling gaps. Exp 1 & 2 already handle cost guard abort — this task only touches run_experiment_0.py.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
