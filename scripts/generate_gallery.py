@@ -283,7 +283,7 @@ p { margin: 12px 0; }
 
 _NAV_ITEMS = [
     ("home", "Home", "index.html"),
-    ("exp0", "Exp 0: Scorer Validation", "experiment_0.html"),
+    ("exp0v3", "Exp 0: Scorer Validation", "experiment_0_v3.html"),
     ("exp1", "Exp 1: Strategy × Model", "experiment_1.html"),
     ("exp2", "Exp 2: Chunking × Model", "experiment_2.html"),
     ("methodology", "Methodology", "methodology.html"),
@@ -353,9 +353,14 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
     Returns:
         HTML content string for the index page body.
     """
-    # Experiment cards
+    # Experiment cards — exclude Experiment 0 entries (v1/v2/v3) since the
+    # hero section handles Exp 0. Only show Exp 1, Exp 2, etc.
     cards = []
     for exp in experiments_info:
+        # Skip all Experiment 0 variants — they're covered by the hero
+        num_str = str(exp["num"])
+        if num_str.startswith("0"):
+            continue
         status_class = "status-ready" if exp["status"] == "ready" else "status-placeholder"
         status_label = "Results Available" if exp["status"] == "ready" else "Coming Soon"
         cards.append(f"""
@@ -387,10 +392,21 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             RAGBench runs the full cartesian product of RAG configurations
             (chunker × embedder × strategy × language model), scores the results
             with LLM judges, and identifies optimal configurations for different
-            constraints. It answers: when does a small model with a smart strategy
-            outperform a larger model with naive RAG?
+            constraints.
         </p>
-        <a href="#experiments" class="cta-btn">View Experiments</a>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
+        <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
+        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Third time's a charm.</p>
+        <p>
+            500 HotpotQA questions. 6 LLM judges. Three iterations to get it right.
+            The answer: <strong>Claude Haiku at $0.002/call</strong> — the cheapest
+            Anthropic model is also the most accurate judge.
+        </p>
+        <a href="experiment_0_v3.html" class="cta-btn" style="margin-top: 16px; display: inline-block;">
+            View Experiment 0 Results &rarr;
+        </a>
     </div>
 
     <h2>Key Findings</h2>
@@ -976,7 +992,252 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
 
     return _build_page_template(
         "Experiment 0 v2 — Scorer Validation (Revised)",
-        nav_active="exp0",
+        nav_active="exp0v3",
+        content_html=content,
+    )
+
+
+def _generate_experiment_0_v3(csv_path: Path) -> str:
+    """Build the Experiment 0 v3 dashboard page with narrative + charts.
+
+    v3 is the definitive scorer validation run (n=500). This page adds a
+    "Road to v3" narrative explaining the journey through v1 and v2, a
+    key findings card with v3-specific stats, and reuses the chart-building
+    logic from the v2 generator.
+
+    Args:
+        csv_path: Path to ``results/experiment_0_v3/raw_scores.csv``.
+
+    Returns:
+        Full HTML page string.
+    """
+    import plotly.graph_objects as go
+
+    df = pd.read_csv(csv_path)
+    total_rows = len(df)
+
+    # --- Detect partial judges (< 50% non-null quality scores) ---
+    # Same logic as v2: partial judges excluded from correlation charts
+    quality_cols = [c for c in df.columns if c.endswith("_quality") and c != "answer_quality"]
+    partial_judges: dict[str, int] = {}
+
+    for col in quality_cols:
+        prefix = col.replace("_quality", "")
+        valid_count = int(df[col].notna().sum())
+        if valid_count < total_rows * 0.5:
+            partial_judges[prefix] = valid_count
+
+    # Build filtered DataFrame for correlation charts (excludes partial judges)
+    df_filtered = df.copy()
+    for prefix in partial_judges:
+        cols_to_drop = [c for c in df_filtered.columns if c.startswith(prefix + "_")]
+        df_filtered = df_filtered.drop(columns=cols_to_drop, errors="ignore")
+
+    # Reuse the standard Exp 0 chart builder for scorer charts
+    try:
+        from scripts.generate_experiment0_dashboard import (
+            build_experiment0_figures,
+            _fig_to_html,
+        )
+        figures = build_experiment0_figures(df_filtered)
+    except Exception:
+        figures = []
+
+        def _fig_to_html(fig: Any) -> str:
+            """Convert a Plotly figure to inline HTML."""
+            return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+
+    # --- Partial judge exclusion note ---
+    partial_notes: list[str] = []
+    for prefix, count in partial_judges.items():
+        name = prefix.replace("_", " ").replace("google ", "").replace("anthropic ", "")
+        partial_notes.append(f"{name} excluded ({count}/{total_rows} scores due to API rate limit)")
+    partial_note_html = ""
+    if partial_notes:
+        partial_note_html = (
+            '<p style="color: #888; font-size: 0.85em; font-style: italic; margin-top: 8px;">'
+            "Note: " + "; ".join(partial_notes) + ".</p>"
+        )
+
+    # --- Build v3 charts (same as v2 chart logic) ---
+    v3_charts: list[str] = []
+
+    # Chart 1: answer_quality distribution
+    if "answer_quality" in df.columns:
+        counts = df["answer_quality"].value_counts()
+        labels = ["good", "questionable", "poor"]
+        values = [counts.get(l, 0) for l in labels]
+        colors = ["#22A884", "#FFB000", "#DC267F"]
+
+        fig_aq = go.Figure(data=[
+            go.Bar(x=labels, y=values, marker_color=colors, text=values, textposition="auto")
+        ])
+        fig_aq.update_layout(
+            title="Answer Quality Distribution",
+            xaxis_title="Quality Label",
+            yaxis_title="Count",
+            template="plotly_white",
+            height=400,
+        )
+        v3_charts.append(f"""
+        <div class="chart-container">
+            <h3>Answer Quality Distribution</h3>
+            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
+                Triangulates BERTScore (semantic), F1 (lexical), and Sonnet (LLM judgment) to classify
+                each answer. All three must agree for "good"; any single metric below threshold flags "poor".
+            </p>
+            {_fig_to_html(fig_aq)}
+        </div>""")
+
+    # Chart 2: failure_stage breakdown
+    if "failure_stage" in df.columns:
+        stage_counts = df["failure_stage"].value_counts()
+        stage_labels = stage_counts.index.tolist()
+        stage_values = stage_counts.values.tolist()
+
+        fig_fs = go.Figure(data=[
+            go.Bar(
+                x=stage_labels, y=stage_values,
+                marker_color=_COLORS[:len(stage_labels)],
+                text=stage_values, textposition="auto",
+            )
+        ])
+        fig_fs.update_layout(
+            title="Failure Stage Breakdown",
+            xaxis_title="Pipeline Stage",
+            yaxis_title="Count",
+            template="plotly_white",
+            height=400,
+        )
+        v3_charts.append(f"""
+        <div class="chart-container">
+            <h3>Failure Stage Breakdown</h3>
+            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
+                Where in the pipeline did wrong answers go wrong? "correct" means the answer matched
+                the gold standard. Other stages show where information was lost.
+            </p>
+            {_fig_to_html(fig_fs)}
+        </div>""")
+
+    # Chart 3: Mean quality scores per judge
+    judge_means: list[tuple[str, float, bool]] = []
+    for col in quality_cols:
+        prefix = col.replace("_quality", "")
+        mean_val = float(df[col].dropna().mean()) if df[col].notna().any() else 0.0
+        is_partial = prefix in partial_judges
+        name = prefix.replace("_", " ").replace("google ", "").replace("anthropic ", "")
+        if is_partial:
+            count = partial_judges[prefix]
+            name += f" * ({count}/{total_rows})"
+        judge_means.append((name, mean_val, is_partial))
+
+    if judge_means:
+        names = [j[0] for j in judge_means]
+        means = [j[1] for j in judge_means]
+        bar_colors = ["#aaa" if j[2] else "#648FFF" for j in judge_means]
+
+        fig_means = go.Figure(data=[
+            go.Bar(
+                x=names, y=means,
+                marker_color=bar_colors,
+                text=[f"{m:.3f}" for m in means],
+                textposition="auto",
+            )
+        ])
+        fig_means.update_layout(
+            title="Mean Quality Score per Judge",
+            xaxis_title="Judge",
+            yaxis_title="Mean Quality (0-1)",
+            template="plotly_white",
+            height=400,
+        )
+        footnote = ""
+        if partial_judges:
+            footnote = '<p style="color: #888; font-size: 0.85em; margin-top: 4px;">* partial data (gray bars) — excluded from correlation analysis</p>'
+        v3_charts.append(f"""
+        <div class="chart-container">
+            <h3>Mean Quality Score per Judge</h3>
+            {_fig_to_html(fig_means)}
+            {footnote}
+        </div>""")
+
+    # Standard scorer charts from build_experiment0_figures
+    scorer_charts: list[str] = []
+    for title, fig in figures:
+        scorer_charts.append(f"""
+        <div class="chart-container">
+            <h3>{title}</h3>
+            {_fig_to_html(fig)}
+        </div>""")
+
+    # --- v3 key findings card ---
+    v3_findings_html = """
+    <div class="card" style="border-left: 4px solid #648FFF;">
+        <h2>Key Findings</h2>
+        <p style="color: #555; margin-bottom: 12px;">
+            v3 — 500 medium+hard HotpotQA questions, 6 LLM judges (3 Gemini + 3 Claude)
+        </p>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            <li style="margin: 8px 0;"><strong>Best judge:</strong> Claude Haiku (r=0.450 gold F1)</li>
+            <li style="margin: 8px 0;"><strong>Best free judge:</strong> Gemini 2.5 Pro (r=0.348)</li>
+            <li style="margin: 8px 0;"><strong>Pipeline accuracy:</strong> 76.2% exact match, mean F1 0.546</li>
+            <li style="margin: 8px 0;"><strong>Failure stages:</strong> 76% none, 14% retrieval, 10% generation</li>
+        </ul>
+    </div>
+    """
+
+    # --- Assemble page ---
+    content = f"""
+    <div class="card">
+        <h2>The Road to v3</h2>
+        <p>
+            Experiment 0 asks a simple question: <em>which LLM judge most reliably tracks
+            whether a RAG answer is actually correct?</em> It took three iterations to get
+            a confident answer.
+        </p>
+        <p>
+            <strong><a href="experiment_0.html">v1</a></strong> (n=50) was our first attempt.
+            It had two critical flaws: judges scored against the full source document instead
+            of the retrieved chunks the LLM actually saw, and there was no reranker in the
+            pipeline. Sonnet came out on top — but the methodology was unsound.
+        </p>
+        <p>
+            <strong><a href="experiment_0_v2.html">v2</a></strong> (n=150) fixed the tracking,
+            added a BGE reranker (retrieve 10, keep 3), and filtered to medium+hard questions
+            to avoid ceiling effects. Haiku beat Sonnet — directly contradicting v1. But with
+            only 150 questions, the margin left room for doubt.
+        </p>
+        <p>
+            <strong>v3</strong> (n=500) is the tiebreaker at scale. With 500 HotpotQA questions
+            and 6 LLM judges (3 Gemini, 3 Claude), the results are clear: <strong>Claude Haiku
+            is the most accurate judge</strong> (r=0.450 with gold F1), followed by Sonnet
+            (0.397) and Opus (0.382). Among the free Gemini judges, Flash and Pro are nearly
+            interchangeable (r=0.892). The question is settled.
+        </p>
+    </div>
+
+    {v3_findings_html}
+
+    <div class="card">
+        <p style="font-size: 0.9em;">
+            <a href="raw_scores_v3.csv" style="color: #648FFF;">Download the v3 raw data (CSV)</a>
+        </p>
+    </div>
+
+    {"".join(v3_charts)}
+
+    <div class="card">
+        <h2>Scorer Comparison Charts</h2>
+        <p>Same scorer analysis as v1/v2, but on the v3 dataset (500 questions, 6 judges).</p>
+        {partial_note_html}
+    </div>
+
+    {"".join(scorer_charts)}
+    """
+
+    return _build_page_template(
+        "Experiment 0 v3 — Scorer Validation (Definitive)",
+        nav_active="exp0v3",
         content_html=content,
     )
 
@@ -1447,7 +1708,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
     content = "\n".join(parts)
     return _build_page_template(
         "Experiment 0: Scorer Validation",
-        nav_active="exp0",
+        nav_active="exp0v3",
         content_html=content,
     )
 
@@ -2018,30 +2279,21 @@ def main(
                         exp0_v2_html, encoding="utf-8",
                     )
                     shutil.copy2(exp0_v2_csv, output_dir / "raw_scores_v2.csv")
-                    # Update experiments_info for navigation
-                    experiments_info.append({
-                        "num": "0v2",
-                        "title": "Scorer Validation v2",
-                        "status": "ready",
-                        "description": "150 medium+hard HotpotQA × NaiveRAG + BGE reranker × diagnostics + answer quality.",
-                    })
+                    # v2 no longer gets its own card on the home page — it's
+                    # reachable via the v3 narrative section instead
                 except Exception as exc:
                     logger.warning("Experiment 0 v2 dashboard generation failed: %s", exc)
 
             if has_v3:
                 logger.info("Generating Experiment 0 v3 dashboard from %s", exp0_v3_csv)
                 try:
-                    exp0_v3_html = _generate_experiment_0_v2(exp0_v3_csv)
+                    # v3 uses its own generator with narrative + charts
+                    exp0_v3_html = _generate_experiment_0_v3(exp0_v3_csv)
                     (output_dir / "experiment_0_v3.html").write_text(
                         exp0_v3_html, encoding="utf-8",
                     )
                     shutil.copy2(exp0_v3_csv, output_dir / "raw_scores_v3.csv")
-                    experiments_info.append({
-                        "num": "0v3",
-                        "title": "Scorer Validation v3",
-                        "status": "ready",
-                        "description": "500 HotpotQA × NaiveRAG + BGE reranker × 6 judges (3 Gemini + 3 Claude).",
-                    })
+                    # v3 is the hero on the home page — no separate card needed
                 except Exception as exc:
                     logger.warning("Experiment 0 v3 dashboard generation failed: %s", exc)
 

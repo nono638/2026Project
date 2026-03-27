@@ -107,7 +107,8 @@ class TestIndexPage:
             {"num": 1, "title": "Strategy × Model", "status": "placeholder"},
         ]
         html = _generate_index(experiments_info)
-        assert "experiment_0.html" in html
+        # Exp 0 is linked via the hero section (v3 page), not a card
+        assert "experiment_0_v3.html" in html
         assert "experiment_1.html" in html
 
     def test_index_shows_project_description(self) -> None:
