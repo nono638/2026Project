@@ -899,7 +899,8 @@
     "daytime_created": "2026-03-26T21:09:57",
     "daytime_comments": "Motivated by Exp 0v3 wasting ~200 questions \u00c3\u2014 6 judges of API calls when cost guard hit but didn't break the loop. Also: generation has no checkpoint (crash loses all answers), and re-runs re-score everything instead of filling gaps. Exp 1 & 2 already handle cost guard abort \u00e2\u20ac\u201d this task only touches run_experiment_0.py.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-03-27T00:03:40"
   },
   {
     "task_id": "task-049",
