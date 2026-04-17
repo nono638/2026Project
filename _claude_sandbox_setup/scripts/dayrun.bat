@@ -68,7 +68,7 @@ for /f "tokens=1,* delims==" %%a in ('python "%HELPER%" model "%SETUP_DIR%" day 
     if "%%a"=="EFFORT" set "EFFORT=%%b"
     if "%%a"=="SOURCE" set "MODEL_SOURCE=%%b"
 )
-if not defined MODEL set "MODEL=claude-opus-4-6"
+if not defined MODEL set "MODEL=claude-opus-4-7"
 if not defined EFFORT set "EFFORT=high"
 if not defined MODEL_SOURCE set "MODEL_SOURCE=hardcoded"
 

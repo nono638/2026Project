@@ -295,3 +295,80 @@ class TestRunPodManager:
 
         query_str = mock_gql.call_args.args[0]
         assert DEFAULT_GPU_TYPES[0] in query_str
+
+    # -- terminate_all_pods --
+
+    @patch("deploy.runpod_manager.requests.get")
+    @patch("deploy.runpod_manager.requests.delete")
+    def test_terminate_all_pods(self, mock_delete: MagicMock, mock_get: MagicMock) -> None:
+        """terminate_all_pods terminates every pod returned by list_pods."""
+        mock_get.return_value = MagicMock(
+            status_code=200, ok=True,
+            json=MagicMock(return_value=[{"id": "a"}, {"id": "b"}]),
+        )
+        mock_delete.return_value = MagicMock(status_code=204, ok=True)
+        mgr = self._make_manager()
+        count = mgr.terminate_all_pods()
+        assert count == 2
+        assert mock_delete.call_count == 2
+
+    @patch("deploy.runpod_manager.requests.get")
+    def test_terminate_all_pods_empty(self, mock_get: MagicMock) -> None:
+        """No pods on account returns 0."""
+        mock_get.return_value = MagicMock(
+            status_code=200, ok=True,
+            json=MagicMock(return_value=[]),
+        )
+        mgr = self._make_manager()
+        count = mgr.terminate_all_pods()
+        assert count == 0
+
+
+class TestPodIdPersistence:
+    """Tests for pod_id file save/load/clear."""
+
+    def test_save_load_clear(self, tmp_path) -> None:
+        from deploy.runpod_manager import save_pod_id, load_pod_id, clear_pod_id
+
+        assert load_pod_id(tmp_path) is None
+
+        save_pod_id("pod-abc", tmp_path)
+        assert load_pod_id(tmp_path) == "pod-abc"
+
+        clear_pod_id(tmp_path)
+        assert load_pod_id(tmp_path) is None
+
+    def test_clear_missing_file_is_safe(self, tmp_path) -> None:
+        from deploy.runpod_manager import clear_pod_id
+        clear_pod_id(tmp_path)  # Should not raise
+
+
+class TestCleanupStalePods:
+    """Tests for the cleanup_stale_pods convenience function."""
+
+    def test_cleans_saved_id_and_account_pods(self, tmp_path) -> None:
+        from deploy.runpod_manager import (
+            RunPodManager, save_pod_id, load_pod_id, cleanup_stale_pods,
+        )
+        save_pod_id("stale-pod", tmp_path)
+
+        mgr = MagicMock(spec=RunPodManager)
+        mgr.terminate_pod.return_value = None
+        mgr.terminate_all_pods.return_value = 1
+
+        count = cleanup_stale_pods(mgr, tmp_path)
+
+        # stale-pod from file + 1 from terminate_all_pods
+        assert count == 2
+        assert load_pod_id(tmp_path) is None
+
+    def test_survives_list_pods_failure(self, tmp_path) -> None:
+        from deploy.runpod_manager import (
+            RunPodManager, RunPodError, cleanup_stale_pods,
+        )
+        mgr = MagicMock(spec=RunPodManager)
+        mgr.list_pods.side_effect = RunPodError("network error")
+        mgr.terminate_all_pods.side_effect = RunPodError("network error")
+
+        count = cleanup_stale_pods(mgr, tmp_path)
+        assert count == 0

@@ -12,6 +12,9 @@ __pycache__/
 # Auto-updated model fallback (written after successful sessions)
 _claude_sandbox_setup/.model_defaults
 
+# RunPod pod tracking (survives process death for cleanup on next run)
+.runpod_pod_id
+
 # Runtime logs and artifacts
 DaytimeNighttimeHandOff/audit.jsonl
 DaytimeNighttimeHandOff/nighttime.log

@@ -138,10 +138,12 @@ class TestFullSetupFlow:
     @patch("deploy.setup_pod.verify_model", return_value=True)
     @patch("deploy.setup_pod.pull_model", return_value=True)
     @patch("deploy.setup_pod.wait_for_ollama", return_value=True)
+    @patch("deploy.setup_pod.cleanup_stale_pods", return_value=0)
     @patch("deploy.setup_pod._load_env", return_value="fake-api-key")
     def test_full_setup_flow(
         self,
         mock_env: MagicMock,
+        mock_cleanup: MagicMock,
         mock_wait: MagicMock,
         mock_pull: MagicMock,
         mock_verify: MagicMock,
@@ -166,6 +168,8 @@ class TestFullSetupFlow:
                 )
                 main()
 
+        # Verify pre-flight cleanup ran
+        mock_cleanup.assert_called_once()
         # Verify pod was created
         mock_manager.create_pod.assert_called_once()
         # Verify both models were pulled
@@ -205,8 +209,9 @@ class TestFullSetupFlow:
         # Model should be pulled
         mock_pull.assert_called_once()
 
+    @patch("deploy.setup_pod.cleanup_stale_pods", return_value=0)
     @patch("deploy.setup_pod._load_env", return_value="fake-api-key")
-    def test_low_balance_exits(self, mock_env: MagicMock) -> None:
+    def test_low_balance_exits(self, mock_env: MagicMock, mock_cleanup: MagicMock) -> None:
         """Balance < $1.00 should exit with code 1."""
         mock_manager = MagicMock()
         mock_manager.get_balance.return_value = 0.50
@@ -227,13 +232,15 @@ class TestFullSetupFlow:
         assert exc_info.value.code == 1
 
     @patch("deploy.setup_pod.wait_for_ollama", return_value=False)
+    @patch("deploy.setup_pod.cleanup_stale_pods", return_value=0)
     @patch("deploy.setup_pod._load_env", return_value="fake-api-key")
-    def test_ollama_not_responding_exits(
+    def test_ollama_not_responding_terminates_pod(
         self,
         mock_env: MagicMock,
+        mock_cleanup: MagicMock,
         mock_wait: MagicMock,
     ) -> None:
-        """Ollama not responding after pod ready should exit with code 1."""
+        """Ollama not responding terminates the pod to stop billing."""
         mock_manager = MagicMock()
         mock_manager.get_balance.return_value = 10.00
         mock_manager.create_pod.return_value = {"id": "pod456"}
@@ -254,13 +261,45 @@ class TestFullSetupFlow:
                     main()
 
         assert exc_info.value.code == 1
+        mock_manager.terminate_pod.assert_called_once_with("pod456")
+
+    @patch("deploy.setup_pod.cleanup_stale_pods", return_value=0)
+    @patch("deploy.setup_pod._load_env", return_value="fake-api-key")
+    def test_wait_for_ready_timeout_terminates_pod(
+        self,
+        mock_env: MagicMock,
+        mock_cleanup: MagicMock,
+    ) -> None:
+        """Pod that never becomes ready is terminated to stop billing."""
+        mock_manager = MagicMock()
+        mock_manager.get_balance.return_value = 10.00
+        mock_manager.create_pod.return_value = {"id": "pod789"}
+        mock_manager.wait_for_ready.return_value = False
+
+        with patch("deploy.setup_pod.RunPodManager", return_value=mock_manager):
+            with patch("deploy.setup_pod.parse_args") as mock_args:
+                mock_args.return_value = MagicMock(
+                    pod_id=None,
+                    pull_only=False,
+                    models=["qwen3:4b"],
+                    name="ragbench-gpu",
+                    image="ollama/ollama",
+                    volume_gb=20,
+                )
+                with pytest.raises(SystemExit) as exc_info:
+                    main()
+
+        assert exc_info.value.code == 1
+        mock_manager.terminate_pod.assert_called_once_with("pod789")
 
     @patch("deploy.setup_pod.verify_model", return_value=True)
     @patch("deploy.setup_pod.wait_for_ollama", return_value=True)
+    @patch("deploy.setup_pod.cleanup_stale_pods", return_value=0)
     @patch("deploy.setup_pod._load_env", return_value="fake-api-key")
     def test_model_pull_failure_continues(
         self,
         mock_env: MagicMock,
+        mock_cleanup: MagicMock,
         mock_wait: MagicMock,
         mock_verify: MagicMock,
     ) -> None:

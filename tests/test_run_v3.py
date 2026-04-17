@@ -55,12 +55,18 @@ class TestRunV3HappyPath:
     @patch("scripts.run_v3.subprocess.run")
     @patch("scripts.run_v3.pull_model", return_value=True)
     @patch("scripts.run_v3.wait_for_ollama", return_value=True)
+    @patch("scripts.run_v3.cleanup_stale_pods", return_value=0)
+    @patch("scripts.run_v3.save_pod_id")
+    @patch("scripts.run_v3.clear_pod_id")
     @patch("scripts.run_v3.RunPodManager")
     @patch("scripts.run_v3.os.environ.get", return_value="fake-api-key")
     def test_happy_path(
         self,
         mock_env: MagicMock,
         mock_manager_cls: MagicMock,
+        mock_clear_id: MagicMock,
+        mock_save_id: MagicMock,
+        mock_cleanup: MagicMock,
         mock_wait_ollama: MagicMock,
         mock_pull: MagicMock,
         mock_subprocess: MagicMock,
@@ -81,8 +87,14 @@ class TestRunV3HappyPath:
         with patch.object(run_v3, "OUTPUT_DIR", tmp_path):
             run_v3.main()
 
+        # Pre-flight cleanup ran
+        mock_cleanup.assert_called_once()
+        # Pod id saved after creation
+        mock_save_id.assert_called_once_with("pod-123")
         # Pod should be terminated
         manager.terminate_pod.assert_called_once_with("pod-123")
+        # Pod id cleared after termination
+        mock_clear_id.assert_called()
         # subprocess called twice: generation + scoring
         assert mock_subprocess.call_count == 2
 
@@ -93,12 +105,18 @@ class TestRunV3GenerationFailure:
     @patch("scripts.run_v3.subprocess.run")
     @patch("scripts.run_v3.pull_model", return_value=True)
     @patch("scripts.run_v3.wait_for_ollama", return_value=True)
+    @patch("scripts.run_v3.cleanup_stale_pods", return_value=0)
+    @patch("scripts.run_v3.save_pod_id")
+    @patch("scripts.run_v3.clear_pod_id")
     @patch("scripts.run_v3.RunPodManager")
     @patch("scripts.run_v3.os.environ.get", return_value="fake-api-key")
     def test_generation_failure_terminates_pod(
         self,
         mock_env: MagicMock,
         mock_manager_cls: MagicMock,
+        mock_clear_id: MagicMock,
+        mock_save_id: MagicMock,
+        mock_cleanup: MagicMock,
         mock_wait_ollama: MagicMock,
         mock_pull: MagicMock,
         mock_subprocess: MagicMock,
@@ -126,12 +144,14 @@ class TestRunV3GenerationFailure:
 class TestRunV3LowBalance:
     """Low balance — exits before creating pod."""
 
+    @patch("scripts.run_v3.cleanup_stale_pods", return_value=0)
     @patch("scripts.run_v3.RunPodManager")
     @patch("scripts.run_v3.os.environ.get", return_value="fake-api-key")
     def test_low_balance_exits(
         self,
         mock_env: MagicMock,
         mock_manager_cls: MagicMock,
+        mock_cleanup: MagicMock,
         tmp_path: Path,
     ) -> None:
         """Script exits with error when balance is too low."""
@@ -153,12 +173,14 @@ class TestRunV3LowBalance:
 class TestRunV3NoPodCreated:
     """Pod creation fails — no terminate call (pod_id is None)."""
 
+    @patch("scripts.run_v3.cleanup_stale_pods", return_value=0)
     @patch("scripts.run_v3.RunPodManager")
     @patch("scripts.run_v3.os.environ.get", return_value="fake-api-key")
     def test_pod_creation_failure(
         self,
         mock_env: MagicMock,
         mock_manager_cls: MagicMock,
+        mock_cleanup: MagicMock,
         tmp_path: Path,
     ) -> None:
         """When pod creation raises an exception, terminate is not called."""

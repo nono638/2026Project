@@ -46,7 +46,9 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from deploy.runpod_manager import RunPodManager, RunPodError
+from deploy.runpod_manager import (
+    RunPodManager, RunPodError, save_pod_id, clear_pod_id, cleanup_stale_pods,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -295,6 +297,17 @@ def print_summary(
         ))
 
 
+def _terminate_and_clear(manager: RunPodManager, pod_id: str) -> None:
+    """Terminate a pod and clear the saved pod_id file."""
+    try:
+        manager.terminate_pod(pod_id)
+        logger.info("Pod %s terminated.", pod_id)
+    except RunPodError as exc:
+        logger.error("Could not terminate pod %s: %s", pod_id, exc)
+        logger.error("TERMINATE MANUALLY: https://www.runpod.io/console/pods")
+    clear_pod_id()
+
+
 def main() -> None:
     """Run the pod setup workflow."""
     args = parse_args()
@@ -302,8 +315,14 @@ def main() -> None:
     manager = RunPodManager(api_key=api_key)
 
     pod_id = args.pod_id
+    created_here = False
 
     if not args.pull_only:
+        # Pre-flight: terminate any stale pods from previous crashed runs
+        stale = cleanup_stale_pods(manager)
+        if stale:
+            print(f"Cleaned up {stale} stale pod(s) from previous run(s)")
+
         # Full setup mode: check balance, create pod, wait for ready
         balance = manager.get_balance()
         print(f"Account balance: ${balance:.2f}")
@@ -337,13 +356,15 @@ def main() -> None:
             sys.exit(1)
 
         pod_id = pod["id"]
+        created_here = True
+        save_pod_id(pod_id)
         print(f"Pod created: {pod_id}")
 
         # Wait for pod to be ready in RunPod
         if not manager.wait_for_ready(pod_id, timeout_s=POD_READY_TIMEOUT_S):
-            url = f"https://www.runpod.io/console/pods/{pod_id}"
             print(f"\nERROR: Pod did not become ready within {POD_READY_TIMEOUT_S}s.")
-            print(f"Check the RunPod console: {url}")
+            print("Terminating pod to stop billing...")
+            _terminate_and_clear(manager, pod_id)
             sys.exit(1)
 
     # Build proxy URL
@@ -358,14 +379,9 @@ def main() -> None:
         print("  2. Ensure the pod image is ollama/ollama")
         print("  3. Ensure OLLAMA_HOST=0.0.0.0 is set in pod env")
         print("  4. Ensure port 11434 is exposed as HTTP")
-        if not args.pull_only:
+        if created_here:
             print(f"\nTerminating pod {pod_id} to stop billing...")
-            try:
-                manager.terminate_pod(pod_id)
-                print("Pod terminated.")
-            except RunPodError as exc:
-                print(f"WARNING: Could not terminate pod: {exc}")
-                print(f"Terminate manually: https://www.runpod.io/console/pods")
+            _terminate_and_clear(manager, pod_id)
         sys.exit(1)
 
     # Pull models
@@ -393,6 +409,9 @@ def main() -> None:
         rate = None
 
     print_summary(pod_id, url, balance, rate, pull_results)
+    print("\n!! Pod is RUNNING and BILLING. Terminate when done:")
+    print(f"!!   python deploy/runpod_manager.py --cleanup")
+    print(f"!!   Or: https://www.runpod.io/console/pods")
 
 
 if __name__ == "__main__":

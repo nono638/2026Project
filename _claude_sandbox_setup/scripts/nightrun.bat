@@ -15,7 +15,7 @@ setlocal enabledelayedexpansion
 ::   NIGHTRUN_COOLDOWN=300       Seconds to wait between relaunches (default: 300)
 ::   NIGHTRUN_MAX_TURNS=2000     Max turns per Claude session (default: 2000)
 ::   NIGHTRUN_MAX_RELAUNCHES=10  Max relaunches before giving up (default: 10)
-::   NIGHTRUN_MODEL=claude-sonnet-4-6  Override the Claude model (default: claude-opus-4-6)
+::   NIGHTRUN_MODEL=claude-sonnet-4-7  Override the Claude model (default: claude-opus-4-7)
 ::   NIGHTRUN_EFFORT=max               Override effort level (default: high)
 ::
 :: What it does:
@@ -132,7 +132,7 @@ for /f "tokens=1,* delims==" %%a in ('python "%HELPER%" model "%SETUP_DIR%" nigh
 )
 
 :: Fallback if helper failed entirely
-if not defined MODEL set "MODEL=claude-opus-4-6"
+if not defined MODEL set "MODEL=claude-opus-4-7"
 if not defined EFFORT set "EFFORT=medium"
 if not defined MODEL_SOURCE set "MODEL_SOURCE=hardcoded"
 
@@ -164,7 +164,7 @@ if exist "%TRACKER%" if not "%PREFLIGHT_PENDING%"=="0" (
     echo.
 )
 echo.
-echo Type a model name to override (e.g. claude-sonnet-4-6), or press Enter to proceed.
+echo Type a model name to override (e.g. claude-sonnet-4-7), or press Enter to proceed.
 echo Ctrl+C to cancel.
 echo.
 set "USER_MODEL="

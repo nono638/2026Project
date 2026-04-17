@@ -12,8 +12,10 @@ Proxy URL docs: https://docs.runpod.io/pods/configuration/expose-ports
 
 from __future__ import annotations
 
+import json
 import logging
 import time
+from pathlib import Path
 
 import requests
 
@@ -39,6 +41,37 @@ DEFAULT_GPU_TYPES = [
 ]
 
 DEFAULT_PORTS = ["11434/http", "8000/http"]  # Ollama + FastAPI
+
+POD_ID_FILENAME = ".runpod_pod_id"
+
+
+def _pod_id_path(project_root: Path | None = None) -> Path:
+    root = project_root or Path(__file__).resolve().parent.parent
+    return root / POD_ID_FILENAME
+
+
+def save_pod_id(pod_id: str, project_root: Path | None = None) -> None:
+    """Persist pod_id to a file so it survives process death."""
+    path = _pod_id_path(project_root)
+    path.write_text(pod_id, encoding="utf-8")
+    logger.info("Saved pod ID to %s", path)
+
+
+def load_pod_id(project_root: Path | None = None) -> str | None:
+    """Load a previously saved pod_id, or None if no file exists."""
+    path = _pod_id_path(project_root)
+    if path.exists():
+        pod_id = path.read_text(encoding="utf-8").strip()
+        return pod_id if pod_id else None
+    return None
+
+
+def clear_pod_id(project_root: Path | None = None) -> None:
+    """Remove the persisted pod_id file."""
+    path = _pod_id_path(project_root)
+    if path.exists():
+        path.unlink()
+        logger.info("Cleared pod ID file %s", path)
 
 
 class RunPodError(Exception):
@@ -396,3 +429,105 @@ class RunPodManager:
             ) from exc
         logger.info("Current spend rate: $%.2f/hr", rate)
         return float(rate)
+
+    def terminate_all_pods(self) -> int:
+        """Terminate every pod on the account. Returns count terminated.
+
+        Intended for pre-flight cleanup — our use case only ever needs one
+        pod at a time, so any existing pods are stale leftovers.
+        """
+        pods = self.list_pods()
+        count = 0
+        for pod in pods:
+            pod_id = pod.get("id") if isinstance(pod, dict) else None
+            if pod_id:
+                try:
+                    self.terminate_pod(pod_id)
+                    count += 1
+                except RunPodError as exc:
+                    logger.warning("Failed to terminate pod %s: %s", pod_id, exc)
+        if count:
+            logger.info("Pre-flight cleanup: terminated %d stale pod(s)", count)
+        return count
+
+
+def cleanup_stale_pods(manager: RunPodManager, project_root: Path | None = None) -> int:
+    """Terminate any leftover pods — from the pod_id file and the account.
+
+    Call this before creating a new pod to prevent billing leaks from
+    previous runs that crashed or were killed.
+
+    Returns:
+        Total number of pods terminated.
+    """
+    count = 0
+
+    # First, try the saved pod_id file (fast, works even if list_pods fails)
+    saved_id = load_pod_id(project_root)
+    if saved_id:
+        logger.info("Found stale pod ID in file: %s — terminating", saved_id)
+        try:
+            manager.terminate_pod(saved_id)
+            count += 1
+        except RunPodError as exc:
+            logger.warning("Could not terminate saved pod %s: %s", saved_id, exc)
+        clear_pod_id(project_root)
+
+    # Then, nuke anything else on the account (catches pods we lost track of)
+    try:
+        count += manager.terminate_all_pods()
+    except RunPodError as exc:
+        logger.warning("Could not list pods for cleanup: %s", exc)
+
+    return count
+
+
+if __name__ == "__main__":
+    import argparse
+    import os
+    import sys
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    parser = argparse.ArgumentParser(description="RunPod pod management CLI")
+    parser.add_argument("--cleanup", action="store_true",
+                        help="Terminate ALL pods on the account")
+    parser.add_argument("--list", action="store_true",
+                        help="List all pods on the account")
+    parser.add_argument("--balance", action="store_true",
+                        help="Show account balance and spend rate")
+    args = parser.parse_args()
+
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+    except ImportError:
+        pass
+
+    api_key = os.environ.get("RUNPOD_API_KEY")
+    if not api_key:
+        print("ERROR: RUNPOD_API_KEY not set in environment or .env file")
+        sys.exit(1)
+
+    mgr = RunPodManager(api_key=api_key)
+
+    if args.cleanup:
+        count = cleanup_stale_pods(mgr)
+        clear_pod_id()
+        print(f"Terminated {count} pod(s)")
+    elif args.list:
+        pods = mgr.list_pods()
+        if not pods:
+            print("No pods found")
+        else:
+            for p in pods:
+                if isinstance(p, dict):
+                    print(f"  {p.get('id', '?')} — {p.get('name', '?')} [{p.get('desiredStatus', '?')}]")
+                else:
+                    print(f"  {p}")
+    elif args.balance:
+        balance = mgr.get_balance()
+        rate = mgr.get_spend_per_hour()
+        print(f"Balance: ${balance:.2f}  |  Spend: ${rate:.2f}/hr")
+    else:
+        parser.print_help()

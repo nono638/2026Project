@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import os
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -33,7 +34,9 @@ from dotenv import load_dotenv
 
 load_dotenv(PROJECT_ROOT / ".env")
 
-from deploy.runpod_manager import RunPodManager
+from deploy.runpod_manager import (
+    RunPodManager, save_pod_id, clear_pod_id, cleanup_stale_pods,
+)
 from deploy.setup_pod import wait_for_ollama, pull_model
 
 # --- Configuration ---
@@ -74,7 +77,31 @@ def main() -> None:
     manager = RunPodManager(api_key=api_key)
     pod_id = None
 
+    # Install signal handlers so Ctrl+C and SIGTERM still terminate the pod.
+    # The finally block handles normal exits and exceptions, but signal
+    # handlers provide an extra safety net.
+    def _signal_handler(signum: int, frame: object) -> None:
+        sig_name = signal.Signals(signum).name
+        logger.warning("Received %s — terminating pod and exiting", sig_name)
+        if pod_id:
+            try:
+                manager.terminate_pod(pod_id)
+                clear_pod_id()
+                logger.info("Pod %s terminated.", pod_id)
+            except Exception as exc:
+                logger.error("Failed to terminate pod %s: %s", pod_id, exc)
+                logger.error("TERMINATE MANUALLY: https://www.runpod.io/console/pods")
+        sys.exit(1)
+
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+
     try:
+        # Pre-flight: terminate any stale pods from previous crashed runs
+        stale = cleanup_stale_pods(manager)
+        if stale:
+            logger.info("Cleaned up %d stale pod(s) from previous run(s)", stale)
+
         # --- Phase 1: Deploy pod ---
         balance = manager.get_balance()
         logger.info("Account balance: $%.2f", balance)
@@ -94,6 +121,7 @@ def main() -> None:
             container_disk_gb=40,
         )
         pod_id = pod["id"]
+        save_pod_id(pod_id)
         logger.info("Pod created: %s", pod_id)
 
         # Wait for pod + Ollama to be ready
@@ -135,6 +163,7 @@ def main() -> None:
         if pod_id:
             try:
                 manager.terminate_pod(pod_id)
+                clear_pod_id()
                 logger.info("Pod %s terminated.", pod_id)
             except Exception as exc:
                 logger.error("Failed to terminate pod %s: %s", pod_id, exc)

@@ -140,8 +140,8 @@ def print_timestamp() -> None:
 # Hardcoded last-resort defaults — only used when both config file and
 # fallback file are missing (e.g., fresh clone before first successful run).
 HARDCODED_DEFAULTS = {
-    "day":   {"model": "claude-opus-4-6", "effort": "high"},
-    "night": {"model": "claude-opus-4-6", "effort": "medium"},
+    "day":   {"model": "claude-opus-4-7", "effort": "high"},
+    "night": {"model": "claude-opus-4-7", "effort": "medium"},
 }
 
 CONFIG_FILENAME = "model_config.json"

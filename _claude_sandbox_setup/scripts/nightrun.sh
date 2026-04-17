@@ -13,7 +13,7 @@
 #   NIGHTRUN_COOLDOWN=300     Seconds to wait between relaunches (default: 300)
 #   NIGHTRUN_MAX_TURNS=2000   Max turns per Claude session (default: 2000)
 #   NIGHTRUN_MAX_RELAUNCHES=10  Max times to relaunch before giving up (default: 10)
-#   NIGHTRUN_MODEL=claude-sonnet-4-6  Override the Claude model (default: claude-opus-4-6)
+#   NIGHTRUN_MODEL=claude-sonnet-4-7  Override the Claude model (default: claude-opus-4-7)
 #   NIGHTRUN_EFFORT=max               Override effort level (default: high)
 #
 # What it does:
@@ -118,7 +118,7 @@ MODEL_SOURCE=""
 eval "$($PYTHON "$HELPER" model "$SETUP_DIR" night "${NIGHTRUN_MODEL:-}" "${NIGHTRUN_EFFORT:-}" 2>/dev/null | sed 's/^/export /')"
 
 # Fallback if helper failed entirely
-MODEL="${MODEL:-claude-opus-4-6}"
+MODEL="${MODEL:-claude-opus-4-7}"
 EFFORT="${EFFORT:-medium}"
 MODEL_SOURCE="${MODEL_SOURCE:-hardcoded}"
 MODEL_FLAG=""
@@ -147,7 +147,7 @@ if [ -f "$TRACKER" ] && [ "$PREFLIGHT_PENDING" -gt 0 ]; then
     echo ""
 fi
 echo ""
-echo "Type a model name to override (e.g. claude-sonnet-4-6), or press Enter to proceed."
+echo "Type a model name to override (e.g. claude-sonnet-4-7), or press Enter to proceed."
 echo "Ctrl+C to cancel."
 echo ""
 read -r -p "> " USER_MODEL

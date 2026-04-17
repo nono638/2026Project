@@ -21,7 +21,7 @@ How it works:
   the best signal available to hooks. Each tool call adds input/output
   to context, so more calls = fuller context.
 
-Thresholds (tuned for Opus 4.6 with 1M context):
+Thresholds (tuned for Opus 4.7 with 1M context):
   - 400 calls: CAUTION — context getting large, commit progress frequently
   - 600 calls: WARNING — wrap up current task, commit, update tracker
   - 800 calls: CRITICAL — finish immediately, do not start new tasks or sweeps
@@ -35,7 +35,7 @@ import os
 import tempfile
 
 
-# Thresholds tuned for Opus 4.6 1M context window.
+# Thresholds tuned for Opus 4.7 1M context window.
 # With smaller context models, lower these significantly.
 THRESHOLD_CAUTION = 400
 THRESHOLD_WARNING = 600
