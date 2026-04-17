@@ -107,6 +107,29 @@ body {
     margin-right: 16px;
 }
 
+/* Version sub-navigation (Experiment 0 versions) */
+.version-nav {
+    background: #2d2d44;
+    padding: 6px 24px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85em;
+}
+.version-nav .version-label {
+    color: #888;
+    margin-right: 8px;
+}
+.version-nav a {
+    color: #aab;
+    text-decoration: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+.version-nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.version-nav a.active { background: #785EF0; color: #fff; font-weight: 600; }
+
 /* Main content */
 .content {
     max-width: 1200px;
@@ -290,10 +313,18 @@ _NAV_ITEMS = [
 ]
 
 
+_EXP0_VERSIONS = [
+    ("v1", "v1 (Initial)", "experiment_0.html"),
+    ("v2", "v2 (Revised)", "experiment_0_v2.html"),
+    ("v3", "v3 (Definitive)", "experiment_0_v3.html"),
+]
+
+
 def _build_page_template(
     title: str,
     nav_active: str,
     content_html: str,
+    exp0_version: str | None = None,
 ) -> str:
     """Wrap content HTML in the shared page template with nav and CSS.
 
@@ -301,6 +332,8 @@ def _build_page_template(
         title: Page title for ``<title>`` and ``<h1>``.
         nav_active: Key of the active nav item (e.g. ``"home"``, ``"exp0"``).
         content_html: Inner HTML for the page body.
+        exp0_version: If set (``"v1"``, ``"v2"``, ``"v3"``), renders the
+            Experiment 0 version sub-navigation bar.
 
     Returns:
         Complete HTML page string.
@@ -310,6 +343,19 @@ def _build_page_template(
         cls = ' class="active"' if key == nav_active else ""
         nav_links.append(f'<a href="{href}"{cls}>{label}</a>')
     nav_html = "\n    ".join(nav_links)
+
+    version_nav_html = ""
+    if exp0_version:
+        ver_links = []
+        for key, label, href in _EXP0_VERSIONS:
+            cls = ' class="active"' if key == exp0_version else ""
+            ver_links.append(f'<a href="{href}"{cls}>{label}</a>')
+        version_nav_html = (
+            '\n    <div class="version-nav">'
+            '<span class="version-label">Version:</span>'
+            + "".join(ver_links)
+            + "</div>"
+        )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -326,7 +372,7 @@ def _build_page_template(
     <nav class="nav">
         <span class="brand">RAGBench</span>
         {nav_html}
-    </nav>
+    </nav>{version_nav_html}
     <div class="content">
         <h1>{title}</h1>
         {content_html}
@@ -994,6 +1040,7 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
         "Experiment 0 v2 — Scorer Validation (Revised)",
         nav_active="exp0v3",
         content_html=content,
+        exp0_version="v2",
     )
 
 
@@ -1239,6 +1286,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         "Experiment 0 v3 — Scorer Validation (Definitive)",
         nav_active="exp0v3",
         content_html=content,
+        exp0_version="v3",
     )
 
 
@@ -1710,6 +1758,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
         "Experiment 0: Scorer Validation",
         nav_active="exp0v3",
         content_html=content,
+        exp0_version="v1",
     )
 
 
