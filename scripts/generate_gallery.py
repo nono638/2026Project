@@ -306,7 +306,7 @@ p { margin: 12px 0; }
 
 _NAV_ITEMS = [
     ("home", "Home", "index.html"),
-    ("exp0v3", "Exp 0: Scorer Validation", "experiment_0_v3.html"),
+    ("exp0v3", "Exp 0v3: Scorer Validation", "experiment_0_v3.html"),
     ("exp1", "Exp 1: Strategy × Model", "experiment_1.html"),
     ("exp2", "Exp 2: Chunking × Model", "experiment_2.html"),
     ("methodology", "Methodology", "methodology.html"),
@@ -2110,20 +2110,20 @@ def _generate_methodology() -> str:
         <h2>Pipeline Overview</h2>
         <p>
             RAGBench evaluates RAG configurations by running each query through every
-            combination of four independent axes, scoring the outputs, and comparing
+            combination of five independent axes, scoring the outputs, and comparing
             them against gold-standard answers when available.
         </p>
         <pre>
 Documents --&gt; QueryGenerator --&gt; Queries --&gt; QueryFilter --&gt; Validated Queries
                                                                     |
-Validated Queries x (Chunker x Embedder x Strategy x Model) --&gt; Answers
+Validated Queries x (Chunker x Embedder x Reranker x Strategy x Model) --&gt; Answers
                                                                     |
                                                          Scorer --&gt; Scores
                                                                     |
                                                       ExperimentResult --&gt; Analysis
         </pre>
 
-        <h2>The Four Axes</h2>
+        <h2>The Five Axes</h2>
         <p>Each experiment varies one or two axes while holding the others constant,
            isolating the effect of each design decision.</p>
 
@@ -2134,6 +2134,12 @@ Validated Queries x (Chunker x Embedder x Strategy x Model) --&gt; Answers
         <h3>Embedder</h3>
         <p>How text chunks become vector representations for similarity search.
            Held constant across experiments: mxbai-embed-large via Ollama.</p>
+
+        <h3>Reranker</h3>
+        <p>An optional second-pass ranker that re-scores retrieved chunks before they reach
+           the LLM, improving precision at the cost of latency. Options: BGE reranker
+           (cross-encoder), MiniLM (lightweight), or none. Experiment 0 uses BGE;
+           Experiments 1 and 2 run without a reranker to isolate other variables.</p>
 
         <h3>Strategy</h3>
         <p>How retrieved context is used to generate answers. Five strategies tested:

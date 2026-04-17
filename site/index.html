@@ -43,6 +43,29 @@ body {
     margin-right: 16px;
 }
 
+/* Version sub-navigation (Experiment 0 versions) */
+.version-nav {
+    background: #2d2d44;
+    padding: 6px 24px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85em;
+}
+.version-nav .version-label {
+    color: #888;
+    margin-right: 8px;
+}
+.version-nav a {
+    color: #aab;
+    text-decoration: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+.version-nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.version-nav a.active { background: #785EF0; color: #fff; font-weight: 600; }
+
 /* Main content */
 .content {
     max-width: 1200px;
@@ -217,7 +240,7 @@ p { margin: 12px 0; }
     <nav class="nav">
         <span class="brand">RAGBench</span>
         <a href="index.html" class="active">Home</a>
-    <a href="experiment_0.html">Exp 0: Scorer Validation</a>
+    <a href="experiment_0_v3.html">Exp 0v3: Scorer Validation</a>
     <a href="experiment_1.html">Exp 1: Strategy × Model</a>
     <a href="experiment_2.html">Exp 2: Chunking × Model</a>
     <a href="methodology.html">Methodology</a>
@@ -232,10 +255,21 @@ p { margin: 12px 0; }
             RAGBench runs the full cartesian product of RAG configurations
             (chunker × embedder × strategy × language model), scores the results
             with LLM judges, and identifies optimal configurations for different
-            constraints. It answers: when does a small model with a smart strategy
-            outperform a larger model with naive RAG?
+            constraints.
         </p>
-        <a href="#experiments" class="cta-btn">View Experiments</a>
+    </div>
+
+    <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
+        <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
+        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Third time's a charm.</p>
+        <p>
+            500 HotpotQA questions. 6 LLM judges. Three iterations to get it right.
+            The answer: <strong>Claude Haiku at $0.002/call</strong> — the cheapest
+            Anthropic model is also the most accurate judge.
+        </p>
+        <a href="experiment_0_v3.html" class="cta-btn" style="margin-top: 16px; display: inline-block;">
+            View Experiment 0 Results &rarr;
+        </a>
     </div>
 
     <h2>Key Findings</h2>
@@ -263,26 +297,18 @@ p { margin: 12px 0; }
     <div class="experiment-grid">
         
         <div class="experiment-card">
-            <a href="experiment_0.html">
-                <span class="status status-ready">Results Available</span>
-                <h3>Experiment 0: Scorer Validation</h3>
-                <p>v1: 50 HotpotQA × NaiveRAG × Qwen3 4B; v2: 150 medium+hard × BGE reranker × diagnostics; v3: 500 HotpotQA × BGE reranker × 6 judges (3 Gemini + 3 Claude)</p>
+            <a href="experiment_1.html">
+                <span class="status status-placeholder">Coming Soon</span>
+                <h3>Experiment 1: Strategy × Model Size</h3>
+                <p>Strategy × Model Size — 5 RAG strategies (NaiveRAG, SelfRAG, CorrectiveRAG, AdaptiveRAG, MultiQueryRAG) × 6 models (Qwen3 0.6B/1.7B/4B/8B, Gemma 3 1B/4B) = 30 configurations. Held constant: Recursive chunker (500/100), mxbai-embed-large, hybrid retrieval.</p>
             </a>
         </div>
 
         <div class="experiment-card">
-            <a href="experiment_0v2.html">
-                <span class="status status-ready">Results Available</span>
-                <h3>Experiment 0v2: Scorer Validation v2</h3>
-                <p>150 medium+hard HotpotQA × NaiveRAG + BGE reranker × diagnostics + answer quality.</p>
-            </a>
-        </div>
-
-        <div class="experiment-card">
-            <a href="experiment_0v3.html">
-                <span class="status status-ready">Results Available</span>
-                <h3>Experiment 0v3: Scorer Validation v3</h3>
-                <p>500 HotpotQA × NaiveRAG + BGE reranker × 6 judges (3 Gemini + 3 Claude).</p>
+            <a href="experiment_2.html">
+                <span class="status status-placeholder">Coming Soon</span>
+                <h3>Experiment 2: Chunking × Model Size</h3>
+                <p>Chunking × Model Size — 4 chunking strategies (Fixed 512, Recursive 500/100, Sentence, Semantic) × 4 Qwen3 models (0.6B/1.7B/4B/8B) = 16 configurations. Held constant: NaiveRAG strategy, mxbai-embed-large, hybrid retrieval.</p>
             </a>
         </div>
         

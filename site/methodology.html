@@ -43,6 +43,29 @@ body {
     margin-right: 16px;
 }
 
+/* Version sub-navigation (Experiment 0 versions) */
+.version-nav {
+    background: #2d2d44;
+    padding: 6px 24px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85em;
+}
+.version-nav .version-label {
+    color: #888;
+    margin-right: 8px;
+}
+.version-nav a {
+    color: #aab;
+    text-decoration: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+.version-nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.version-nav a.active { background: #785EF0; color: #fff; font-weight: 600; }
+
 /* Main content */
 .content {
     max-width: 1200px;
@@ -217,7 +240,7 @@ p { margin: 12px 0; }
     <nav class="nav">
         <span class="brand">RAGBench</span>
         <a href="index.html">Home</a>
-    <a href="experiment_0_v3.html">Exp 0: Scorer Validation</a>
+    <a href="experiment_0_v3.html">Exp 0v3: Scorer Validation</a>
     <a href="experiment_1.html">Exp 1: Strategy × Model</a>
     <a href="experiment_2.html">Exp 2: Chunking × Model</a>
     <a href="methodology.html" class="active">Methodology</a>
