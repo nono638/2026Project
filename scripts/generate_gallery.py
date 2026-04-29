@@ -203,6 +203,17 @@ p { margin: 12px 0; }
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
+/* Figure captions (task-051) */
+.caption {
+    font-size: 0.95em;
+    color: #4a4a4a;
+    font-style: italic;
+    max-width: 800px;
+    margin: 0.5em auto 2em auto;
+    line-height: 1.4;
+    padding: 0 1em;
+}
+
 /* Placeholder page */
 .placeholder {
     text-align: center;
@@ -851,19 +862,29 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
         df_filtered = df_filtered.drop(columns=cols_to_drop, errors="ignore")
 
     # Try to reuse the standard Exp 0 chart builder for scorer charts
-    # (using filtered data that excludes partial judges from correlations)
+    # (using filtered data that excludes partial judges from correlations).
+    # Helpers imported up front so they remain available even if figure
+    # construction itself raises (e.g. dtype mismatch in legacy CSVs).
     try:
         from scripts.generate_experiment0_dashboard import (
-            build_experiment0_figures,
             _fig_to_html,
+            _caption_html,
         )
-        figures = build_experiment0_figures(df_filtered)
     except Exception:
-        figures = []
-
         def _fig_to_html(fig: Any) -> str:
             """Convert a Plotly figure to inline HTML."""
             return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+
+        def _caption_html(title: str) -> str:
+            """Fallback no-op caption helper if dashboard import fails."""
+            return ""
+
+    try:
+        from scripts.generate_experiment0_dashboard import build_experiment0_figures
+        figures = build_experiment0_figures(df_filtered)
+    except Exception as exc:
+        logger.warning("build_experiment0_figures failed for v2: %s", exc)
+        figures = []
 
     # --- Partial judge exclusion note ---
     partial_notes: list[str] = []
@@ -900,12 +921,9 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
         v2_charts.append(f"""
         <div class="chart-container">
             <h3>Answer Quality Distribution</h3>
-            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
-                Triangulates BERTScore (semantic), F1 (lexical), and Sonnet (LLM judgment) to classify
-                each answer. All three must agree for "good"; any single metric below threshold flags "poor".
-            </p>
             {_fig_to_html(fig_aq)}
-        </div>""")
+        </div>
+        {_caption_html("Answer Quality Distribution")}""")
 
     # Chart 2: failure_stage breakdown
     if "failure_stage" in df.columns:
@@ -930,12 +948,9 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
         v2_charts.append(f"""
         <div class="chart-container">
             <h3>Failure Stage Breakdown</h3>
-            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
-                Where in the pipeline did wrong answers go wrong? "correct" means the answer matched
-                the gold standard. Other stages show where information was lost.
-            </p>
             {_fig_to_html(fig_fs)}
-        </div>""")
+        </div>
+        {_caption_html("Failure Stage Breakdown")}""")
 
     # Chart 3: Mean quality scores per judge — partial judges shown in gray
     # with asterisk, full judges in blue, so the reader can see all judges
@@ -979,7 +994,8 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
             <h3>Mean Quality Score per Judge</h3>
             {_fig_to_html(fig_means)}
             {footnote}
-        </div>""")
+        </div>
+        {_caption_html("Mean Quality Score per Judge")}""")
 
     # Standard scorer charts from build_experiment0_figures
     scorer_charts: list[str] = []
@@ -988,7 +1004,8 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
         <div class="chart-container">
             <h3>{title}</h3>
             {_fig_to_html(fig)}
-        </div>""")
+        </div>
+        {_caption_html(title)}""")
 
     # --- Findings summary at top of page ---
     findings_html = """
@@ -1080,19 +1097,29 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         cols_to_drop = [c for c in df_filtered.columns if c.startswith(prefix + "_")]
         df_filtered = df_filtered.drop(columns=cols_to_drop, errors="ignore")
 
-    # Reuse the standard Exp 0 chart builder for scorer charts
+    # Reuse the standard Exp 0 chart builder for scorer charts.
+    # Helpers imported up front so they remain available even if figure
+    # construction itself raises (e.g. dtype mismatch in legacy CSVs).
     try:
         from scripts.generate_experiment0_dashboard import (
-            build_experiment0_figures,
             _fig_to_html,
+            _caption_html,
         )
-        figures = build_experiment0_figures(df_filtered)
     except Exception:
-        figures = []
-
         def _fig_to_html(fig: Any) -> str:
             """Convert a Plotly figure to inline HTML."""
             return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+
+        def _caption_html(title: str) -> str:
+            """Fallback no-op caption helper if dashboard import fails."""
+            return ""
+
+    try:
+        from scripts.generate_experiment0_dashboard import build_experiment0_figures
+        figures = build_experiment0_figures(df_filtered)
+    except Exception as exc:
+        logger.warning("build_experiment0_figures failed for v3: %s", exc)
+        figures = []
 
     # --- Partial judge exclusion note ---
     partial_notes: list[str] = []
@@ -1129,12 +1156,9 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         v3_charts.append(f"""
         <div class="chart-container">
             <h3>Answer Quality Distribution</h3>
-            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
-                Triangulates BERTScore (semantic), F1 (lexical), and Sonnet (LLM judgment) to classify
-                each answer. All three must agree for "good"; any single metric below threshold flags "poor".
-            </p>
             {_fig_to_html(fig_aq)}
-        </div>""")
+        </div>
+        {_caption_html("Answer Quality Distribution")}""")
 
     # Chart 2: failure_stage breakdown
     if "failure_stage" in df.columns:
@@ -1159,12 +1183,9 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         v3_charts.append(f"""
         <div class="chart-container">
             <h3>Failure Stage Breakdown</h3>
-            <p class="chart-explanation" style="color: #555; font-size: 0.92em; line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
-                Where in the pipeline did wrong answers go wrong? "correct" means the answer matched
-                the gold standard. Other stages show where information was lost.
-            </p>
             {_fig_to_html(fig_fs)}
-        </div>""")
+        </div>
+        {_caption_html("Failure Stage Breakdown")}""")
 
     # Chart 3: Mean quality scores per judge
     judge_means: list[tuple[str, float, bool]] = []
@@ -1206,7 +1227,8 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
             <h3>Mean Quality Score per Judge</h3>
             {_fig_to_html(fig_means)}
             {footnote}
-        </div>""")
+        </div>
+        {_caption_html("Mean Quality Score per Judge")}""")
 
     # Standard scorer charts from build_experiment0_figures
     scorer_charts: list[str] = []
@@ -1215,7 +1237,8 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         <div class="chart-container">
             <h3>{title}</h3>
             {_fig_to_html(fig)}
-        </div>""")
+        </div>
+        {_caption_html(title)}""")
 
     # --- v3 key findings card ---
     v3_findings_html = """
@@ -1271,6 +1294,19 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         </p>
     </div>
 
+    <div class="card">
+        <h2>Summary</h2>
+        <p>
+            Across 500 medium+hard HotpotQA questions, <strong>Claude Haiku</strong>
+            tracked the gold-standard word-overlap F1 most reliably (Pearson r=0.450),
+            beating Sonnet (0.397), Opus (0.382), Gemini 2.5 Pro (0.348), Gemini 2.5
+            Flash (0.301), and Gemini 2.5 Flash-Lite (0.139). Inter-judge correlation
+            within the Gemini family is high (Flash and Pro at r=0.892), confirming
+            family-level bias and motivating multi-provider judge panels. The figures
+            below visualize each step of that analysis.
+        </p>
+    </div>
+
     {"".join(v3_charts)}
 
     <div class="card">
@@ -1306,6 +1342,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
     from scripts.generate_experiment0_dashboard import (
         build_experiment0_figures,
         _fig_to_html,
+        _caption_html,
     )
 
     df = pd.read_csv(csv_path)
@@ -1321,7 +1358,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
         figures_by_title[title] = _fig_to_html(fig)
 
     def _chart_block(title: str, explanation: str = "") -> str:
-        """Render a chart container with optional explanation prose."""
+        """Render a chart container with optional explanation prose, plus a caption below."""
         chart_html = figures_by_title.get(title)
         if chart_html is None:
             return ""
@@ -1336,7 +1373,8 @@ def _generate_experiment_0(csv_path: Path) -> str:
         <div class="chart-container">
             <h3>{title}</h3>{expl_html}
             {chart_html}
-        </div>"""
+        </div>
+        {_caption_html(title)}"""
 
     parts: list[str] = []
 
