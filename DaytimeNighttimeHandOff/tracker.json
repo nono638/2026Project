@@ -933,8 +933,19 @@
     "daytime_created": "2026-04-29T12:00:00",
     "daytime_comments": "Adds 'openai' to LLMScorer adapters, gpt-5.4-mini and gpt-5.4 to JUDGE_CONFIGS, OpenAI cost entries to CostGuard (err high). Then runs --skip-generation --judges gpt against v3 to backfill OpenAI scores (~$2 expected at 500 rows). Verify model availability with one test call each before scoring; fall back to gpt-4o-mini/gpt-4o if GPT-5.4 unavailable on account. Do NOT use gpt-5.5 (flagship, 2x cost). Skips Exp 1 & 2 scorer config on purpose. Run only if OPENAI_API_KEY is set in .env.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-04-29T13:15:38"
+    "status": "done",
+    "nighttime_started": "2026-04-29T13:15:38",
+    "nighttime_completed": "2026-04-29T13:26:51",
+    "nighttime_comments": "OpenAI adapter + cost entries + JUDGE_CONFIGS appended. 23 scorer/cost-guard tests pass; 637/652 full suite pass (15 pre-existing bert_score failures unrelated). Retroactive v3 scoring NOT run (network blocked in nighttime).",
+    "branch": "night/task-050-openai-judge",
+    "commit_sha": "fc8c03c4dcd56ae4f7ad51eb49e039a9c6459ce4",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": [
+      "Retroactive v3 scoring not executed — network blocked in nighttime. User must run manually: python scripts/run_experiment_0.py --version v3 --skip-generation --judges gpt",
+      "Verify gpt-5.4 / gpt-5.4-mini available on user's account before running; fallback gpt-4o / gpt-4o-mini already in cost guard",
+      "Updated tests/test_cost_guard.py::test_unknown_model_uses_default to use 'mystery-provider/unknown-model-xyz' (was openai/gpt-4o-mini, now a known cost)"
+    ]
   },
   {
     "task_id": "task-051",
