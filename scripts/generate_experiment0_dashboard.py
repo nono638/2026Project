@@ -1220,6 +1220,15 @@ h3 { color: #333; margin-top: 30px; }
 .data-table th, .data-table td { padding: 8px; border: 1px solid #ddd; text-align: left; }
 .data-table th { background: #f5f5f5; }
 .chart-container { background: white; border-radius: 12px; padding: 16px; margin: 20px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.caption {
+  font-size: 0.95em;
+  color: #4a4a4a;
+  font-style: italic;
+  max-width: 800px;
+  margin: 0.5em auto 2em auto;
+  line-height: 1.4;
+  padding: 0 1em;
+}
 select { font-size: 1em; padding: 8px 12px; border-radius: 6px; border: 1px solid #ccc; margin: 8px 0; min-width: 400px; }
 """
 
@@ -1235,6 +1244,159 @@ function showExample(id) {
     }
 }
 """
+
+
+# Captions are keyed by chart title. The four required captions
+# (answer-length, judge-vs-gold scatter, inter-judge heatmap, BERTScore
+# histogram) are written verbatim per task-051 spec; others written in
+# the same what/takeaway pattern.
+CAPTIONS: dict[str, str] = {
+    "Judge Quality vs BERTScore": (
+        "Each point is one question; the x-axis is the gold-standard quality signal "
+        "(BERTScore against the HotpotQA reference answer), the y-axis is the LLM "
+        "judge's quality score. A judge that tracks gold well will show a tight "
+        "upward trend. The Pearson correlation shown in the title is our primary "
+        "metric for picking a scorer."
+    ),
+    "Judge Quality vs Gold F1": (
+        "Same as the BERTScore scatter, but x-axis is word-overlap F1 against the "
+        "gold answer. F1 is stricter than BERTScore — it rewards exact lexical "
+        "match. Judges that correlate strongly here are picking up on literal "
+        "answer correctness, not just semantic plausibility."
+    ),
+    "Judge-Gold Correlation": (
+        "Bar chart of each judge's Pearson correlation with the two gold-standard "
+        "metrics (BERTScore, F1). Higher bars mean the judge's quality scores "
+        "more reliably track real correctness. The judge with the tallest bars "
+        "is the recommended scorer for future experiments."
+    ),
+    "Correct vs Incorrect Scores": (
+        "Distribution of judge quality scores split by gold correctness "
+        "(exact-match yes/no). A useful judge gives clearly higher scores to "
+        "correct answers than to incorrect ones — visible as separated "
+        "distributions. Overlapping distributions mean the judge can't reliably "
+        "distinguish right from wrong."
+    ),
+    "Score Heatmap": (
+        "Per-question quality score for every judge. Rows are questions, columns "
+        "are judges, color is the score (warmer = higher). Vertical streaks reveal "
+        "questions where all judges agree; horizontal stripes reveal judges that "
+        "consistently rate high or low across the board."
+    ),
+    "Score Distributions": (
+        "Violin plot of each judge's quality scores across all questions. Width "
+        "shows where each judge's scores cluster. A judge whose scores are "
+        "compressed near 5.0 (top of scale) has limited resolving power — the "
+        "scorer-validation analysis can't separate good from great."
+    ),
+    "Metric Breakdown": (
+        "Each judge's mean score on the three rubric dimensions (faithfulness, "
+        "relevance, conciseness). Differences across judges reveal what each "
+        "model emphasizes. Faithfulness is the most diagnostic of hallucination; "
+        "conciseness is least correlated with actual correctness."
+    ),
+    "Score vs Answer Length": (
+        "Judge quality score plotted against the model's answer length in "
+        "characters. A flat trend means the judge isn't penalizing verbose "
+        "answers; an upward trend means the judge rewards length (a known LLM "
+        "judge bias documented in the literature)."
+    ),
+    "Score vs Question Length": (
+        "Judge quality score against question length. Most judges show no "
+        "systematic relationship, which is expected — question length shouldn't "
+        "predict answer correctness. A strong trend would suggest the judge is "
+        "anchoring on surface features instead of substance."
+    ),
+    "Inter-Judge Correlation": (
+        "Pairwise Pearson correlation between every pair of LLM judges. High "
+        "off-diagonal values (warm colors) mean two judges agree; low values "
+        "mean they disagree. Judges from the same provider family (e.g., all "
+        "Gemini models) tend to correlate more strongly with each other than "
+        "across families — evidence that family-level bias is real and that "
+        "using judges from multiple providers is methodologically sound."
+    ),
+    "BERTScore Distribution": (
+        "Distribution of BERTScore F1 between model answers and HotpotQA gold "
+        "answers across the n questions in this run. A right-skewed distribution "
+        "(most mass near 1.0) means the model is mostly producing "
+        "semantically-equivalent answers; a wider spread means more variance in "
+        "answer quality. This is our objective-truth signal and the anchor for "
+        "judge validation."
+    ),
+    "F1 Distribution": (
+        "Distribution of word-overlap F1 against the gold answer. F1 is harsher "
+        "than BERTScore — synonyms and paraphrases get zero credit. A bimodal "
+        "shape (one peak near 0, one near 1) indicates the model either nails "
+        "the literal answer or misses entirely; a smoother spread indicates "
+        "partial-credit answers."
+    ),
+    "BERTScore vs F1": (
+        "Each question plotted by its two gold-standard scores. Points on the "
+        "diagonal score similarly on both metrics; points well above the diagonal "
+        "are semantically right but lexically off (paraphrases). Most points "
+        "should fall in the upper-right quadrant — high on both."
+    ),
+    "Question Length Distribution": (
+        "Histogram of question lengths (in characters) for the HotpotQA sample "
+        "scored in this run. HotpotQA questions are typically multi-hop and "
+        "moderate-length. This chart documents the input distribution so a "
+        "reader can judge whether results generalize to their use case."
+    ),
+    "Answer Length Comparison": (
+        "Distribution of answer lengths (in tokens) for the model's RAG answers "
+        "versus the HotpotQA gold answers. The model produces substantially "
+        "longer answers because it isn't prompted to be concise — it writes "
+        "natural-language sentences, while HotpotQA gold answers are short "
+        "extractive spans (often 1-3 words). This explains why conciseness "
+        "scores diverge from gold F1: the model isn't wrong, it's verbose. "
+        "A future experiment could test whether a 'be concise' instruction "
+        "closes the gap without hurting faithfulness."
+    ),
+    # Charts present in v2/v3 dashboards
+    "Answer Quality Distribution": (
+        "Composite quality label combining BERTScore (semantic), F1 (lexical), "
+        "and Sonnet (LLM judgment). 'Good' requires all three to agree above "
+        "thresholds; 'poor' triggers if any single metric falls below. The "
+        "split between good/questionable/poor sets the ceiling on what a "
+        "judge can possibly agree with."
+    ),
+    "Failure Stage Breakdown": (
+        "For each wrong answer, which pipeline stage caused the failure: "
+        "chunker, retrieval, filtering, or generation. 'None' means the answer "
+        "was correct. Retrieval failures dominate — fixes there have the "
+        "largest expected payoff."
+    ),
+    "Mean Quality Score per Judge": (
+        "Average quality score each judge assigns across all questions. Tighter "
+        "spread between judges means more cross-family agreement on absolute "
+        "level; wider spread reveals lenient versus strict judges. Use this "
+        "alongside the inter-judge correlation chart, not in place of it."
+    ),
+    "Biggest Disagreements": (
+        "The questions where judges disagree most strongly. Useful for "
+        "qualitative inspection — when judges diverge, the answer is usually "
+        "ambiguous, partially correct, or stylistically unusual."
+    ),
+}
+
+
+def _caption_html(title: str) -> str:
+    """Return a `<p class="caption">` HTML block for the given chart title.
+
+    Returns empty string if no caption is registered for that title — keeps
+    the dashboard renderable even if a chart title is added without a
+    matching caption entry.
+
+    Args:
+        title: Chart title (matches keys in CAPTIONS).
+
+    Returns:
+        HTML string or empty string.
+    """
+    text = CAPTIONS.get(title, "")
+    if not text:
+        return ""
+    return f'<p class="caption">{text}</p>'
 
 
 def _fig_to_html(fig: go.Figure) -> str:
@@ -1361,33 +1523,49 @@ def generate_dashboard(
     # Section 2: Judge vs Gold
     parts.append("<h2>Section 2: Judge vs Gold (Primary Analysis)</h2>")
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_judge_vs_bertscore(scores_df, judges))}</div>')
+    parts.append(_caption_html("Judge Quality vs BERTScore"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_judge_vs_f1(scores_df, judges))}</div>')
+    parts.append(_caption_html("Judge Quality vs Gold F1"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_judge_gold_correlation(scores_df, judges))}</div>')
+    parts.append(_caption_html("Judge-Gold Correlation"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_correct_vs_incorrect(scores_df, judges))}</div>')
+    parts.append(_caption_html("Correct vs Incorrect Scores"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_score_heatmap(scores_df, judges))}</div>')
+    parts.append(_caption_html("Score Heatmap"))
 
     # Section 3: Score Distributions
     parts.append("<h2>Section 3: Score Distributions</h2>")
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_violin_distributions(scores_df, judges))}</div>')
+    parts.append(_caption_html("Score Distributions"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_metric_breakdown(scores_df, judges))}</div>')
+    parts.append(_caption_html("Metric Breakdown"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_score_vs_answer_length(scores_df, judges))}</div>')
+    parts.append(_caption_html("Score vs Answer Length"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_score_vs_question_length(scores_df, judges))}</div>')
+    parts.append(_caption_html("Score vs Question Length"))
 
     # Section 4: Judge Agreement
     parts.append("<h2>Section 4: Judge Agreement</h2>")
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_inter_judge_correlation(scores_df, judges))}</div>')
+    parts.append(_caption_html("Inter-Judge Correlation"))
     parts.append(f'<div class="chart-container">{_chart_biggest_disagreements(scores_df, judges, answers_df, model_name)}</div>')
+    parts.append(_caption_html("Biggest Disagreements"))
 
     # Section 5: Gold Answer Analysis
     parts.append("<h2>Section 5: Gold Answer Analysis</h2>")
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_bertscore_distribution(scores_df))}</div>')
+    parts.append(_caption_html("BERTScore Distribution"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_f1_distribution(scores_df))}</div>')
+    parts.append(_caption_html("F1 Distribution"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_bertscore_vs_f1(scores_df))}</div>')
+    parts.append(_caption_html("BERTScore vs F1"))
 
     # Section 6: Data Overview
     parts.append("<h2>Section 6: Data Overview</h2>")
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_question_length_distribution(scores_df))}</div>')
+    parts.append(_caption_html("Question Length Distribution"))
     parts.append(f'<div class="chart-container">{_fig_to_html(_chart_answer_length_comparison(scores_df))}</div>')
+    parts.append(_caption_html("Answer Length Comparison"))
 
     body_content = "\n".join(parts)
 
