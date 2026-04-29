@@ -61,6 +61,10 @@ _COLORS = [
     "#22A884",  # teal
 ]
 
+# Columns that end in "_quality" but are NOT per-judge quality scores.
+# answer_quality is the v2 composite categorical metric ('good'/'poor'/...).
+_NON_JUDGE_QUALITY_COLS: frozenset[str] = frozenset({"answer_quality"})
+
 
 # ---------------------------------------------------------------------------
 # Data helpers
@@ -84,8 +88,11 @@ def get_valid_judges(
         List of dicts with keys: prefix, display_name, valid_count, color.
     """
     judges = []
-    # Find all *_quality columns
-    quality_cols = [c for c in df.columns if c.endswith("_quality")]
+    # Find all *_quality columns, excluding non-judge metrics like answer_quality
+    quality_cols = [
+        c for c in df.columns
+        if c.endswith("_quality") and c not in _NON_JUDGE_QUALITY_COLS
+    ]
 
     for col in quality_cols:
         prefix = col.replace("_quality", "")
