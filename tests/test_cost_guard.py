@@ -48,7 +48,7 @@ class TestCostGuardUnknownModel:
     def test_unknown_model_uses_default(self) -> None:
         """Unrecognized model should use $0.01 default per call."""
         guard = CostGuard(max_cost_usd=100.0)
-        guard.record_call("openai", "gpt-4o-mini")
+        guard.record_call("mystery-provider", "unknown-model-xyz")
         # DEFAULT_COST_PER_CALL is 0.01
         assert guard.total_estimated_cost == pytest.approx(0.01)
 

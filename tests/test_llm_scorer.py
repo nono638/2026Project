@@ -142,6 +142,81 @@ class TestGoogleProvider:
 
 
 # ---------------------------------------------------------------------------
+# OpenAI provider tests
+# ---------------------------------------------------------------------------
+
+def _mock_openai_response(text: str = _GOOD_RESPONSE) -> MagicMock:
+    """Create a mock OpenAI chat.completions.create response."""
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message = MagicMock(content=text)
+    return response
+
+
+def _patched_openai_module(mock_client: MagicMock) -> dict:
+    """Build a sys.modules patch that exposes a stub `openai` module
+    with an OpenAI class returning the given mock client."""
+    mock_openai_module = MagicMock()
+    mock_openai_module.OpenAI.return_value = mock_client
+    return {"openai": mock_openai_module}
+
+
+class TestOpenAIProvider:
+    """Test LLMScorer with provider='openai'."""
+
+    def test_score_returns_dict(self):
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = _mock_openai_response()
+
+        with patch.dict("sys.modules", _patched_openai_module(mock_client)):
+            from src.scorers.llm import LLMScorer
+            scorer = LLMScorer(provider="openai", model="gpt-5.4-mini", api_key="test")
+            result = scorer.score("What is X?", "X is a thing.", "X is a thing.")
+
+            assert result["faithfulness"] == 4.0
+            assert result["relevance"] == 5.0
+            assert result["conciseness"] == 3.0
+
+    def test_name_property(self):
+        mock_client = MagicMock()
+        with patch.dict("sys.modules", _patched_openai_module(mock_client)):
+            from src.scorers.llm import LLMScorer
+            scorer = LLMScorer(provider="openai", model="gpt-5.4", api_key="test")
+            assert scorer.name == "openai:gpt-5.4"
+
+    def test_calls_api_with_correct_model(self):
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = _mock_openai_response()
+
+        with patch.dict("sys.modules", _patched_openai_module(mock_client)):
+            from src.scorers.llm import LLMScorer
+            scorer = LLMScorer(provider="openai", model="gpt-5.4-mini", api_key="test")
+            scorer.score("Q", "C", "A")
+
+            mock_client.chat.completions.create.assert_called_once()
+            kwargs = mock_client.chat.completions.create.call_args.kwargs
+            assert kwargs["model"] == "gpt-5.4-mini"
+            assert kwargs["messages"][0]["role"] == "user"
+
+    def test_extracts_text_from_response(self):
+        custom_json = json.dumps({
+            "faithfulness": 2, "relevance": 3, "conciseness": 1,
+            "reasoning": {"faithfulness": "x", "relevance": "y", "conciseness": "z"},
+        })
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = _mock_openai_response(custom_json)
+
+        with patch.dict("sys.modules", _patched_openai_module(mock_client)):
+            from src.scorers.llm import LLMScorer
+            scorer = LLMScorer(provider="openai", model="gpt-5.4-mini", api_key="test")
+            result = scorer.score("Q", "C", "A")
+
+            assert result["faithfulness"] == 2.0
+            assert result["relevance"] == 3.0
+            assert result["conciseness"] == 1.0
+
+
+# ---------------------------------------------------------------------------
 # Shared behavior tests (provider-independent)
 # ---------------------------------------------------------------------------
 

@@ -117,10 +117,40 @@ def _google_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
     return call
 
 
+def _openai_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
+    """Create an OpenAI API caller.
+
+    Lazy-imports the openai SDK so users who only use other providers
+    don't need it installed.
+
+    Args:
+        model: OpenAI model ID (e.g., "gpt-5.4-mini").
+        api_key: API key, or None to use OPENAI_API_KEY env var.
+
+    Returns:
+        A callable that takes a prompt string and returns the response text.
+    """
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key) if api_key else OpenAI()
+
+    def call(prompt: str) -> str:
+        """Send prompt to OpenAI chat completions and return response text."""
+        response = client.chat.completions.create(
+            model=model,
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content
+
+    return call
+
+
 # Registry of provider name → adapter factory function
 _ADAPTERS: dict[str, Callable[[str, str | None], Callable[[str], str]]] = {
     "anthropic": _anthropic_adapter,
     "google": _google_adapter,
+    "openai": _openai_adapter,
 }
 
 
