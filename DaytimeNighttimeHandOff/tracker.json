@@ -926,5 +926,21 @@
     "attempted_approaches": [],
     "flags": ["Updated existing test_gallery.py assertion to expect experiment_0_v3.html instead of experiment_0.html", "v3 chart code is largely duplicated from v2 — DRY refactoring possible"],
     "daytime_reviewed": "2026-03-27T12:15:18"
+  },
+  {
+    "task_id": "task-050",
+    "description": "OpenAI provider adapter + retroactive v3 scoring + future-run integration",
+    "daytime_created": "2026-04-29T12:00:00",
+    "daytime_comments": "Adds 'openai' to LLMScorer adapters, gpt-5.4-mini and gpt-5.4 to JUDGE_CONFIGS, OpenAI cost entries to CostGuard (err high). Then runs --skip-generation --judges gpt against v3 to backfill OpenAI scores (~$2 expected at 500 rows). Verify model availability with one test call each before scoring; fall back to gpt-4o-mini/gpt-4o if GPT-5.4 unavailable on account. Do NOT use gpt-5.5 (flagship, 2x cost). Skips Exp 1 & 2 scorer config on purpose. Run only if OPENAI_API_KEY is set in .env.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-051",
+    "description": "Figure captions for Exp 0 v1/v2/v3 dashboards (professor feedback)",
+    "daytime_created": "2026-04-29T12:00:00",
+    "daytime_comments": "Adds 1-3 sentence captions below each figure in v1, v2, v3 dashboards. Required captions for answer-length distribution, judge-vs-gold scatter, inter-judge heatmap, BERTScore histogram are written verbatim in the spec. CSS .caption class added to gallery stylesheet.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
