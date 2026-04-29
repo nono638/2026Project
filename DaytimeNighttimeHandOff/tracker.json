@@ -945,7 +945,8 @@
       "Retroactive v3 scoring not executed — network blocked in nighttime. User must run manually: python scripts/run_experiment_0.py --version v3 --skip-generation --judges gpt",
       "Verify gpt-5.4 / gpt-5.4-mini available on user's account before running; fallback gpt-4o / gpt-4o-mini already in cost guard",
       "Updated tests/test_cost_guard.py::test_unknown_model_uses_default to use 'mystery-provider/unknown-model-xyz' (was openai/gpt-4o-mini, now a known cost)"
-    ]
+    ],
+    "daytime_reviewed": "2026-04-29T15:54:14"
   },
   {
     "task_id": "task-051",
@@ -964,6 +965,7 @@
     "flags": [
       "Pre-existing v2 CSV dtype issue: build_experiment0_figures() raises TypeError on results/experiment_0_v2/raw_scores.csv (str/int divide). Now logged as warning instead of silently skipping. v2 still gets 3 captions on its v2-specific charts; standard scorer charts skipped. Worth fixing the dtype root cause separately.",
       "site/ files (regenerated gallery HTML) intentionally NOT committed on this branch — daytime agent will regenerate during morning review after merging."
-    ]
+    ],
+    "daytime_reviewed": "2026-04-29T15:54:14"
   }
 ]
