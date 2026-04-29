@@ -197,6 +197,9 @@ class TestOpenAIProvider:
             kwargs = mock_client.chat.completions.create.call_args.kwargs
             assert kwargs["model"] == "gpt-5.4-mini"
             assert kwargs["messages"][0]["role"] == "user"
+            # GPT-5 family rejects max_tokens; must use max_completion_tokens.
+            assert "max_completion_tokens" in kwargs
+            assert "max_tokens" not in kwargs
 
     def test_extracts_text_from_response(self):
         custom_json = json.dumps({

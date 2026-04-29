@@ -136,9 +136,11 @@ def _openai_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
 
     def call(prompt: str) -> str:
         """Send prompt to OpenAI chat completions and return response text."""
+        # max_completion_tokens (not max_tokens): required by GPT-5 family;
+        # also supported by gpt-4o family (the fallback judges).
         response = client.chat.completions.create(
             model=model,
-            max_tokens=500,
+            max_completion_tokens=500,
             messages=[{"role": "user", "content": prompt}],
         )
         return response.choices[0].message.content
