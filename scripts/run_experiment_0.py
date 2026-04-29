@@ -58,7 +58,7 @@ from scripts.experiment_utils import compute_f1, exact_match
 
 
 # ---------------------------------------------------------------------------
-# Scorer configurations — 7 LLM judges (4 Gemini + 3 Claude)
+# Scorer configurations — 9 LLM judges (4 Gemini + 3 Claude + 2 OpenAI)
 # ---------------------------------------------------------------------------
 JUDGE_CONFIGS = [
     # Gemini judges (free via Google AI Studio)
@@ -70,6 +70,11 @@ JUDGE_CONFIGS = [
     {"provider": "anthropic", "model": "claude-haiku-4-5-20251001"},
     {"provider": "anthropic", "model": "claude-sonnet-4-20250514"},
     {"provider": "anthropic", "model": "claude-opus-4-20250514"},
+    # OpenAI judges (optional — skipped if OPENAI_API_KEY not set)
+    # GPT-5.4 family chosen over flagship 5.5 for cost (2x cheaper) and over
+    # o1/o3 reasoning models (no benefit for straightforward JSON scoring).
+    {"provider": "openai", "model": "gpt-5.4-mini"},
+    {"provider": "openai", "model": "gpt-5.4"},
 ]
 
 
