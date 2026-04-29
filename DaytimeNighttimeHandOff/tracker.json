@@ -953,6 +953,7 @@
     "daytime_created": "2026-04-29T12:00:00",
     "daytime_comments": "Adds 1-3 sentence captions below each figure in v1, v2, v3 dashboards. Required captions for answer-length distribution, judge-vs-gold scatter, inter-judge heatmap, BERTScore histogram are written verbatim in the spec. CSS .caption class added to gallery stylesheet.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-04-29T13:30:00"
   }
 ]
