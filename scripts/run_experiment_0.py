@@ -972,10 +972,14 @@ def main() -> None:
         else:
             results_df = pd.DataFrame(answers)
 
-    # Check if cost limit was hit inside score_all_answers (via checkpoint state)
+    # Check if cost limit was hit inside score_all_answers (via checkpoint state).
+    # Exclude answer_quality — it's the v2 composite metric, not a per-judge score.
     checkpoint_path_check = output_dir / "raw_scores_checkpoint.csv"
     if checkpoint_path_check.exists():
-        judge_quality_cols = [c for c in results_df.columns if c.endswith("_quality")]
+        judge_quality_cols = [
+            c for c in results_df.columns
+            if c.endswith("_quality") and c != "answer_quality"
+        ]
         if judge_quality_cols and not results_df[judge_quality_cols].notna().all().all():
             cost_limit_hit = True
 
@@ -991,7 +995,10 @@ def main() -> None:
     # keep the checkpoint so the next resume can pick up where it left off.
     checkpoint_path = output_dir / "raw_scores_checkpoint.csv"
     if checkpoint_path.exists():
-        judge_quality_cols = [c for c in results_df.columns if c.endswith("_quality")]
+        judge_quality_cols = [
+            c for c in results_df.columns
+            if c.endswith("_quality") and c != "answer_quality"
+        ]
         all_complete = (
             len(judge_quality_cols) > 0
             and results_df[judge_quality_cols].notna().all().all()
