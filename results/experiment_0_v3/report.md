@@ -10,28 +10,34 @@
 | anthropic:claude-haiku-4-5-20251001 | 4.592 | 4.668 | 4.450 | 4.570 |
 | anthropic:claude-sonnet-4-20250514 | 4.652 | 4.766 | 4.582 | 4.667 |
 | anthropic:claude-opus-4-20250514 | 4.722 | 4.804 | 4.664 | 4.730 |
+| openai:gpt-5.4-mini | 4.660 | 4.680 | 4.514 | 4.618 |
+| openai:gpt-5.4 | 4.706 | 4.600 | 4.472 | 4.593 |
 
 ## Inter-Scorer Correlation (Pearson, Quality)
 
-|                                     |   google:gemini-2.5-flash-lite |   google:gemini-2.5-flash |   google:gemini-2.5-pro |   anthropic:claude-haiku-4-5-20251001 |   anthropic:claude-sonnet-4-20250514 |   anthropic:claude-opus-4-20250514 |
-|:------------------------------------|-------------------------------:|--------------------------:|------------------------:|--------------------------------------:|-------------------------------------:|-----------------------------------:|
-| google:gemini-2.5-flash-lite        |                          1     |                     0.566 |                   0.578 |                                 0.557 |                                0.564 |                              0.516 |
-| google:gemini-2.5-flash             |                          0.566 |                     1     |                   0.892 |                                 0.634 |                                0.716 |                              0.737 |
-| google:gemini-2.5-pro               |                          0.578 |                     0.892 |                   1     |                                 0.674 |                                0.733 |                              0.731 |
-| anthropic:claude-haiku-4-5-20251001 |                          0.557 |                     0.634 |                   0.674 |                                 1     |                                0.738 |                              0.751 |
-| anthropic:claude-sonnet-4-20250514  |                          0.564 |                     0.716 |                   0.733 |                                 0.738 |                                1     |                              0.82  |
-| anthropic:claude-opus-4-20250514    |                          0.516 |                     0.737 |                   0.731 |                                 0.751 |                                0.82  |                              1     |
+|                                     |   google:gemini-2.5-flash-lite |   google:gemini-2.5-flash |   google:gemini-2.5-pro |   anthropic:claude-haiku-4-5-20251001 |   anthropic:claude-sonnet-4-20250514 |   anthropic:claude-opus-4-20250514 |   openai:gpt-5.4-mini |   openai:gpt-5.4 |
+|:------------------------------------|-------------------------------:|--------------------------:|------------------------:|--------------------------------------:|-------------------------------------:|-----------------------------------:|----------------------:|-----------------:|
+| google:gemini-2.5-flash-lite        |                          1     |                     0.566 |                   0.578 |                                 0.557 |                                0.564 |                              0.516 |                 0.399 |            0.422 |
+| google:gemini-2.5-flash             |                          0.566 |                     1     |                   0.892 |                                 0.634 |                                0.716 |                              0.737 |                 0.48  |            0.602 |
+| google:gemini-2.5-pro               |                          0.578 |                     0.892 |                   1     |                                 0.674 |                                0.733 |                              0.731 |                 0.513 |            0.635 |
+| anthropic:claude-haiku-4-5-20251001 |                          0.557 |                     0.634 |                   0.674 |                                 1     |                                0.738 |                              0.751 |                 0.549 |            0.644 |
+| anthropic:claude-sonnet-4-20250514  |                          0.564 |                     0.716 |                   0.733 |                                 0.738 |                                1     |                              0.82  |                 0.531 |            0.713 |
+| anthropic:claude-opus-4-20250514    |                          0.516 |                     0.737 |                   0.731 |                                 0.751 |                                0.82  |                              1     |                 0.507 |            0.645 |
+| openai:gpt-5.4-mini                 |                          0.399 |                     0.48  |                   0.513 |                                 0.549 |                                0.531 |                              0.507 |                 1     |            0.784 |
+| openai:gpt-5.4                      |                          0.422 |                     0.602 |                   0.635 |                                 0.644 |                                0.713 |                              0.645 |                 0.784 |            1     |
 
 ## Correlation with Gold Metrics
 
-| Judge | F1 (word overlap) |
-|-------|----------|
-| google:gemini-2.5-flash-lite | 0.139 |
-| google:gemini-2.5-flash | 0.301 |
-| google:gemini-2.5-pro | 0.348 |
-| anthropic:claude-haiku-4-5-20251001 | 0.450 |
-| anthropic:claude-sonnet-4-20250514 | 0.397 |
-| anthropic:claude-opus-4-20250514 | 0.382 |
+| Judge | BERTScore | F1 (word overlap) |
+|-------|----------|----------|
+| google:gemini-2.5-flash-lite | 0.137 | 0.139 |
+| google:gemini-2.5-flash | 0.312 | 0.301 |
+| google:gemini-2.5-pro | 0.354 | 0.348 |
+| anthropic:claude-haiku-4-5-20251001 | 0.461 | 0.450 |
+| anthropic:claude-sonnet-4-20250514 | 0.415 | 0.397 |
+| anthropic:claude-opus-4-20250514 | 0.392 | 0.382 |
+| openai:gpt-5.4-mini | 0.608 | 0.553 |
+| openai:gpt-5.4 | 0.639 | 0.605 |
 
 ## Estimated Cost Breakdown
 
@@ -43,11 +49,14 @@
 | anthropic:claude-haiku-4-5-20251001 | 500 | $0.0010 | $0.50 |
 | anthropic:claude-sonnet-4-20250514 | 500 | $0.0050 | $2.50 |
 | anthropic:claude-opus-4-20250514 | 500 | $0.0100 | $5.00 |
+| openai:gpt-5.4-mini | 500 | $0.0100 | $5.00 |
+| openai:gpt-5.4 | 500 | $0.0100 | $5.00 |
 
 ## Gold Correctness Summary
 
 - Exact match rate: 76.2%
 - Mean word-overlap F1: 0.546
+- Mean BERTScore F1: 0.917
 
 ## Failure Stage Breakdown
 
