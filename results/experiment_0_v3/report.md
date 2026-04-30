@@ -49,8 +49,8 @@
 | anthropic:claude-haiku-4-5-20251001 | 500 | $0.0010 | $0.50 |
 | anthropic:claude-sonnet-4-20250514 | 500 | $0.0050 | $2.50 |
 | anthropic:claude-opus-4-20250514 | 500 | $0.0100 | $5.00 |
-| openai:gpt-5.4-mini | 500 | $0.0100 | $5.00 |
-| openai:gpt-5.4 | 500 | $0.0100 | $5.00 |
+| openai:gpt-5.4-mini | 500 | $0.0015 | $0.75 |
+| openai:gpt-5.4 | 500 | $0.0050 | $2.50 |
 
 ## Gold Correctness Summary
 

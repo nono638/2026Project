@@ -712,6 +712,9 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
         "google:gemini-2.5-pro": 0.001,
         "anthropic:claude-haiku-4-5-20251001": 0.001,
         "anthropic:claude-sonnet-4-20250514": 0.005,
+        "anthropic:claude-opus-4-20250514": 0.01,
+        "openai:gpt-5.4-mini": 0.0015,
+        "openai:gpt-5.4": 0.005,
     }
 
     n_examples = len(df)

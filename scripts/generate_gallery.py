@@ -455,11 +455,11 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
 
     <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
         <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
-        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Third time's a charm.</p>
+        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Third time's a charm — then OpenAI showed up.</p>
         <p>
-            500 HotpotQA questions. 6 LLM judges. Three iterations to get it right.
-            The answer: <strong>Claude Haiku at $0.002/call</strong> — the cheapest
-            Anthropic model is also the most accurate judge.
+            500 HotpotQA questions. 8 LLM judges. The answer:
+            <strong>GPT-5.4 Mini at $0.0015/call</strong> — both more accurate
+            (r=0.553 vs gold F1) and cheaper than every Claude or Gemini judge.
         </p>
         <a href="experiment_0_v3.html" class="cta-btn" style="margin-top: 16px; display: inline-block;">
             View Experiment 0 Results &rarr;
@@ -467,19 +467,19 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
     </div>
 
     <h2>Key Findings</h2>
-    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 6 LLM judges (3 Gemini + 3 Claude).</p>
+    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI).</p>
     <div class="findings-grid">
         <div class="finding-card">
-            <h4>Claude Haiku is the most accurate LLM judge</h4>
-            <p>Highest correlation with gold F1 (r=0.450) at n=500 — and the cheapest Anthropic option at $0.002/call.</p>
+            <h4>GPT-5.4 Mini is the most accurate LLM judge</h4>
+            <p>Highest correlation with gold F1 (r=0.553) at n=500 — and at $0.0015/call, also the cheapest paid option.</p>
         </div>
         <div class="finding-card">
             <h4>Gemini 2.5 Pro is the best free budget scorer</h4>
             <p>r=0.348 with gold F1 via Google AI Studio — no API cost for evaluation.</p>
         </div>
         <div class="finding-card">
-            <h4>Strong inter-judge agreement among top scorers</h4>
-            <p>Sonnet-Opus r=0.820, Flash-Pro r=0.892 — judges broadly agree on answer quality.</p>
+            <h4>OpenAI judges flipped the within-Anthropic ranking</h4>
+            <p>GPT-5.4 (r=0.605) and GPT-5.4 Mini (r=0.553) both outperform Claude Haiku (0.450), the previous v3 winner.</p>
         </div>
         <div class="finding-card">
             <h4>76% exact match on HotpotQA — answer quality is solid</h4>
@@ -1245,10 +1245,11 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
     <div class="card" style="border-left: 4px solid #648FFF;">
         <h2>Key Findings</h2>
         <p style="color: #555; margin-bottom: 12px;">
-            v3 — 500 medium+hard HotpotQA questions, 6 LLM judges (3 Gemini + 3 Claude)
+            v3 — 500 medium+hard HotpotQA questions, 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI)
         </p>
         <ul style="list-style: none; padding: 0; margin: 0;">
-            <li style="margin: 8px 0;"><strong>Best judge:</strong> Claude Haiku (r=0.450 gold F1)</li>
+            <li style="margin: 8px 0;"><strong>Best judge:</strong> GPT-5.4 (r=0.605 gold F1) — GPT-5.4 Mini close behind at r=0.553</li>
+            <li style="margin: 8px 0;"><strong>Best value:</strong> GPT-5.4 Mini ($0.0015/call) — more accurate AND cheaper than Claude Haiku</li>
             <li style="margin: 8px 0;"><strong>Best free judge:</strong> Gemini 2.5 Pro (r=0.348)</li>
             <li style="margin: 8px 0;"><strong>Pipeline accuracy:</strong> 76.2% exact match, mean F1 0.546</li>
             <li style="margin: 8px 0;"><strong>Failure stages:</strong> 76% none, 14% retrieval, 10% generation</li>
@@ -1278,11 +1279,18 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
             only 150 questions, the margin left room for doubt.
         </p>
         <p>
-            <strong>v3</strong> (n=500) is the tiebreaker at scale. With 500 HotpotQA questions
-            and 6 LLM judges (3 Gemini, 3 Claude), the results are clear: <strong>Claude Haiku
-            is the most accurate judge</strong> (r=0.450 with gold F1), followed by Sonnet
-            (0.397) and Opus (0.382). Among the free Gemini judges, Flash and Pro are nearly
-            interchangeable (r=0.892). The question is settled.
+            <strong>v3</strong> (n=500) was meant to be the tiebreaker at scale. Among the
+            original 6 judges (3 Gemini, 3 Claude), Haiku led (r=0.450 with gold F1), followed
+            by Sonnet (0.397) and Opus (0.382). Among the free Gemini judges, Flash and Pro
+            are nearly interchangeable (r=0.892).
+        </p>
+        <p>
+            Then we added <strong>GPT-5.4 and GPT-5.4 Mini</strong> retroactively (n=500, same
+            questions and answers) — and they outperformed every Claude and Gemini judge by a
+            wide margin. GPT-5.4 leads at r=0.605, with GPT-5.4 Mini close behind at r=0.553.
+            Crucially, GPT-5.4 Mini is also <em>cheaper</em> than Claude Haiku ($0.0015/call vs
+            $0.002), making it both the most accurate and the best value across the panel.
+            <strong>The answer is GPT-5.4 Mini.</strong>
         </p>
     </div>
 
@@ -1297,13 +1305,14 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
     <div class="card">
         <h2>Summary</h2>
         <p>
-            Across 500 medium+hard HotpotQA questions, <strong>Claude Haiku</strong>
-            tracked the gold-standard word-overlap F1 most reliably (Pearson r=0.450),
-            beating Sonnet (0.397), Opus (0.382), Gemini 2.5 Pro (0.348), Gemini 2.5
-            Flash (0.301), and Gemini 2.5 Flash-Lite (0.139). Inter-judge correlation
-            within the Gemini family is high (Flash and Pro at r=0.892), confirming
-            family-level bias and motivating multi-provider judge panels. The figures
-            below visualize each step of that analysis.
+            Across 500 medium+hard HotpotQA questions, <strong>GPT-5.4</strong> tracked the
+            gold-standard word-overlap F1 most reliably (Pearson r=0.605), with GPT-5.4 Mini
+            close behind (0.553). Both outperformed Claude Haiku (0.450), Sonnet (0.397),
+            Opus (0.382), Gemini 2.5 Pro (0.348), Gemini 2.5 Flash (0.301), and Gemini 2.5
+            Flash-Lite (0.139). Inter-judge correlation within the Gemini family is high
+            (Flash and Pro at r=0.892), and within OpenAI as well (5.4 and 5.4-Mini at
+            r=0.784) — confirming family-level bias and motivating multi-provider judge
+            panels. The figures below visualize each step of that analysis.
         </p>
     </div>
 
