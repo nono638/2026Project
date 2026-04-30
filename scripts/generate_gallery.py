@@ -442,6 +442,7 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
         </div>"""
 
     workflow_fig = _create_workflow_diagram()
+    rag_pipeline_fig = _create_rag_pipeline_diagram()
     try:
         from scripts.generate_experiment0_dashboard import _fig_to_html
     except Exception:
@@ -449,6 +450,7 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
         def _fig_to_html(fig: Any) -> str:
             return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
     workflow_html = _fig_to_html(workflow_fig)
+    rag_pipeline_html = _fig_to_html(rag_pipeline_fig)
     worked_example_html = _generate_worked_example()
 
     return f"""
@@ -513,6 +515,13 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             score the result.
         </p>
         {workflow_html}
+        <p style="margin-top: 20px;">
+            Inside that pink <strong>RAG Pipeline</strong> box are five components, four
+            of which RAGBench varies as test axes (chunker, reranker, RAG strategy, LLM)
+            while the embedder is held constant. Indexing happens once per corpus on top;
+            every query traverses the bottom row.
+        </p>
+        {rag_pipeline_html}
         {worked_example_html}
     </div>
 
@@ -726,6 +735,126 @@ def _create_workflow_diagram() -> str:
         plot_bgcolor="white", paper_bgcolor="white",
         margin=dict(l=10, r=10, t=10, b=10),
         height=280,
+    )
+
+    fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", showlegend=False))
+
+    return fig
+
+
+def _create_rag_pipeline_diagram() -> Any:
+    """Plotly diagram showing the RAG pipeline internals (chunker, embedder,
+    retriever, reranker, strategy, LLM) and which stages are RAGBench's test
+    axes vs. held constant.
+
+    Color coding:
+    - Blue (#648FFF):    inputs (Documents, Question)
+    - Magenta (#DC267F): test axes (Chunker, Reranker, RAG Strategy, LLM)
+    - Slate (#6B7280):   passive infra / held constant (Embedder, Vector Index, Retriever)
+    - Orange (#FE6100):  output (Answer)
+
+    Returns:
+        Plotly Figure.
+    """
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+
+    AXIS = "#DC267F"
+    INPUT = "#648FFF"
+    INFRA = "#6B7280"
+    OUTPUT = "#FE6100"
+
+    # (x, y, w, h, label, color, sublabel)
+    boxes = [
+        # Top row (offline indexing): Documents -> Chunker -> Embedder -> Vector Index
+        (2.5,  2, 2.6, 1.0, "Documents",     INPUT, "corpus"),
+        (6.5,  2, 2.6, 1.0, "Chunker",       AXIS,  "axis · 4 strategies"),
+        (10.5, 2, 2.8, 1.0, "Embedder",      INFRA, "held constant"),
+        (14.5, 2, 2.8, 1.0, "Vector Index",  INFRA, "FAISS"),
+        # Bottom row (online query): Question -> Retriever -> Reranker -> Strategy -> LLM -> Answer
+        (10.5, 0, 2.6, 1.0, "Question",      INPUT, "user query"),
+        (14.5, 0, 2.6, 1.0, "Retriever",     INFRA, "top-K hybrid"),
+        (18.5, 0, 2.6, 1.0, "Reranker",      AXIS,  "axis · 3 options"),
+        (22.5, 0, 2.8, 1.0, "RAG Strategy",  AXIS,  "axis · 5 strategies"),
+        (26.0, 0, 2.0, 1.0, "LLM",           AXIS,  "axis · 6 models"),
+        (29.0, 0, 2.4, 1.0, "Answer",        OUTPUT, "to scorer"),
+    ]
+
+    shapes = []
+    annotations = []
+
+    for x, y, w, h, label, color, sublabel in boxes:
+        shapes.append(dict(
+            type="rect",
+            x0=x - w / 2, y0=y - h / 2,
+            x1=x + w / 2, y1=y + h / 2,
+            fillcolor=color, opacity=0.92,
+            line=dict(color="white", width=2),
+            layer="above",
+        ))
+        annotations.append(dict(
+            x=x, y=y + 0.08,
+            text=f"<b>{label}</b>",
+            showarrow=False,
+            font=dict(color="white", size=12),
+            align="center",
+        ))
+        # Sublabel inside the box, smaller
+        annotations.append(dict(
+            x=x, y=y - 0.22,
+            text=f"<span style='font-size:10px;opacity:0.92'>{sublabel}</span>",
+            showarrow=False,
+            font=dict(color="white", size=10),
+            align="center",
+        ))
+
+    # Arrows: (tail_x, tail_y, head_x, head_y)
+    arrows = [
+        # Top row offline indexing flow
+        (3.8,  2,    5.2,  2),    # Documents → Chunker
+        (7.8,  2,    9.1,  2),    # Chunker → Embedder
+        (11.9, 2,    13.1, 2),    # Embedder → Vector Index
+        # Vertical: Vector Index ↓ Retriever
+        (14.5, 1.5,  14.5, 0.5),
+        # Bottom row online query flow
+        (11.8, 0,    13.2, 0),    # Question → Retriever
+        (15.8, 0,    17.2, 0),    # Retriever → Reranker
+        (19.8, 0,    21.1, 0),    # Reranker → RAG Strategy
+        (23.9, 0,    25.0, 0),    # RAG Strategy → LLM
+        (27.0, 0,    27.8, 0),    # LLM → Answer
+    ]
+
+    for ax, ay, x, y in arrows:
+        annotations.append(dict(
+            x=x, y=y, ax=ax, ay=ay,
+            xref="x", yref="y", axref="x", ayref="y",
+            showarrow=True,
+            arrowhead=2, arrowsize=1.5, arrowwidth=2,
+            arrowcolor="#555", text="",
+        ))
+
+    # Section labels above each row
+    annotations.append(dict(
+        x=2.5, y=2.85,
+        text="<span style='font-size:11px;color:#888'><b>OFFLINE INDEXING</b> (per corpus, once)</span>",
+        showarrow=False, xanchor="left",
+    ))
+    annotations.append(dict(
+        x=10.5, y=0.85,
+        text="<span style='font-size:11px;color:#888'><b>ONLINE QUERY</b> (per question)</span>",
+        showarrow=False, xanchor="left",
+    ))
+
+    fig.update_layout(
+        xaxis=dict(range=[0, 31], showgrid=False, zeroline=False,
+                   showticklabels=False, fixedrange=True),
+        yaxis=dict(range=[-1, 3.4], showgrid=False, zeroline=False,
+                   showticklabels=False, fixedrange=True),
+        shapes=shapes, annotations=annotations,
+        plot_bgcolor="white", paper_bgcolor="white",
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=320,
     )
 
     fig.add_trace(go.Scatter(x=[None], y=[None], mode="markers", showlegend=False))
@@ -2320,24 +2449,28 @@ def _generate_methodology() -> str:
     Returns:
         Full HTML page string for methodology.html.
     """
-    content = """
+    rag_pipeline_fig = _create_rag_pipeline_diagram()
+    try:
+        from scripts.generate_experiment0_dashboard import _fig_to_html
+    except Exception:
+        import plotly.io as pio
+        def _fig_to_html(fig: Any) -> str:
+            return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+    rag_pipeline_html = _fig_to_html(rag_pipeline_fig)
+
+    content = f"""
     <div class="methodology-content">
 
         <h2>Pipeline Overview</h2>
         <p>
             RAGBench evaluates RAG configurations by running each query through every
             combination of five independent axes, scoring the outputs, and comparing
-            them against gold-standard answers when available.
+            them against gold-standard answers when available. The diagram below shows
+            the RAG pipeline itself: indexing happens once per corpus on top, every
+            query traverses the bottom row. Magenta boxes are the test axes that vary
+            across experiments; gray boxes are passive infrastructure or held constant.
         </p>
-        <pre>
-Documents --&gt; QueryGenerator --&gt; Queries --&gt; QueryFilter --&gt; Validated Queries
-                                                                    |
-Validated Queries x (Chunker x Embedder x Reranker x Strategy x Model) --&gt; Answers
-                                                                    |
-                                                         Scorer --&gt; Scores
-                                                                    |
-                                                      ExperimentResult --&gt; Analysis
-        </pre>
+        {rag_pipeline_html}
 
         <h2>The Five Axes</h2>
         <p>Each experiment varies one or two axes while holding the others constant,
