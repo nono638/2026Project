@@ -270,6 +270,129 @@ p { margin: 12px 0; }
         </p>
     </div>
 
+    <div class="card">
+        <h2>What is RAG?</h2>
+        <p>
+            <strong>Retrieval-Augmented Generation</strong> (RAG) is the dominant pattern
+            for grounding language models in external knowledge. Instead of relying solely
+            on what the model memorized during training, a RAG system <em>retrieves</em>
+            relevant passages from a corpus &mdash; documentation, papers, internal wikis &mdash;
+            and feeds them to the model alongside the question. The model then <em>generates</em>
+            an answer grounded in the retrieved context.
+        </p>
+        <p>
+            That means a RAG pipeline has many moving parts, each of which independently
+            affects answer quality: how the corpus is chunked, how passages are retrieved,
+            how retrieval results are reranked, how the prompt is constructed, and which
+            language model produces the final answer. Small changes in any one component
+            can swing accuracy by double-digit percentages.
+        </p>
+        <p style="font-size: 0.9em; color: #666; margin-top: 16px;">
+            <strong>Further reading:</strong>
+            <a href="https://arxiv.org/abs/2005.11401" target="_blank" style="color: #648FFF;">
+                Lewis et al. 2020 (the original RAG paper)
+            </a> &middot;
+            <a href="https://en.wikipedia.org/wiki/Retrieval-augmented_generation" target="_blank" style="color: #648FFF;">
+                Wikipedia overview
+            </a> &middot;
+            <a href="https://huggingface.co/docs/transformers/model_doc/rag" target="_blank" style="color: #648FFF;">
+                Hugging Face RAG docs
+            </a>
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>What is RAGBench?</h2>
+        <p>
+            RAGBench is a configurable harness for measuring how those moving parts
+            affect quality. It runs the full cartesian product of RAG configurations
+            (chunker &times; embedder &times; reranker &times; strategy &times; LLM) over a
+            shared question set, scores every answer with both <strong>automated
+            metrics</strong> (BERTScore, F1, exact-match against gold answers) and a
+            panel of <strong>LLM judges</strong> rating faithfulness, relevance, and
+            conciseness, then compares results across configurations to identify
+            best-per-cost frontiers.
+        </p>
+        <p>
+            The diagram below shows one row of the pipeline: a question and its source
+            documents flow through the RAG configuration on top, the gold answer is held
+            out as ground truth on the bottom, and both objective metrics and LLM judges
+            score the result.
+        </p>
+        <div>                            <div id="a4410742-562b-4594-b4fe-b5dc11ae2bb4" class="plotly-graph-div" style="height:280px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("a4410742-562b-4594-b4fe-b5dc11ae2bb4")) {                    Plotly.newPlot(                        "a4410742-562b-4594-b4fe-b5dc11ae2bb4",                        [{"mode":"markers","showlegend":false,"x":[null],"y":[null],"type":"scatter"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"xaxis":{"range":[-1,20],"showgrid":false,"zeroline":false,"showticklabels":false,"fixedrange":true},"yaxis":{"range":[-1,3.2],"showgrid":false,"zeroline":false,"showticklabels":false,"fixedrange":true},"margin":{"l":10,"r":10,"t":10,"b":10},"shapes":[{"fillcolor":"#648FFF","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":-0.19999999999999996,"x1":2.2,"y0":1.5,"y1":2.5},{"fillcolor":"#785EF0","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":3.6,"x1":6.4,"y0":1.5,"y1":2.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":7.4,"x1":10.6,"y0":1.5,"y1":2.5},{"fillcolor":"#FE6100","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":11.8,"x1":14.2,"y0":1.5,"y1":2.5},{"fillcolor":"#FFB000","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":15.8,"x1":18.2,"y0":1.5,"y1":2.5},{"fillcolor":"#22A884","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":-0.19999999999999996,"x1":2.2,"y0":-0.5,"y1":0.5},{"fillcolor":"#22A884","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":7.2,"x1":10.8,"y0":-0.5,"y1":0.5},{"fillcolor":"#648FFF","layer":"above","line":{"color":"white","width":2},"opacity":0.9,"type":"rect","x0":15.5,"x1":18.5,"y0":-0.5,"y1":0.5}],"annotations":[{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eQ&amp;A Dataset\u003cbr\u003e\u003cspan style='font-size:11px'\u003e(HotpotQA)\u003c\u002fspan\u003e\u003c\u002fb\u003e","x":1,"y":2},{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eQuestion +\u003cbr\u003eSource Docs\u003c\u002fb\u003e","x":5,"y":2},{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eRAG Pipeline\u003cbr\u003e\u003cspan style='font-size:11px'\u003e(chunker × retriever × LLM)\u003c\u002fspan\u003e\u003c\u002fb\u003e","x":9,"y":2},{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eRAG Answer\u003c\u002fb\u003e","x":13,"y":2},{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eLLM Judges\u003c\u002fb\u003e","x":17,"y":2},{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eGold Answer\u003c\u002fb\u003e","x":1,"y":0},{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eAutomated Metrics\u003cbr\u003e(BERTScore, F1)\u003c\u002fb\u003e","x":9,"y":0},{"align":"center","font":{"color":"white","size":13},"showarrow":false,"text":"\u003cb\u003eCompare\u003cbr\u003ejudge vs gold\u003c\u002fb\u003e","x":17,"y":0},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":2.2,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":3.6,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":6.4,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":7.6,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":10.4,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":11.8,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":14.2,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":15.8,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":1,"axref":"x","ay":1.5,"ayref":"y","showarrow":true,"text":"","x":1,"xref":"x","y":0.5,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":2.2,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":7.2,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":13,"axref":"x","ay":1.5,"ayref":"y","showarrow":true,"text":"","x":13,"xref":"x","y":0.65,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":13,"axref":"x","ay":0.35,"ayref":"y","showarrow":true,"text":"","x":10.8,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":10.8,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":15.5,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":17,"axref":"x","ay":1.5,"ayref":"y","showarrow":true,"text":"","x":17,"xref":"x","y":0.5,"yref":"y"}],"plot_bgcolor":"white","paper_bgcolor":"white","height":280},                        {"responsive": true}                    )                };            </script>        </div>
+        
+    <div style="background: #f7f9fc; border: 1px solid #d8dfe8; border-radius: 8px;
+                padding: 20px 24px; margin-top: 24px;">
+        <h3 style="margin-top: 0; color: #333;">Worked example</h3>
+        <p style="font-size: 0.92em; color: #666; margin-bottom: 18px;">
+            One real row from Experiment 0 v3, tracing through the diagram above.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px;
+                    font-size: 0.95em; line-height: 1.6;">
+
+            <div style="font-weight: 600; color: #555;">Question</div>
+            <div>Who is the older mixed martial artist, Yushin Okami or Nate Marquardt?</div>
+
+            <div style="font-weight: 600; color: #555;">Gold answer</div>
+            <div><code>Nate Marquardt</code></div>
+
+            <div style="font-weight: 600; color: #555;">RAG answer</div>
+            <div style="font-style: italic;">
+                "Nate Marquardt is the older mixed martial artist. Yushin Okami was born on
+                July 21, 1981, while Nate Marquardt was born on April 20, 1979. Marquardt is
+                therefore older by two years and three months."
+            </div>
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
+            <div style="font-weight: 600; color: #555; margin-bottom: 8px;">
+                Bottom row — automated metrics (RAG vs gold)
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+                        font-size: 0.92em;">
+                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
+                    <div style="font-size: 0.85em; color: #888;">BERTScore (semantic)</div>
+                    <div style="font-size: 1.4em; font-weight: 600; color: #22A884;">0.862</div>
+                    <div style="font-size: 0.8em; color: #666;">strong semantic match</div>
+                </div>
+                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
+                    <div style="font-size: 0.85em; color: #888;">Word-overlap F1</div>
+                    <div style="font-size: 1.4em; font-weight: 600; color: #FE6100;">0.138</div>
+                    <div style="font-size: 0.8em; color: #666;">low — verbose RAG answer adds many extra tokens</div>
+                </div>
+                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
+                    <div style="font-size: 0.85em; color: #888;">Exact match (gold &sub; answer)</div>
+                    <div style="font-size: 1.4em; font-weight: 600; color: #22A884;">true</div>
+                    <div style="font-size: 0.8em; color: #666;">"Nate Marquardt" appears verbatim</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
+            <div style="font-weight: 600; color: #555; margin-bottom: 8px;">
+                Top row — LLM judges (rate quality 1–5, never see the gold answer)
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px;
+                        font-size: 0.9em;">
+                <div>Gemini 2.5 Pro: <strong>5.00</strong></div>
+                <div>Claude Haiku 4.5: <strong>4.67</strong></div>
+                <div>GPT-5.4 Mini: <strong>5.00</strong></div>
+                <div>Claude Sonnet 4.6: <strong>4.67</strong></div>
+                <div>GPT-5.4: <strong>4.67</strong></div>
+                <div>Claude Opus 4: <strong>5.00</strong></div>
+            </div>
+            <div style="font-size: 0.88em; color: #666; margin-top: 10px;">
+                All nine judges that scored this row rated it ≥4.67 / 5 — they agree the
+                answer is good, even though F1 alone would call it a poor match. This kind of
+                disagreement between automated metrics is exactly why Experiment 0 exists:
+                to find which judges' ratings actually track the objective metrics.
+            </div>
+        </div>
+    </div>
+    
+    </div>
+
     <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
         <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
         <p style="color: #888; font-style: italic; margin-bottom: 12px;">Frontier-class judges converge — version matters more than provider.</p>

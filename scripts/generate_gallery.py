@@ -441,6 +441,16 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             </a>
         </div>"""
 
+    workflow_fig = _create_workflow_diagram()
+    try:
+        from scripts.generate_experiment0_dashboard import _fig_to_html
+    except Exception:
+        import plotly.io as pio
+        def _fig_to_html(fig: Any) -> str:
+            return pio.to_html(fig, full_html=False, include_plotlyjs="cdn")
+    workflow_html = _fig_to_html(workflow_fig)
+    worked_example_html = _generate_worked_example()
+
     return f"""
     <div class="hero">
         <h1>RAGBench</h1>
@@ -451,6 +461,59 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             with LLM judges, and identifies optimal configurations for different
             constraints.
         </p>
+    </div>
+
+    <div class="card">
+        <h2>What is RAG?</h2>
+        <p>
+            <strong>Retrieval-Augmented Generation</strong> (RAG) is the dominant pattern
+            for grounding language models in external knowledge. Instead of relying solely
+            on what the model memorized during training, a RAG system <em>retrieves</em>
+            relevant passages from a corpus &mdash; documentation, papers, internal wikis &mdash;
+            and feeds them to the model alongside the question. The model then <em>generates</em>
+            an answer grounded in the retrieved context.
+        </p>
+        <p>
+            That means a RAG pipeline has many moving parts, each of which independently
+            affects answer quality: how the corpus is chunked, how passages are retrieved,
+            how retrieval results are reranked, how the prompt is constructed, and which
+            language model produces the final answer. Small changes in any one component
+            can swing accuracy by double-digit percentages.
+        </p>
+        <p style="font-size: 0.9em; color: #666; margin-top: 16px;">
+            <strong>Further reading:</strong>
+            <a href="https://arxiv.org/abs/2005.11401" target="_blank" style="color: #648FFF;">
+                Lewis et al. 2020 (the original RAG paper)
+            </a> &middot;
+            <a href="https://en.wikipedia.org/wiki/Retrieval-augmented_generation" target="_blank" style="color: #648FFF;">
+                Wikipedia overview
+            </a> &middot;
+            <a href="https://huggingface.co/docs/transformers/model_doc/rag" target="_blank" style="color: #648FFF;">
+                Hugging Face RAG docs
+            </a>
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>What is RAGBench?</h2>
+        <p>
+            RAGBench is a configurable harness for measuring how those moving parts
+            affect quality. It runs the full cartesian product of RAG configurations
+            (chunker &times; embedder &times; reranker &times; strategy &times; LLM) over a
+            shared question set, scores every answer with both <strong>automated
+            metrics</strong> (BERTScore, F1, exact-match against gold answers) and a
+            panel of <strong>LLM judges</strong> rating faithfulness, relevance, and
+            conciseness, then compares results across configurations to identify
+            best-per-cost frontiers.
+        </p>
+        <p>
+            The diagram below shows one row of the pipeline: a question and its source
+            documents flow through the RAG configuration on top, the gold answer is held
+            out as ground truth on the bottom, and both objective metrics and LLM judges
+            score the result.
+        </p>
+        {workflow_html}
+        {worked_example_html}
     </div>
 
     <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
@@ -496,6 +559,90 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
     """
 
 
+def _generate_worked_example() -> str:
+    """Build a styled callout walking one real Experiment 0 v3 row through the pipeline.
+
+    The example is a verbose-but-correct answer pulled from
+    ``results/experiment_0_v3/raw_scores.csv`` — chosen to show why multiple
+    metrics are needed: word-overlap F1 looks bad, BERTScore looks moderate,
+    exact-match passes, and the LLM judges all rate it as a strong answer.
+
+    Returns:
+        HTML string of the worked-example callout.
+    """
+    return """
+    <div style="background: #f7f9fc; border: 1px solid #d8dfe8; border-radius: 8px;
+                padding: 20px 24px; margin-top: 24px;">
+        <h3 style="margin-top: 0; color: #333;">Worked example</h3>
+        <p style="font-size: 0.92em; color: #666; margin-bottom: 18px;">
+            One real row from Experiment 0 v3, tracing through the diagram above.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px;
+                    font-size: 0.95em; line-height: 1.6;">
+
+            <div style="font-weight: 600; color: #555;">Question</div>
+            <div>Who is the older mixed martial artist, Yushin Okami or Nate Marquardt?</div>
+
+            <div style="font-weight: 600; color: #555;">Gold answer</div>
+            <div><code>Nate Marquardt</code></div>
+
+            <div style="font-weight: 600; color: #555;">RAG answer</div>
+            <div style="font-style: italic;">
+                "Nate Marquardt is the older mixed martial artist. Yushin Okami was born on
+                July 21, 1981, while Nate Marquardt was born on April 20, 1979. Marquardt is
+                therefore older by two years and three months."
+            </div>
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
+            <div style="font-weight: 600; color: #555; margin-bottom: 8px;">
+                Bottom row — automated metrics (RAG vs gold)
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+                        font-size: 0.92em;">
+                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
+                    <div style="font-size: 0.85em; color: #888;">BERTScore (semantic)</div>
+                    <div style="font-size: 1.4em; font-weight: 600; color: #22A884;">0.862</div>
+                    <div style="font-size: 0.8em; color: #666;">strong semantic match</div>
+                </div>
+                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
+                    <div style="font-size: 0.85em; color: #888;">Word-overlap F1</div>
+                    <div style="font-size: 1.4em; font-weight: 600; color: #FE6100;">0.138</div>
+                    <div style="font-size: 0.8em; color: #666;">low — verbose RAG answer adds many extra tokens</div>
+                </div>
+                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
+                    <div style="font-size: 0.85em; color: #888;">Exact match (gold &sub; answer)</div>
+                    <div style="font-size: 1.4em; font-weight: 600; color: #22A884;">true</div>
+                    <div style="font-size: 0.8em; color: #666;">"Nate Marquardt" appears verbatim</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
+            <div style="font-weight: 600; color: #555; margin-bottom: 8px;">
+                Top row — LLM judges (rate quality 1–5, never see the gold answer)
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px;
+                        font-size: 0.9em;">
+                <div>Gemini 2.5 Pro: <strong>5.00</strong></div>
+                <div>Claude Haiku 4.5: <strong>4.67</strong></div>
+                <div>GPT-5.4 Mini: <strong>5.00</strong></div>
+                <div>Claude Sonnet 4.6: <strong>4.67</strong></div>
+                <div>GPT-5.4: <strong>4.67</strong></div>
+                <div>Claude Opus 4: <strong>5.00</strong></div>
+            </div>
+            <div style="font-size: 0.88em; color: #666; margin-top: 10px;">
+                All nine judges that scored this row rated it ≥4.67 / 5 — they agree the
+                answer is good, even though F1 alone would call it a poor match. This kind of
+                disagreement between automated metrics is exactly why Experiment 0 exists:
+                to find which judges' ratings actually track the objective metrics.
+            </div>
+        </div>
+    </div>
+    """
+
+
 # ---------------------------------------------------------------------------
 # Experiment 0 dashboard
 # ---------------------------------------------------------------------------
@@ -517,14 +664,14 @@ def _create_workflow_diagram() -> str:
     # Use unitless coordinates; aspect ratio set by height/xrange.
     boxes = [
         # (x, y, w, h, label, color)
-        (1,  2, 2.4, 1.0, "HotpotQA<br>Dataset",           "#648FFF"),
+        (1,  2, 2.4, 1.0, "Q&amp;A Dataset<br><span style='font-size:11px'>(HotpotQA)</span>", "#648FFF"),
         (5,  2, 2.8, 1.0, "Question +<br>Source Docs",      "#785EF0"),
-        (9,  2, 3.2, 1.0, "RAG Pipeline<br><span style='font-size:11px'>(NaiveRAG + Qwen3 4B)</span>", "#DC267F"),
+        (9,  2, 3.2, 1.0, "RAG Pipeline<br><span style='font-size:11px'>(chunker × retriever × LLM)</span>", "#DC267F"),
         (13, 2, 2.4, 1.0, "RAG Answer",                     "#FE6100"),
-        (17, 2, 2.4, 1.0, "6 LLM Judges",                   "#FFB000"),
+        (17, 2, 2.4, 1.0, "LLM Judges",                     "#FFB000"),
         (1,  0, 2.4, 1.0, "Gold Answer",                     "#22A884"),
         (9,  0, 3.6, 1.0, "Automated Metrics<br>(BERTScore, F1)", "#22A884"),
-        (17, 0, 3.0, 1.0, "Which judge<br>tracks truth?",   "#648FFF"),
+        (17, 0, 3.0, 1.0, "Compare<br>judge vs gold",       "#648FFF"),
     ]
 
     shapes = []
