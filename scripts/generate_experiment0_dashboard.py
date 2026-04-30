@@ -43,10 +43,13 @@ logger = logging.getLogger(__name__)
 JUDGE_DISPLAY_NAMES: dict[str, str] = {
     "google_gemini_2_5_flash_lite": "Flash-Lite",
     "google_gemini_2_5_flash": "Flash",
+    "google_gemini_2_5_pro": "Gemini 2.5 Pro",
     "google_gemini_3_1_pro_preview": "Gemini 3.1 Pro",
     "anthropic_claude_haiku_4_5_20251001": "Claude Haiku",
     "anthropic_claude_sonnet_4_20250514": "Claude Sonnet",
     "anthropic_claude_opus_4_20250514": "Claude Opus",
+    "openai_gpt_5_4_mini": "GPT-5.4 Mini",
+    "openai_gpt_5_4": "GPT-5.4",
 }
 
 _METRICS = ("faithfulness", "relevance", "conciseness")
