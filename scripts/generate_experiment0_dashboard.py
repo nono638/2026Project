@@ -49,6 +49,7 @@ JUDGE_DISPLAY_NAMES: dict[str, str] = {
     "anthropic_claude_sonnet_4_20250514": "Claude Sonnet 4",
     "anthropic_claude_sonnet_4_6": "Claude Sonnet 4.6",
     "anthropic_claude_opus_4_20250514": "Claude Opus 4",
+    "anthropic_claude_opus_4_7": "Claude Opus 4.7",
     "openai_gpt_5_4_mini": "GPT-5.4 Mini",
     "openai_gpt_5_4": "GPT-5.4",
 }

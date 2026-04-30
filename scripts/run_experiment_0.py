@@ -76,6 +76,7 @@ JUDGE_CONFIGS = [
     {"provider": "anthropic", "model": "claude-sonnet-4-20250514"},
     {"provider": "anthropic", "model": "claude-sonnet-4-6"},
     {"provider": "anthropic", "model": "claude-opus-4-20250514"},
+    {"provider": "anthropic", "model": "claude-opus-4-7"},
     # OpenAI judges (optional — skipped if OPENAI_API_KEY not set)
     # GPT-5.4 family chosen over flagship 5.5 for cost (2x cheaper) and over
     # o1/o3 reasoning models (no benefit for straightforward JSON scoring).
@@ -768,6 +769,7 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
         "anthropic:claude-sonnet-4-20250514": 0.005,
         "anthropic:claude-sonnet-4-6": 0.005,
         "anthropic:claude-opus-4-20250514": 0.01,
+        "anthropic:claude-opus-4-7": 0.01,
         "openai:gpt-5.4-mini": 0.0015,
         "openai:gpt-5.4": 0.005,
     }
