@@ -1304,9 +1304,13 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         <p style="font-size: 0.85em; color: #888; margin-top: 16px;">
             <strong>Note on versions:</strong> these are model snapshots in time. Haiku 4.5
             (Oct 2025) is the current latest in the Haiku line. Opus 4 (May 2025) is two
-            generations old; the latest is 4.7, untested here — so Opus's r=0.382 likely
-            understates its current capability. GPT-5.5 was available but GPT-5.4 was chosen
-            for cost.
+            generations old. We did spot-check <strong>Opus 4.7</strong> (Jan 2026) on a
+            partial sample (N=66, $5 budget cap — Opus 4.7 is 15&times; the per-call cost of
+            Sonnet 4.6); on apples-to-apples 66-row comparison Opus 4.7 jumped to r=0.698
+            (vs Opus 4's 0.452 on the same rows), confirming the version-drift pattern.
+            Sonnet 4.6 still led that subset at r=0.733. We didn't extend Opus 4.7 to the
+            full N=500 (would have cost ~$32 more) because the same dollars are better
+            spent on Experiments 1 and 2. GPT-5.5 was available but GPT-5.4 was chosen for cost.
         </p>
     </div>
 
