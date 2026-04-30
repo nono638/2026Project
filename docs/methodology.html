@@ -315,6 +315,32 @@ Validated Queries x (Chunker x Embedder x Reranker x Strategy x Model) --&gt; An
            This enables scorer validation — Experiment 0 exists specifically to validate
            the LLM-as-judge approach against gold-standard metrics.</p>
 
+        <h2>Scorer Selection</h2>
+        <p>
+            Experiment 0 ran 500 HotpotQA questions through ten LLM judges (3 Gemini, 5
+            Claude, 2 OpenAI) and correlated each judge's quality scores against the gold
+            metrics (BERTScore F1, token-level F1). The headline result: <strong>GPT-5.4</strong>
+            led at r=0.605, with <strong>Claude Sonnet 4.6</strong> (0.575) and
+            <strong>GPT-5.4 Mini</strong> (0.553) close behind.
+        </p>
+        <p>
+            The unexpected finding was <strong>model version drift</strong>. Claude
+            Sonnet 4 (May 2025) hit r=0.397; Claude Sonnet 4.6 (the same provider, eight
+            months later) hit r=0.575 — a ~45% relative improvement on identical answers.
+            A spot-check of Claude Opus 4.7 on a 66-row subset showed the same effect:
+            Opus 4 scored r=0.452 on those rows, Opus 4.7 scored r=0.698. Within-provider
+            version differences turned out to exceed cross-provider differences.
+        </p>
+        <p>
+            <strong>Final scorer panel for Experiments 1 and 2:</strong>
+            <strong>Claude Sonnet 4.6</strong> as the primary judge (best accuracy
+            per dollar — 15&times; cheaper than Opus 4.7 with comparable correlation),
+            and <strong>GPT-5.4 Mini</strong> as a cross-provider validator (r=0.553 at
+            $0.0015/call, and cross-validates with Sonnet 4.6 at r=0.720). Two judges
+            from different providers limits any single judge's bias from dominating the
+            results.
+        </p>
+
         <h2>Experiment Design</h2>
         <table class="data-table">
             <thead>
@@ -329,7 +355,7 @@ Validated Queries x (Chunker x Embedder x Reranker x Strategy x Model) --&gt; An
                 <tr>
                     <td>0 (Scorer Validation)</td>
                     <td>Which LLM judge is most accurate?</td>
-                    <td>150 medium+hard HotpotQA x 7 judges</td>
+                    <td>500 medium+hard HotpotQA &times; 10 judges (v3)</td>
                     <td>Qwen3-4B, NaiveRAG + BGE reranker</td>
                 </tr>
                 <tr>
