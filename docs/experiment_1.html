@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Methodology — RAGBench</title>
+    <title>Experiment 1 — RAGBench</title>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
 
@@ -252,108 +252,24 @@ p { margin: 12px 0; }
         <span class="brand">RAGBench</span>
         <a href="index.html">Home</a>
     <a href="experiment_0_v3.html">Exp 0v3: Scorer Validation</a>
-    <a href="experiment_1.html">Exp 1: Strategy × Model</a>
+    <a href="experiment_1.html" class="active">Exp 1: Strategy × Model</a>
     <a href="experiment_2.html">Exp 2: Chunking × Model</a>
-    <a href="methodology.html" class="active">Methodology</a>
+    <a href="methodology.html">Methodology</a>
     </nav>
     <div class="content">
-        <h1>Methodology</h1>
+        <h1>Experiment 1</h1>
         
-    <div class="methodology-content">
-
-        <h2>Pipeline Overview</h2>
+    <div class="placeholder">
+        <h2>Coming Soon</h2>
         <p>
-            RAGBench evaluates RAG configurations by running each query through every
-            combination of five independent axes, scoring the outputs, and comparing
-            them against gold-standard answers when available.
+            Experiment 1 has not yet been completed.
+            When results are available, this page will automatically
+            show interactive visualizations.
         </p>
-        <pre>
-Documents --&gt; QueryGenerator --&gt; Queries --&gt; QueryFilter --&gt; Validated Queries
-                                                                    |
-Validated Queries x (Chunker x Embedder x Reranker x Strategy x Model) --&gt; Answers
-                                                                    |
-                                                         Scorer --&gt; Scores
-                                                                    |
-                                                      ExperimentResult --&gt; Analysis
-        </pre>
-
-        <h2>The Five Axes</h2>
-        <p>Each experiment varies one or two axes while holding the others constant,
-           isolating the effect of each design decision.</p>
-
-        <h3>Chunker</h3>
-        <p>How documents are split into passages for retrieval. Options: fixed-size (512 tokens),
-           recursive (500/100 overlap), sentence-boundary, and semantic (embedding-aware splits).</p>
-
-        <h3>Embedder</h3>
-        <p>How text chunks become vector representations for similarity search.
-           Held constant across experiments: mxbai-embed-large via Ollama.</p>
-
-        <h3>Reranker</h3>
-        <p>An optional second-pass ranker that re-scores retrieved chunks before they reach
-           the LLM, improving precision at the cost of latency. Options: BGE reranker
-           (cross-encoder), MiniLM (lightweight), or none. Experiment 0 uses BGE;
-           Experiments 1 and 2 run without a reranker to isolate other variables.</p>
-
-        <h3>Strategy</h3>
-        <p>How retrieved context is used to generate answers. Five strategies tested:
-           NaiveRAG (single retrieval), SelfRAG (self-critique loop), CorrectiveRAG
-           (retrieval validation), AdaptiveRAG (complexity routing), and MultiQueryRAG
-           (query expansion).</p>
-
-        <h3>Model</h3>
-        <p>Which language model generates the final answer. Tested: Qwen3 (0.6B, 1.7B,
-           4B, 8B) and Gemma 3 (1B, 4B) — all running locally via Ollama.</p>
-
-        <h2>Evaluation Approach</h2>
-        <p>RAGBench uses dual evaluation to assess answer quality from two perspectives:</p>
-        <p><strong>Intrinsic evaluation</strong> (always available): An LLM judge scores each
-           answer on faithfulness, relevance, and conciseness against the retrieved context.
-           No external reference data needed.</p>
-        <p><strong>Extrinsic evaluation</strong> (when gold data exists): Answers are compared
-           against known-correct reference answers using BERTScore and token-level F1.
-           This enables scorer validation — Experiment 0 exists specifically to validate
-           the LLM-as-judge approach against gold-standard metrics.</p>
-
-        <h2>Experiment Design</h2>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Experiment</th>
-                    <th>Research Question</th>
-                    <th>Matrix</th>
-                    <th>Held Constant</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>0 (Scorer Validation)</td>
-                    <td>Which LLM judge is most accurate?</td>
-                    <td>150 medium+hard HotpotQA x 7 judges</td>
-                    <td>Qwen3-4B, NaiveRAG + BGE reranker</td>
-                </tr>
-                <tr>
-                    <td>1 (Strategy x Model)</td>
-                    <td>Does strategy compensate for model size?</td>
-                    <td>5 strategies x 6 models</td>
-                    <td>Recursive chunker, mxbai-embed-large</td>
-                </tr>
-                <tr>
-                    <td>2 (Chunking x Model)</td>
-                    <td>Does chunking strategy interact with model capability?</td>
-                    <td>4 chunkers x 4 models</td>
-                    <td>NaiveRAG, mxbai-embed-large</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h2>Dataset</h2>
-        <p>The primary corpus is <strong>HotpotQA</strong> — 113K multi-hop Wikipedia
-           question-answer pairs with gold-standard answers and difficulty labels (easy,
-           medium, hard). Multi-hop questions require reasoning across multiple passages,
-           making them a rigorous test of retrieval and generation quality.</p>
-        <p>Secondary: SQuAD 2.0 (simple factoid Q&amp;A for easy-baseline calibration).</p>
-
+        <div class="card" style="text-align: left; max-width: 600px; margin: 24px auto;">
+            <h3>Planned Experiment</h3>
+            <p>Strategy × Model Size — 5 RAG strategies (NaiveRAG, SelfRAG, CorrectiveRAG, AdaptiveRAG, MultiQueryRAG) × 6 models (Qwen3 0.6B/1.7B/4B/8B, Gemma 3 1B/4B) = 30 configurations. Held constant: Recursive chunker (500/100), mxbai-embed-large, hybrid retrieval.</p>
+        </div>
     </div>
     
     </div>

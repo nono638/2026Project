@@ -139,6 +139,17 @@ p { margin: 12px 0; }
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
+/* Figure captions (task-051) */
+.caption {
+    font-size: 0.95em;
+    color: #4a4a4a;
+    font-style: italic;
+    max-width: 800px;
+    margin: 0.5em auto 2em auto;
+    line-height: 1.4;
+    padding: 0 1em;
+}
+
 /* Placeholder page */
 .placeholder {
     text-align: center;
@@ -261,11 +272,11 @@ p { margin: 12px 0; }
 
     <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
         <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
-        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Third time's a charm.</p>
+        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Third time's a charm — then OpenAI showed up.</p>
         <p>
-            500 HotpotQA questions. 6 LLM judges. Three iterations to get it right.
-            The answer: <strong>Claude Haiku at $0.002/call</strong> — the cheapest
-            Anthropic model is also the most accurate judge.
+            500 HotpotQA questions. 8 LLM judges. The answer:
+            <strong>GPT-5.4 Mini at $0.0015/call</strong> — both more accurate
+            (r=0.553 vs gold F1) and cheaper than every Claude or Gemini judge.
         </p>
         <a href="experiment_0_v3.html" class="cta-btn" style="margin-top: 16px; display: inline-block;">
             View Experiment 0 Results &rarr;
@@ -273,19 +284,19 @@ p { margin: 12px 0; }
     </div>
 
     <h2>Key Findings</h2>
-    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 6 LLM judges (3 Gemini + 3 Claude).</p>
+    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI).</p>
     <div class="findings-grid">
         <div class="finding-card">
-            <h4>Claude Haiku is the most accurate LLM judge</h4>
-            <p>Highest correlation with gold F1 (r=0.450) at n=500 — and the cheapest Anthropic option at $0.002/call.</p>
+            <h4>GPT-5.4 Mini is the most accurate LLM judge</h4>
+            <p>Highest correlation with gold F1 (r=0.553) at n=500 — and at $0.0015/call, also the cheapest paid option.</p>
         </div>
         <div class="finding-card">
             <h4>Gemini 2.5 Pro is the best free budget scorer</h4>
             <p>r=0.348 with gold F1 via Google AI Studio — no API cost for evaluation.</p>
         </div>
         <div class="finding-card">
-            <h4>Strong inter-judge agreement among top scorers</h4>
-            <p>Sonnet-Opus r=0.820, Flash-Pro r=0.892 — judges broadly agree on answer quality.</p>
+            <h4>OpenAI judges flipped the within-Anthropic ranking</h4>
+            <p>GPT-5.4 (r=0.605) and GPT-5.4 Mini (r=0.553) both outperform Claude Haiku (0.450), the previous v3 winner.</p>
         </div>
         <div class="finding-card">
             <h4>76% exact match on HotpotQA — answer quality is solid</h4>

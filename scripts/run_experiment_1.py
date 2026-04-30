@@ -620,7 +620,7 @@ def main() -> None:
             from scripts.generate_gallery import main as generate_gallery
             print("\nRegenerating gallery...")
             generate_gallery(experiments=[1])
-            print("Gallery updated in site/")
+            print("Gallery updated in docs/")
         except Exception as exc:
             print(f"Gallery regeneration failed: {exc}")
             logger.warning("Gallery regeneration failed: %s", exc)

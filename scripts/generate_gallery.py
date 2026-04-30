@@ -2309,7 +2309,7 @@ def main(
         results_dir: Directory containing ``experiment_0/``, etc.
             Defaults to ``results/`` in the project root.
         output_dir: Output directory for HTML files.
-            Defaults to ``site/``.
+            Defaults to ``docs/`` (the GitHub Pages source).
         experiments: List of experiment numbers to generate.
             Defaults to ``[0, 1, 2]``.
     """
@@ -2318,7 +2318,7 @@ def main(
     results_dir = Path(results_dir)
 
     if output_dir is None:
-        output_dir = _PROJECT_ROOT / "site"
+        output_dir = _PROJECT_ROOT / "docs"
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -2481,7 +2481,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate RAGBench findings gallery")
     parser.add_argument(
         "--output", type=str, default=None,
-        help="Output directory (default: site/)",
+        help="Output directory (default: docs/, the GitHub Pages source)",
     )
     parser.add_argument(
         "--experiments", type=str, default=None,
