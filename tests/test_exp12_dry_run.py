@@ -22,37 +22,51 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
 
 
+def _run_dry_run(
+    script_name: str,
+    out_dir: Path,
+    label: str,
+) -> None:
+    """Run an experiment script in --skip-generation mode against synthetic data.
+
+    Skips the calling test if the subprocess fails or times out — these
+    tests hit real APIs (Gemini Flash Lite) and download the BERTScore
+    model (~1.4GB on first run), so transient failures are expected.
+    """
+    try:
+        result = subprocess.run(
+            [
+                PYTHON, str(PROJECT_ROOT / "scripts" / script_name),
+                "--skip-generation",
+                "--output-dir", str(out_dir),
+                "--scorer", "google:gemini-2.5-flash-lite",
+                "--no-gallery",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=str(PROJECT_ROOT),
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.skip(
+            f"{label} dry run timed out after 300s "
+            "(BERTScore model download or API rate limit)"
+        )
+    if result.returncode != 0:
+        pytest.skip(
+            f"{label} dry run failed (likely API/network issue): "
+            f"rc={result.returncode}\nstderr: {result.stderr[:500]}"
+        )
+
+
 @pytest.fixture(scope="module")
 def exp1_dry_run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Create synthetic Experiment 1 data and run --skip-generation scoring."""
     out = tmp_path_factory.mktemp("exp1_dry_run")
-
-    # Import the data generator
     sys.path.insert(0, str(PROJECT_ROOT))
     from scripts.create_dry_run_data import create_experiment_1_data
-
     create_experiment_1_data(out)
-
-    # Run scoring
-    result = subprocess.run(
-        [
-            PYTHON, str(PROJECT_ROOT / "scripts" / "run_experiment_1.py"),
-            "--skip-generation",
-            "--output-dir", str(out),
-            "--scorer", "google:gemini-2.5-flash-lite",
-            "--no-gallery",
-        ],
-        capture_output=True,
-        text=True,
-        cwd=str(PROJECT_ROOT),
-        timeout=120,
-    )
-    if result.returncode != 0:
-        pytest.skip(
-            f"Experiment 1 dry run failed (likely API/network issue): "
-            f"rc={result.returncode}\nstderr: {result.stderr[:500]}"
-        )
-
+    _run_dry_run("run_experiment_1.py", out, "Experiment 1")
     return out
 
 
@@ -60,31 +74,10 @@ def exp1_dry_run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def exp2_dry_run_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Create synthetic Experiment 2 data and run --skip-generation scoring."""
     out = tmp_path_factory.mktemp("exp2_dry_run")
-
     sys.path.insert(0, str(PROJECT_ROOT))
     from scripts.create_dry_run_data import create_experiment_2_data
-
     create_experiment_2_data(out)
-
-    result = subprocess.run(
-        [
-            PYTHON, str(PROJECT_ROOT / "scripts" / "run_experiment_2.py"),
-            "--skip-generation",
-            "--output-dir", str(out),
-            "--scorer", "google:gemini-2.5-flash-lite",
-            "--no-gallery",
-        ],
-        capture_output=True,
-        text=True,
-        cwd=str(PROJECT_ROOT),
-        timeout=120,
-    )
-    if result.returncode != 0:
-        pytest.skip(
-            f"Experiment 2 dry run failed (likely API/network issue): "
-            f"rc={result.returncode}\nstderr: {result.stderr[:500]}"
-        )
-
+    _run_dry_run("run_experiment_2.py", out, "Experiment 2")
     return out
 
 
@@ -107,10 +100,14 @@ class TestExperiment1DryRun:
         assert len(df) == 4
 
     def test_scorer_columns_exist(self, exp1_dry_run_dir: Path) -> None:
-        """Scorer quality column should be present after scoring."""
+        """Scorer columns should be present after scoring.
+
+        Exp 1 uses a single judge (--scorer), so columns are bare
+        faithfulness/relevance/conciseness/quality without a judge prefix.
+        """
         df = pd.read_csv(exp1_dry_run_dir / "raw_scores.csv")
-        quality_cols = [c for c in df.columns if c.endswith("_quality")]
-        assert len(quality_cols) >= 1, f"No quality columns found. Columns: {list(df.columns)}"
+        for col in ("faithfulness", "relevance", "conciseness", "quality"):
+            assert col in df.columns, f"Missing scorer column '{col}'. Columns: {list(df.columns)}"
 
     def test_gold_bertscore_column(self, exp1_dry_run_dir: Path) -> None:
         """gold_bertscore column should exist with float values."""
@@ -154,10 +151,14 @@ class TestExperiment2DryRun:
         assert len(df) == 4
 
     def test_scorer_columns_exist(self, exp2_dry_run_dir: Path) -> None:
-        """Scorer quality column should be present after scoring."""
+        """Scorer columns should be present after scoring.
+
+        Exp 2 uses a single judge (--scorer), so columns are bare
+        faithfulness/relevance/conciseness/quality without a judge prefix.
+        """
         df = pd.read_csv(exp2_dry_run_dir / "raw_scores.csv")
-        quality_cols = [c for c in df.columns if c.endswith("_quality")]
-        assert len(quality_cols) >= 1, f"No quality columns found. Columns: {list(df.columns)}"
+        for col in ("faithfulness", "relevance", "conciseness", "quality"):
+            assert col in df.columns, f"Missing scorer column '{col}'. Columns: {list(df.columns)}"
 
     def test_gold_metrics_exist(self, exp2_dry_run_dir: Path) -> None:
         """gold_f1 and gold_exact_match columns should exist."""

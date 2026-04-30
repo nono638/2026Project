@@ -117,3 +117,28 @@ class TestScoreAllAnswersSkipsMissingKeys:
         # Check that anthropic scorer columns do NOT exist
         anthropic_cols = [c for c in df.columns if c.startswith("anthropic_")]
         assert len(anthropic_cols) == 0, f"Did not expect anthropic columns, got: {anthropic_cols}"
+
+
+class TestJudgeConfigDisplayNamesInSync:
+    """Every JUDGE_CONFIGS entry must have a JUDGE_DISPLAY_NAMES mapping.
+
+    Without this, adding a new judge silently renders with the raw safe-name
+    prefix (e.g. "openai_gpt_5_4_mini") instead of a clean display name in
+    chart legends. Caught us once already — Sonnet 4.6 was added to
+    JUDGE_CONFIGS but we had to remember to also add its display name.
+    """
+
+    def test_every_judge_has_a_display_name(self) -> None:
+        from scripts.generate_experiment0_dashboard import JUDGE_DISPLAY_NAMES
+
+        missing: list[str] = []
+        for config in JUDGE_CONFIGS:
+            name = f"{config['provider']}:{config['model']}"
+            safe = _safe_scorer_name(name)
+            if safe not in JUDGE_DISPLAY_NAMES:
+                missing.append(safe)
+
+        assert not missing, (
+            f"JUDGE_CONFIGS entries missing from JUDGE_DISPLAY_NAMES: {missing}. "
+            "Add a display name in scripts/generate_experiment0_dashboard.py."
+        )

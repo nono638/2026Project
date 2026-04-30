@@ -66,6 +66,7 @@ from experiment_utils import (
     append_rows,
     format_duration,
     build_scorer,
+    write_experiment_metadata,
 )
 
 
@@ -602,6 +603,29 @@ def main() -> None:
         report_path.write_text(report, encoding="utf-8")
         logger.info("Saved report to %s", report_path)
         print("\n" + report)
+
+        # Write metadata sidecar — judge model versions + run config
+        from scripts.generate_experiment0_dashboard import JUDGE_DISPLAY_NAMES
+        provider, model = args.scorer.split(":", 1)
+        safe = f"{provider}:{model}".replace(":", "_").replace(".", "_").replace("-", "_")
+        write_experiment_metadata(
+            output_dir=output_dir,
+            n_examples=len(results_df),
+            config={
+                "n_questions": args.n,
+                "seed": args.seed,
+                "models": models,
+                "strategies": strategies,
+                "ollama_host": args.ollama_host,
+                "skip_generation": args.skip_generation,
+            },
+            judges=[{
+                "provider": provider,
+                "model": model,
+                "display_name": JUDGE_DISPLAY_NAMES.get(safe, model),
+            }],
+            extra={"experiment_axis": "strategy_x_model_size"},
+        )
     else:
         logger.warning("No results file found — skipping report.")
 

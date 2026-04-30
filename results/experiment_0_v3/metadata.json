@@ -1,6 +1,6 @@
 {
   "experiment": "experiment_0_v3",
-  "last_updated": "2026-04-30T11:28:27",
+  "last_updated": "2026-04-30T12:02:56",
   "n_examples": 500,
   "config": {
     "model": "qwen3:4b",
