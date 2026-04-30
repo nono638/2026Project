@@ -333,12 +333,18 @@ Validated Queries x (Chunker x Embedder x Reranker x Strategy x Model) --&gt; An
         </p>
         <p>
             <strong>Final scorer panel for Experiments 1 and 2:</strong>
-            <strong>Claude Sonnet 4.6</strong> as the primary judge (best accuracy
-            per dollar — 15&times; cheaper than Opus 4.7 with comparable correlation),
-            and <strong>GPT-5.4 Mini</strong> as a cross-provider validator (r=0.553 at
-            $0.0015/call, and cross-validates with Sonnet 4.6 at r=0.720). Two judges
-            from different providers limits any single judge's bias from dominating the
-            results.
+            <strong>Claude Haiku 4.5</strong> (r=0.450, $0.002/call) and
+            <strong>GPT-5.4 Mini</strong> (r=0.553, $0.0015/call). Both are the latest
+            generation of their respective family lines (no version-drift penalty), both
+            sit in the cheap tier, and they sit in different capability tiers across
+            different providers — yielding a more genuinely independent cross-validation
+            than a top-tier same-tier pair would. Total estimated cost across both full
+            experiments (Exp 1 = 5 strategies × 6 models × 200 questions, Exp 2 = 4
+            chunkers × 4 models × 200 questions, ~9,200 rows per judge): <strong>~$32</strong>.
+            Sonnet 4.6 was considered as the primary (r=0.575) but at 5&times; the per-call
+            cost it would have raised the panel total to ~$106 for ~22% better correlation —
+            not worth it for relative-ranking research questions where judge consistency
+            matters more than absolute gold-correlation.
         </p>
 
         <h2>Experiment Design</h2>

@@ -70,6 +70,9 @@ JUDGE_CONFIGS = [
     {"provider": "google", "model": "gemini-2.5-flash-lite"},
     {"provider": "google", "model": "gemini-2.5-flash"},
     {"provider": "google", "model": "gemini-2.5-pro"},
+    # gemini-3.1-pro-preview is paid-tier-only on Google AI Studio (free
+    # tier limit: 0). Left in configs so it activates automatically if
+    # billing is ever enabled; until then the runner skips it on 429.
     {"provider": "google", "model": "gemini-3.1-pro-preview"},
     # Anthropic judges (optional — skipped if ANTHROPIC_API_KEY not set)
     {"provider": "anthropic", "model": "claude-haiku-4-5-20251001"},

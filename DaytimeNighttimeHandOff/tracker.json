@@ -907,7 +907,9 @@
     "commit_sha": "41312b29090c3268aec2459cb0d14ba84bb146f1",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["2 pre-written test failures due to numpy boolean identity check (np.True_ is True -> False); fix: use == instead of is"],
+    "flags": [
+      "2 pre-written test failures due to numpy boolean identity check (np.True_ is True -> False); fix: use == instead of is"
+    ],
     "daytime_reviewed": "2026-03-27T12:15:18"
   },
   {
@@ -924,7 +926,10 @@
     "commit_sha": "b2d4d6d98a0108deb862b25b1dda52c36fae0e12",
     "tests_passed": true,
     "attempted_approaches": [],
-    "flags": ["Updated existing test_gallery.py assertion to expect experiment_0_v3.html instead of experiment_0.html", "v3 chart code is largely duplicated from v2 — DRY refactoring possible"],
+    "flags": [
+      "Updated existing test_gallery.py assertion to expect experiment_0_v3.html instead of experiment_0.html",
+      "v3 chart code is largely duplicated from v2 \u2014 DRY refactoring possible"
+    ],
     "daytime_reviewed": "2026-03-27T12:15:18"
   },
   {
@@ -942,7 +947,7 @@
     "tests_passed": true,
     "attempted_approaches": [],
     "flags": [
-      "Retroactive v3 scoring not executed — network blocked in nighttime. User must run manually: python scripts/run_experiment_0.py --version v3 --skip-generation --judges gpt",
+      "Retroactive v3 scoring not executed \u2014 network blocked in nighttime. User must run manually: python scripts/run_experiment_0.py --version v3 --skip-generation --judges gpt",
       "Verify gpt-5.4 / gpt-5.4-mini available on user's account before running; fallback gpt-4o / gpt-4o-mini already in cost guard",
       "Updated tests/test_cost_guard.py::test_unknown_model_uses_default to use 'mystery-provider/unknown-model-xyz' (was openai/gpt-4o-mini, now a known cost)"
     ],
@@ -964,8 +969,16 @@
     "attempted_approaches": [],
     "flags": [
       "Pre-existing v2 CSV dtype issue: build_experiment0_figures() raises TypeError on results/experiment_0_v2/raw_scores.csv (str/int divide). Now logged as warning instead of silently skipping. v2 still gets 3 captions on its v2-specific charts; standard scorer charts skipped. Worth fixing the dtype root cause separately.",
-      "site/ files (regenerated gallery HTML) intentionally NOT committed on this branch — daytime agent will regenerate during morning review after merging."
+      "site/ files (regenerated gallery HTML) intentionally NOT committed on this branch \u2014 daytime agent will regenerate during morning review after merging."
     ],
     "daytime_reviewed": "2026-04-29T15:54:14"
+  },
+  {
+    "task_id": "task-052",
+    "description": "Multi-judge support for run_experiment_1/2 (CLI, schema, tests)",
+    "daytime_created": "2026-04-30T15:30:12",
+    "daytime_comments": "Adds --scorers nargs+ flag, per-judge column schema (matches Exp 0), consensus_quality column, per-judge resume on --skip-generation, per-judge agreement section in report.md. Default panel = Haiku 4.5 + GPT-5.4 Mini. Pre-written tests in WrittenByDaytime/task-052-multi-judge-exp12/tests/. Does NOT run real Exp 1/2 data \u2014 that is task-053+ deferred for RTX 5090 discussion.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
