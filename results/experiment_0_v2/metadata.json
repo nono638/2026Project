@@ -1,0 +1,57 @@
+{
+  "experiment": "experiment_0_v2",
+  "last_updated": "2026-04-30T10:55:24",
+  "n_examples": 150,
+  "config": {
+    "model": "qwen3:4b",
+    "seed": 42,
+    "reranker": "bge",
+    "reranker_top_k": 3,
+    "retrieval_top_k": 10,
+    "difficulty": "medium,hard"
+  },
+  "judges": [
+    {
+      "provider": "google",
+      "model": "gemini-2.5-flash-lite",
+      "display_name": "Gemini 2.5 Flash-Lite",
+      "n_scored": 150
+    },
+    {
+      "provider": "google",
+      "model": "gemini-2.5-flash",
+      "display_name": "Gemini 2.5 Flash",
+      "n_scored": 150
+    },
+    {
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "display_name": "Gemini 2.5 Pro",
+      "n_scored": 150
+    },
+    {
+      "provider": "google",
+      "model": "gemini-3.1-pro-preview",
+      "display_name": "Gemini 3.1 Pro Preview",
+      "n_scored": 11
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "display_name": "Claude Haiku 4.5",
+      "n_scored": 150
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-4-20250514",
+      "display_name": "Claude Sonnet 4",
+      "n_scored": 150
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-20250514",
+      "display_name": "Claude Opus 4",
+      "n_scored": 150
+    }
+  ]
+}

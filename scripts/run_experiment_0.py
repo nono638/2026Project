@@ -30,8 +30,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -55,6 +57,7 @@ logger = logging.getLogger(__name__)
 
 # Import shared gold metrics from experiment_utils to avoid duplication
 from scripts.experiment_utils import compute_f1, exact_match
+from scripts.generate_experiment0_dashboard import JUDGE_DISPLAY_NAMES
 
 
 # ---------------------------------------------------------------------------
@@ -69,6 +72,7 @@ JUDGE_CONFIGS = [
     # Anthropic judges (optional — skipped if ANTHROPIC_API_KEY not set)
     {"provider": "anthropic", "model": "claude-haiku-4-5-20251001"},
     {"provider": "anthropic", "model": "claude-sonnet-4-20250514"},
+    {"provider": "anthropic", "model": "claude-sonnet-4-6"},
     {"provider": "anthropic", "model": "claude-opus-4-20250514"},
     # OpenAI judges (optional — skipped if OPENAI_API_KEY not set)
     # GPT-5.4 family chosen over flagship 5.5 for cost (2x cheaper) and over
@@ -622,6 +626,56 @@ def add_answer_quality(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Metadata sidecar
+# ---------------------------------------------------------------------------
+
+def write_metadata(
+    output_dir: Path,
+    df: pd.DataFrame,
+    args: argparse.Namespace,
+) -> None:
+    """Write a metadata.json sidecar capturing provenance for this CSV.
+
+    Lists every judge whose ``{safe_name}_quality`` column is present in
+    ``df`` — i.e. judges that actually contributed scores, regardless of
+    whether they ran in this invocation or a prior one.
+
+    Stable across reruns: idempotent for the same CSV state.
+    """
+    judges_in_data = []
+    for config in JUDGE_CONFIGS:
+        provider = config["provider"]
+        model = config["model"]
+        safe = _safe_scorer_name(f"{provider}:{model}")
+        if f"{safe}_quality" not in df.columns:
+            continue
+        judges_in_data.append({
+            "provider": provider,
+            "model": model,
+            "display_name": JUDGE_DISPLAY_NAMES.get(safe, model),
+            "n_scored": int(df[f"{safe}_quality"].notna().sum()),
+        })
+
+    metadata = {
+        "experiment": output_dir.name,
+        "last_updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        "n_examples": len(df),
+        "config": {
+            "model": args.model,
+            "seed": args.seed,
+            "reranker": args.reranker,
+            "reranker_top_k": args.reranker_top_k,
+            "retrieval_top_k": args.retrieval_top_k,
+            "difficulty": args.difficulty,
+        },
+        "judges": judges_in_data,
+    }
+    metadata_path = output_dir / "metadata.json"
+    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    logger.info("Saved metadata to %s", metadata_path)
+
+
+# ---------------------------------------------------------------------------
 # Report generation
 # ---------------------------------------------------------------------------
 
@@ -712,6 +766,7 @@ def generate_report(df: pd.DataFrame, scorers_used: list[str]) -> str:
         "google:gemini-2.5-pro": 0.001,
         "anthropic:claude-haiku-4-5-20251001": 0.001,
         "anthropic:claude-sonnet-4-20250514": 0.005,
+        "anthropic:claude-sonnet-4-6": 0.005,
         "anthropic:claude-opus-4-20250514": 0.01,
         "openai:gpt-5.4-mini": 0.0015,
         "openai:gpt-5.4": 0.005,
@@ -1033,6 +1088,9 @@ def main() -> None:
     report = generate_report(results_df, scorers_used)
     report_path.write_text(report, encoding="utf-8")
     logger.info("Saved report to %s", report_path)
+
+    # Write metadata.json sidecar with judge provenance
+    write_metadata(output_dir, results_df, args)
 
     # Print report to stdout
     print("\n" + report)

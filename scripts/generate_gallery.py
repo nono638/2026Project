@@ -455,11 +455,12 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
 
     <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
         <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
-        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Third time's a charm — then OpenAI showed up.</p>
+        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Frontier-class judges converge — version matters more than provider.</p>
         <p>
-            500 HotpotQA questions. 8 LLM judges. The answer:
-            <strong>GPT-5.4 Mini at $0.0015/call</strong> — both more accurate
-            (r=0.553 vs gold F1) and cheaper than every Claude or Gemini judge.
+            500 HotpotQA questions. 9 LLM judges. <strong>GPT-5.4</strong> leads at r=0.605,
+            with <strong>Claude Sonnet 4.6</strong> (0.575) and <strong>GPT-5.4 Mini</strong>
+            (0.553) close behind. Older Claude versions (Sonnet 4, Opus 4) score ~30% lower
+            than current Sonnet 4.6 — model version drift outweighs provider differences.
         </p>
         <a href="experiment_0_v3.html" class="cta-btn" style="margin-top: 16px; display: inline-block;">
             View Experiment 0 Results &rarr;
@@ -467,19 +468,19 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
     </div>
 
     <h2>Key Findings</h2>
-    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI).</p>
+    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 9 LLM judges (3 Gemini + 4 Claude + 2 OpenAI).</p>
     <div class="findings-grid">
         <div class="finding-card">
-            <h4>GPT-5.4 Mini is the most accurate LLM judge</h4>
-            <p>Highest correlation with gold F1 (r=0.553) at n=500 — and at $0.0015/call, also the cheapest paid option.</p>
+            <h4>GPT-5.4 is the most accurate LLM judge</h4>
+            <p>Highest correlation with gold F1 (r=0.605) at n=500. Sonnet 4.6 (0.575) and GPT-5.4 Mini (0.553) follow.</p>
         </div>
         <div class="finding-card">
-            <h4>Gemini 2.5 Pro is the best free budget scorer</h4>
-            <p>r=0.348 with gold F1 via Google AI Studio — no API cost for evaluation.</p>
+            <h4>Model version dominates provider differences</h4>
+            <p>Claude Sonnet jumped from r=0.397 (4) → 0.575 (4.6) — a ~45% relative gain. Same provider, different generation.</p>
         </div>
         <div class="finding-card">
-            <h4>OpenAI judges flipped the within-Anthropic ranking</h4>
-            <p>GPT-5.4 (r=0.605) and GPT-5.4 Mini (r=0.553) both outperform Claude Haiku 4.5 (0.450), the previous v3 winner.</p>
+            <h4>GPT-5.4 Mini is the best value</h4>
+            <p>r=0.553 at $0.0015/call — most accurate among cheap judges, and cross-validates with Sonnet 4.6 (r=0.720).</p>
         </div>
         <div class="finding-card">
             <h4>76% exact match on HotpotQA — answer quality is solid</h4>
@@ -1248,8 +1249,9 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
             v3 — 500 medium+hard HotpotQA questions, 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI)
         </p>
         <ul style="list-style: none; padding: 0; margin: 0;">
-            <li style="margin: 8px 0;"><strong>Best judge:</strong> GPT-5.4 (r=0.605 gold F1) — GPT-5.4 Mini close behind at r=0.553</li>
-            <li style="margin: 8px 0;"><strong>Best value:</strong> GPT-5.4 Mini ($0.0015/call) — more accurate AND cheaper than Claude Haiku 4.5</li>
+            <li style="margin: 8px 0;"><strong>Best judge:</strong> GPT-5.4 (r=0.605 gold F1), Claude Sonnet 4.6 (0.575) close behind</li>
+            <li style="margin: 8px 0;"><strong>Best value:</strong> GPT-5.4 Mini at $0.0015/call (r=0.553) — cheapest paid judge with high correlation</li>
+            <li style="margin: 8px 0;"><strong>Version drift dominates:</strong> Sonnet 4.6 (0.575) vs Sonnet 4 (0.397) — same provider, ~45% better</li>
             <li style="margin: 8px 0;"><strong>Best free judge:</strong> Gemini 2.5 Pro (r=0.348)</li>
             <li style="margin: 8px 0;"><strong>Pipeline accuracy:</strong> 76.2% exact match, mean F1 0.546</li>
             <li style="margin: 8px 0;"><strong>Failure stages:</strong> 76% none, 14% retrieval, 10% generation</li>
@@ -1288,17 +1290,23 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
             Then we added <strong>GPT-5.4 and GPT-5.4 Mini</strong> retroactively (n=500, same
             questions and answers) — and they outperformed every Claude and Gemini judge by a
             wide margin. GPT-5.4 leads at r=0.605, with GPT-5.4 Mini close behind at r=0.553.
-            Crucially, GPT-5.4 Mini is also <em>cheaper</em> than Claude Haiku 4.5 ($0.0015/call vs
-            $0.002), making it both the most accurate and the best value across the panel.
-            <strong>The answer is GPT-5.4 Mini.</strong>
+        </p>
+        <p>
+            That raised an obvious question: were Sonnet 4 and Opus 4 actually that bad, or just
+            old? The May 2025 versions were configured back when they were the latest Claude
+            models, but Anthropic shipped Sonnet 4.5, 4.6, Opus 4.5, 4.6, and 4.7 in the months
+            between then and now. We re-ran <strong>Claude Sonnet 4.6</strong> on the same v3
+            answers — and it jumped to <strong>r=0.575</strong>, a ~45% relative improvement
+            over Sonnet 4 (0.397). That puts Sonnet 4.6 in <strong>second place overall</strong>,
+            ahead of GPT-5.4 Mini and behind only GPT-5.4. Model version drift turns out to be a
+            larger effect than provider differences.
         </p>
         <p style="font-size: 0.85em; color: #888; margin-top: 16px;">
-            <strong>Note on versions:</strong> these are model snapshots in time. Sonnet 4
-            and Opus 4 (May 2025) were the latest Claude versions when scoring ran; newer
-            Sonnet 4.6 and Opus 4.7 were released after and were not tested. Likewise, GPT-5.5
-            was available but GPT-5.4 was chosen for cost. Re-running with the latest
-            versions could shift the rankings — these results are specific to the model
-            versions listed.
+            <strong>Note on versions:</strong> these are model snapshots in time. Haiku 4.5
+            (Oct 2025) is the current latest in the Haiku line. Opus 4 (May 2025) is two
+            generations old; the latest is 4.7, untested here — so Opus's r=0.382 likely
+            understates its current capability. GPT-5.5 was available but GPT-5.4 was chosen
+            for cost.
         </p>
     </div>
 
@@ -1314,13 +1322,15 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         <h2>Summary</h2>
         <p>
             Across 500 medium+hard HotpotQA questions, <strong>GPT-5.4</strong> tracked the
-            gold-standard word-overlap F1 most reliably (Pearson r=0.605), with GPT-5.4 Mini
-            close behind (0.553). Both outperformed Claude Haiku 4.5 (0.450), Sonnet 4 (0.397),
-            Opus 4 (0.382), Gemini 2.5 Pro (0.348), Gemini 2.5 Flash (0.301), and Gemini 2.5
-            Flash-Lite (0.139). Inter-judge correlation within the Gemini 2.5 family is high
-            (Flash and Pro at r=0.892), and within OpenAI as well (5.4 and 5.4 Mini at
-            r=0.784) — confirming family-level bias and motivating multi-provider judge
-            panels. The figures below visualize each step of that analysis.
+            gold-standard word-overlap F1 most reliably (Pearson r=0.605), with <strong>Claude
+            Sonnet 4.6</strong> (0.575) and <strong>GPT-5.4 Mini</strong> (0.553) close behind.
+            All three substantially outperformed Haiku 4.5 (0.450), Sonnet 4 (0.397), Opus 4
+            (0.382), Gemini 2.5 Pro (0.348), Gemini 2.5 Flash (0.301), and Gemini 2.5 Flash-Lite
+            (0.139). Inter-judge correlation within the Gemini 2.5 family is high (Flash and Pro
+            at r=0.892), within OpenAI as well (5.4 and 5.4 Mini at r=0.784), and Sonnet 4.6
+            agrees strongly with both OpenAI judges (r=0.796 with GPT-5.4, r=0.720 with GPT-5.4
+            Mini) — pointing toward "frontier-class" judges converging on the same evaluative
+            signal regardless of provider. The figures below visualize each step of that analysis.
         </p>
     </div>
 

@@ -30,6 +30,7 @@ COST_PER_CALL: dict[str, float] = {
     # Anthropic
     "anthropic:claude-haiku-4-5-20251001": 0.002,
     "anthropic:claude-sonnet-4-20250514": 0.01,
+    "anthropic:claude-sonnet-4-6": 0.01,
     "anthropic:claude-opus-4-20250514": 0.075,
     # OpenAI GPT-5.4 family (~500 input + 100 output tokens per call, err high)
     # gpt-5.4-mini: 500*0.75/1M + 100*4.50/1M = $0.00083 → round to $0.0015
