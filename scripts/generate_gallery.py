@@ -479,7 +479,7 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
         </div>
         <div class="finding-card">
             <h4>OpenAI judges flipped the within-Anthropic ranking</h4>
-            <p>GPT-5.4 (r=0.605) and GPT-5.4 Mini (r=0.553) both outperform Claude Haiku (0.450), the previous v3 winner.</p>
+            <p>GPT-5.4 (r=0.605) and GPT-5.4 Mini (r=0.553) both outperform Claude Haiku 4.5 (0.450), the previous v3 winner.</p>
         </div>
         <div class="finding-card">
             <h4>76% exact match on HotpotQA — answer quality is solid</h4>
@@ -1249,7 +1249,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         </p>
         <ul style="list-style: none; padding: 0; margin: 0;">
             <li style="margin: 8px 0;"><strong>Best judge:</strong> GPT-5.4 (r=0.605 gold F1) — GPT-5.4 Mini close behind at r=0.553</li>
-            <li style="margin: 8px 0;"><strong>Best value:</strong> GPT-5.4 Mini ($0.0015/call) — more accurate AND cheaper than Claude Haiku</li>
+            <li style="margin: 8px 0;"><strong>Best value:</strong> GPT-5.4 Mini ($0.0015/call) — more accurate AND cheaper than Claude Haiku 4.5</li>
             <li style="margin: 8px 0;"><strong>Best free judge:</strong> Gemini 2.5 Pro (r=0.348)</li>
             <li style="margin: 8px 0;"><strong>Pipeline accuracy:</strong> 76.2% exact match, mean F1 0.546</li>
             <li style="margin: 8px 0;"><strong>Failure stages:</strong> 76% none, 14% retrieval, 10% generation</li>
@@ -1280,17 +1280,25 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         </p>
         <p>
             <strong>v3</strong> (n=500) was meant to be the tiebreaker at scale. Among the
-            original 6 judges (3 Gemini, 3 Claude), Haiku led (r=0.450 with gold F1), followed
-            by Sonnet (0.397) and Opus (0.382). Among the free Gemini judges, Flash and Pro
-            are nearly interchangeable (r=0.892).
+            original 6 judges (3 Gemini 2.5, 3 Claude 4-family), Haiku 4.5 led (r=0.450 with
+            gold F1), followed by Sonnet 4 (0.397) and Opus 4 (0.382). Among the free Gemini
+            judges, Flash and Pro are nearly interchangeable (r=0.892).
         </p>
         <p>
             Then we added <strong>GPT-5.4 and GPT-5.4 Mini</strong> retroactively (n=500, same
             questions and answers) — and they outperformed every Claude and Gemini judge by a
             wide margin. GPT-5.4 leads at r=0.605, with GPT-5.4 Mini close behind at r=0.553.
-            Crucially, GPT-5.4 Mini is also <em>cheaper</em> than Claude Haiku ($0.0015/call vs
+            Crucially, GPT-5.4 Mini is also <em>cheaper</em> than Claude Haiku 4.5 ($0.0015/call vs
             $0.002), making it both the most accurate and the best value across the panel.
             <strong>The answer is GPT-5.4 Mini.</strong>
+        </p>
+        <p style="font-size: 0.85em; color: #888; margin-top: 16px;">
+            <strong>Note on versions:</strong> these are model snapshots in time. Sonnet 4
+            and Opus 4 (May 2025) were the latest Claude versions when scoring ran; newer
+            Sonnet 4.6 and Opus 4.7 were released after and were not tested. Likewise, GPT-5.5
+            was available but GPT-5.4 was chosen for cost. Re-running with the latest
+            versions could shift the rankings — these results are specific to the model
+            versions listed.
         </p>
     </div>
 
@@ -1307,10 +1315,10 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         <p>
             Across 500 medium+hard HotpotQA questions, <strong>GPT-5.4</strong> tracked the
             gold-standard word-overlap F1 most reliably (Pearson r=0.605), with GPT-5.4 Mini
-            close behind (0.553). Both outperformed Claude Haiku (0.450), Sonnet (0.397),
-            Opus (0.382), Gemini 2.5 Pro (0.348), Gemini 2.5 Flash (0.301), and Gemini 2.5
-            Flash-Lite (0.139). Inter-judge correlation within the Gemini family is high
-            (Flash and Pro at r=0.892), and within OpenAI as well (5.4 and 5.4-Mini at
+            close behind (0.553). Both outperformed Claude Haiku 4.5 (0.450), Sonnet 4 (0.397),
+            Opus 4 (0.382), Gemini 2.5 Pro (0.348), Gemini 2.5 Flash (0.301), and Gemini 2.5
+            Flash-Lite (0.139). Inter-judge correlation within the Gemini 2.5 family is high
+            (Flash and Pro at r=0.892), and within OpenAI as well (5.4 and 5.4 Mini at
             r=0.784) — confirming family-level bias and motivating multi-provider judge
             panels. The figures below visualize each step of that analysis.
         </p>
