@@ -581,13 +581,13 @@ def _generate_worked_example() -> str:
         <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px;
                     font-size: 0.95em; line-height: 1.6;">
 
-            <div style="font-weight: 600; color: #555;">Question</div>
+            <div style="font-weight: 700; color: #785EF0;">Question</div>
             <div>Who is the older mixed martial artist, Yushin Okami or Nate Marquardt?</div>
 
-            <div style="font-weight: 600; color: #555;">Gold answer</div>
+            <div style="font-weight: 700; color: #C68A00;">Gold answer</div>
             <div><code>Nate Marquardt</code></div>
 
-            <div style="font-weight: 600; color: #555;">RAG answer</div>
+            <div style="font-weight: 700; color: #FE6100;">RAG answer</div>
             <div style="font-style: italic;">
                 "Nate Marquardt is the older mixed martial artist. Yushin Okami was born on
                 July 21, 1981, while Nate Marquardt was born on April 20, 1979. Marquardt is
@@ -596,7 +596,7 @@ def _generate_worked_example() -> str:
         </div>
 
         <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
-            <div style="font-weight: 600; color: #555; margin-bottom: 8px;">
+            <div style="font-weight: 700; color: #22A884; margin-bottom: 8px;">
                 Bottom row — automated metrics (RAG vs gold)
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
@@ -620,7 +620,7 @@ def _generate_worked_example() -> str:
         </div>
 
         <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
-            <div style="font-weight: 600; color: #555; margin-bottom: 8px;">
+            <div style="font-weight: 700; color: #6B5B95; margin-bottom: 8px;">
                 Top row — LLM judges (rate quality 1–5, never see the gold answer)
             </div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px;
@@ -668,8 +668,8 @@ def _create_workflow_diagram() -> str:
         (5,  2, 2.8, 1.0, "Question +<br>Source Docs",      "#785EF0"),
         (9,  2, 3.2, 1.0, "RAG Pipeline<br><span style='font-size:11px'>(chunker × retriever × LLM)</span>", "#DC267F"),
         (13, 2, 2.4, 1.0, "RAG Answer",                     "#FE6100"),
-        (17, 2, 2.4, 1.0, "LLM Judges",                     "#FFB000"),
-        (1,  0, 2.4, 1.0, "Gold Answer",                     "#22A884"),
+        (17, 2, 2.4, 1.0, "LLM Judges",                     "#6B5B95"),
+        (1,  0, 2.4, 1.0, "Gold Answer",                     "#FFB000"),
         (9,  0, 3.6, 1.0, "Automated Metrics<br>(BERTScore, F1)", "#22A884"),
         (17, 0, 3.0, 1.0, "Compare<br>judge vs gold",       "#648FFF"),
     ]
