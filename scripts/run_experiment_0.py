@@ -536,6 +536,13 @@ def score_all_answers(
     else:
         new_df = pd.DataFrame(rows) if rows else pd.DataFrame()
 
+    # Collapse duplicates by example_id. The checkpoint is append-only, so an
+    # example_id appears once per scoring pass — re-runs (e.g. after a partial
+    # failure) leave duplicates. groupby.first() skips NaN, so we get the
+    # first non-null value per column across all attempts.
+    if not new_df.empty and "example_id" in new_df.columns:
+        new_df = new_df.groupby("example_id", as_index=False).first()
+
     if existing_scores_df is not None and not new_df.empty:
         # Merge: update existing_scores_df with new scoring data
         result_df = existing_scores_df.copy()
