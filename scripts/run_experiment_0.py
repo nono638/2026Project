@@ -30,10 +30,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -56,7 +54,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import shared gold metrics from experiment_utils to avoid duplication
-from scripts.experiment_utils import compute_f1, exact_match
+from scripts.experiment_utils import (
+    compute_f1,
+    exact_match,
+    write_experiment_metadata,
+)
 from scripts.generate_experiment0_dashboard import JUDGE_DISPLAY_NAMES
 
 
@@ -636,11 +638,13 @@ def write_metadata(
 ) -> None:
     """Write a metadata.json sidecar capturing provenance for this CSV.
 
-    Lists every judge whose ``{safe_name}_quality`` column is present in
-    ``df`` — i.e. judges that actually contributed scores, regardless of
-    whether they ran in this invocation or a prior one.
+    Lists every judge in JUDGE_CONFIGS whose ``{safe_name}_quality`` column
+    is present in ``df`` — i.e. judges that actually contributed scores,
+    regardless of whether they ran in this invocation or a prior one.
 
-    Stable across reruns: idempotent for the same CSV state.
+    Stable across reruns: idempotent for the same CSV state. Delegates the
+    file write to ``experiment_utils.write_experiment_metadata`` so Exp 1
+    and Exp 2 produce sidecars in the same shape.
     """
     judges_in_data = []
     for config in JUDGE_CONFIGS:
@@ -656,11 +660,10 @@ def write_metadata(
             "n_scored": int(df[f"{safe}_quality"].notna().sum()),
         })
 
-    metadata = {
-        "experiment": output_dir.name,
-        "last_updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-        "n_examples": len(df),
-        "config": {
+    write_experiment_metadata(
+        output_dir=output_dir,
+        n_examples=len(df),
+        config={
             "model": args.model,
             "seed": args.seed,
             "reranker": args.reranker,
@@ -668,11 +671,8 @@ def write_metadata(
             "retrieval_top_k": args.retrieval_top_k,
             "difficulty": args.difficulty,
         },
-        "judges": judges_in_data,
-    }
-    metadata_path = output_dir / "metadata.json"
-    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
-    logger.info("Saved metadata to %s", metadata_path)
+        judges=judges_in_data,
+    )
 
 
 # ---------------------------------------------------------------------------

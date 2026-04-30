@@ -12,10 +12,12 @@ Duplicating ~200 lines across two scripts is worse than a small shared module.
 from __future__ import annotations
 
 import csv
+import json
 import logging
 import os
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -590,3 +592,44 @@ def format_duration(seconds: float) -> str:
         h, remainder = divmod(int(seconds), 3600)
         m, _ = divmod(remainder, 60)
         return f"{h}h {m}m"
+
+
+def write_experiment_metadata(
+    output_dir: Path,
+    n_examples: int,
+    config: dict,
+    judges: list[dict],
+    extra: dict | None = None,
+) -> None:
+    """Write a metadata.json sidecar capturing run provenance.
+
+    Each experiment writes one of these alongside its raw_scores.csv to
+    record exactly which judge model versions were used, the run config,
+    and any experiment-specific fields. Without it, someone reading the
+    CSV later has no way to know whether a "claude-sonnet-4" column came
+    from Sonnet 4 or 4.6 — the column name doesn't include the snapshot.
+
+    Args:
+        output_dir: Experiment output directory (e.g. results/experiment_1).
+            ``output_dir.name`` becomes the ``experiment`` field.
+        n_examples: Row count in raw_scores.csv.
+        config: Run config dict — anything the caller wants preserved
+            (model, seed, strategies, chunkers, etc). Pass a flat dict.
+        judges: List of judge dicts. Each should have at least
+            ``provider``, ``model``, and ``display_name``. Caller decides
+            what counts as a "judge that contributed scores."
+        extra: Optional dict merged at the top level for experiment-
+            specific fields (e.g. a "test_models" list for Exp 1/2).
+    """
+    metadata = {
+        "experiment": output_dir.name,
+        "last_updated": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+        "n_examples": n_examples,
+        "config": config,
+        "judges": judges,
+    }
+    if extra:
+        metadata.update(extra)
+    metadata_path = output_dir / "metadata.json"
+    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    logger.info("Saved metadata to %s", metadata_path)
