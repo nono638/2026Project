@@ -15,7 +15,7 @@ Methodology: Saad-Falcon et al. (2024, NAACL) showed LLM-as-judge
 correlates well with human judgment for RAG evaluation.
 
 Refactored from ClaudeScorer in task-017 to support multiple providers
-(Anthropic, Google) without duplicating scoring logic.
+(Anthropic, Google, OpenAI, Ollama) without duplicating scoring logic.
 """
 
 from __future__ import annotations
@@ -148,11 +148,70 @@ def _openai_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
     return call
 
 
+def _ollama_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
+    """Create an Ollama API caller.
+
+    Direct HTTP via `requests` against /api/chat — no `ollama` Python
+    package dep. Matches the pattern used by `experiment_utils.py` for
+    `get_ollama_model_details` (task-053).
+
+    Reads OLLAMA_HOST from env (default http://localhost:11434). The
+    api_key parameter is unused — kept in signature for adapter symmetry.
+
+    Why /api/chat over /api/generate: chat endpoint accepts the same
+    {role, content} message shape as the cloud SDKs, keeping prompt
+    construction in LLMScorer provider-agnostic.
+
+    Args:
+        model: Ollama model tag (e.g., "gemma4:31b", "qwen3.6:27b").
+        api_key: Ignored. Kept for adapter signature symmetry.
+
+    Returns:
+        A callable that takes a prompt string and returns the response text.
+    """
+    import os
+
+    # Resolve host once at factory time. No network call here — the closure
+    # only constructs a URL string. First actual HTTP happens in `score()`,
+    # which is wrapped by the runner's per-judge try/except so an
+    # unreachable Ollama host fails gracefully (logged, judge skipped).
+    host = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+    if not host.startswith(("http://", "https://")):
+        host = f"http://{host}"
+    url = f"{host}/api/chat"
+
+    def call(prompt: str) -> str:
+        """Send prompt to Ollama /api/chat and return response text."""
+        # Lazy import inside the closure so tests can `@patch("requests.post")`
+        # — the patch swaps the attribute on the module object, and our call
+        # resolves it at call time.
+        import requests
+
+        response = requests.post(
+            url,
+            json={
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+                "options": {"temperature": 0.0},
+            },
+            # 300s: large dense models on a 5090 take ~30s for first-call
+            # VRAM load + 5–10s inference. Generous margin without hanging
+            # forever if the host accepts but never answers.
+            timeout=300,
+        )
+        response.raise_for_status()
+        return response.json()["message"]["content"]
+
+    return call
+
+
 # Registry of provider name → adapter factory function
 _ADAPTERS: dict[str, Callable[[str, str | None], Callable[[str], str]]] = {
     "anthropic": _anthropic_adapter,
     "google": _google_adapter,
     "openai": _openai_adapter,
+    "ollama": _ollama_adapter,
 }
 
 

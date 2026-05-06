@@ -41,6 +41,11 @@ COST_PER_CALL: dict[str, float] = {
     # Fallbacks in case GPT-5.4 family unavailable on account
     "openai:gpt-4o-mini": 0.0002,
     "openai:gpt-4o": 0.005,
+    # Ollama judges run locally on the 5090 — GPU time only, no API spend.
+    # Explicit $0.0 prevents the $0.01 default fallback from burning the
+    # $5 ceiling on a 500-row × 2-judge retroactive run (task-055).
+    "ollama:gemma4:31b": 0.0,
+    "ollama:qwen3.6:27b": 0.0,
 }
 
 # Intentionally high default for unknown models — conservative safety net

@@ -52,6 +52,8 @@ JUDGE_DISPLAY_NAMES: dict[str, str] = {
     "anthropic_claude_opus_4_7": "Claude Opus 4.7",
     "openai_gpt_5_4_mini": "GPT-5.4 Mini",
     "openai_gpt_5_4": "GPT-5.4",
+    "ollama_gemma4_31b": "Gemma 4 31B (local)",
+    "ollama_qwen3_6_27b": "Qwen 3.6 27B (local)",
 }
 
 _METRICS = ("faithfulness", "relevance", "conciseness")
@@ -68,7 +70,10 @@ _COLORS = [
 
 # Columns that end in "_quality" but are NOT per-judge quality scores.
 # answer_quality is the v2 composite categorical metric ('good'/'poor'/...).
-_NON_JUDGE_QUALITY_COLS: frozenset[str] = frozenset({"answer_quality"})
+# consensus_quality (task-052) is the multi-judge consensus column added by
+# the multi-judge path. Exp 0 doesn't currently emit it, but listing it here
+# defensively prevents misclassification if Exp 0 ever runs through that path.
+_NON_JUDGE_QUALITY_COLS: frozenset[str] = frozenset({"answer_quality", "consensus_quality"})
 
 
 # ---------------------------------------------------------------------------
