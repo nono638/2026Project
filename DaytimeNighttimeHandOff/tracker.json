@@ -1040,7 +1040,18 @@
     "daytime_created": "2026-05-06T14:34:44",
     "daytime_comments": "Reuses task-050 post-hoc-add pattern (OpenAI was added the same way). Adds requests-based Ollama adapter, two judges, /usr/bin/bash.0 cost-guard entries, defensive consensus_quality fence in dashboard. Code lands at night; the actual --skip-generation --judges ollama scoring run is morning-side on the 5090 (Ollama not reachable from sandbox; gated on tag verification per task-054 inbox flag). Validation reuses the existing per-judge BERT/F1 correlation table in v3 report.md — no new metrics or report code.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-05-06T15:52:40"
+    "status": "done",
+    "nighttime_started": "2026-05-06T15:52:40",
+    "nighttime_completed": "2026-05-06T16:03:41",
+    "nighttime_comments": "Added Ollama provider adapter + 2 large local judges (gemma4:31b, qwen3.6:27b); cost guard + dashboard updated; 15 new tests pass; full regression 672/672. Retroactive scoring run is morning-side on the 5090.",
+    "branch": "night/task-055-ollama-judges-v3",
+    "commit_sha": "ea3ae6e88c9113fd7677d101bf9783453f2f9663",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": [
+      "Run retroactive Exp 0 v3 scoring on 5090: ollama show <both tags>; python scripts/run_experiment_0.py --version v3 --skip-generation --judges ollama; then regenerate gallery. Expected ~4h.",
+      "Fixed stale comment in run_experiment_0.py JUDGE_CONFIGS header (was 9/3 Claude; list already had 11/5 Claude before this task).",
+      "Added JUDGE_DISPLAY_NAMES entries for both ollama models — required by existing TestJudgeConfigDisplayNamesInSync test (not listed in spec files-to-modify but enforced by regression)."
+    ]
   }
 ]
