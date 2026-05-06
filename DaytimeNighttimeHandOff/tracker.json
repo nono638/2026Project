@@ -998,7 +998,8 @@
     "daytime_created": "2026-05-06T12:00:00",
     "daytime_comments": "Closes the quantization-provenance hole before Exp 1/2/3 generate data on the 5090. Adds get_ollama_model_details() helper, model_details field in metadata.json, llm_quantization column in CSVs, explicit-quant tags in default model lists, and a one-shot backfill_quant_metadata.py for retroactively annotating Exp 0 v1/v2/v3. Infrastructure-only \u2014 no experiments run.",
     "depends_on": null,
-    "status": "todo"
+    "status": "in_progress",
+    "nighttime_started": "2026-05-06T12:20:15"
   },
   {
     "task_id": "task-054",
