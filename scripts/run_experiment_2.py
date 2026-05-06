@@ -1,11 +1,11 @@
-"""Experiment 2: Chunking x Model Size — 4 chunkers x 4 Qwen3 models on 200 HotpotQA.
+"""Experiment 2: Chunking x Model Size — 4 chunkers x 4 Qwen 3.5 small models on 200 HotpotQA.
 
 Isolates the effect of chunking strategy on RAG quality across model sizes,
 holding the RAG strategy constant (NaiveRAG). This complements Experiment 1
 which varies strategy while holding chunking constant.
 
 Matrix: 4 chunkers (RecursiveChunker, FixedSizeChunker, SentenceChunker,
-SemanticChunker) x 4 models (qwen3:0.6b, qwen3:1.7b, qwen3:4b, qwen3:8b)
+SemanticChunker) x 4 models (qwen3.5:0.8b, qwen3.5:2b, qwen3.5:4b, qwen3.5:9b)
 = 16 configurations.
 
 Held constant: NaiveRAG strategy, OllamaEmbedder(mxbai-embed-large),
@@ -13,14 +13,16 @@ hybrid retrieval, retrieval_top_k=5, no reranker.
 
 Scorer: Gemini 2.5 Flash — best cost/quality from Experiment 0.
 
-Why Qwen3 only: Exp 2 isolates chunking x model size within one model
+Why Qwen 3.5 only: Exp 2 isolates chunking x model size within one model
 family. Gemma is the cross-family variable in Exp 1. Mixing families
-would confound the chunking effect with architecture differences.
+would confound the chunking effect with architecture differences. Updated
+from the original Qwen3 set in task-054 (2026-05-06) — Qwen 3.5 small is
+the current open-weight small-tier curve.
 
 Usage:
     python scripts/run_experiment_2.py                          # full run
     python scripts/run_experiment_2.py --resume                 # resume interrupted
-    python scripts/run_experiment_2.py --models qwen3:4b --chunkers recursive  # subset
+    python scripts/run_experiment_2.py --models qwen3.5:4b --chunkers recursive  # subset
     python scripts/run_experiment_2.py --skip-generation        # re-score only
 """
 
@@ -94,15 +96,16 @@ ALL_CHUNKERS = {
     "semantic": "SemanticChunker()",
 }
 
-# Qwen3 only — isolates chunking effect within one model family.
+# Qwen 3.5 small only — isolates chunking effect within one model family.
+# Updated from Qwen3 in task-054 (2026-05-06) to use current open weights.
 # task-053: bare tags retained; runtime stamps resolved quantization in CSV
 # + metadata via get_ollama_model_details(). See run_experiment_1.py for the
 # rationale (verification against ollama.com couldn't run from the sandbox).
 ALL_MODELS = [
-    "qwen3:0.6b",
-    "qwen3:1.7b",
-    "qwen3:4b",
-    "qwen3:8b",
+    "qwen3.5:0.8b",
+    "qwen3.5:2b",
+    "qwen3.5:4b",
+    "qwen3.5:9b",
 ]
 
 # NaiveRAG held constant — simplest strategy for most direct chunking measurement
@@ -198,7 +201,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-cost", type=float, default=10.0,
                         help="Maximum estimated API spend in USD (default: $10.00)")
     parser.add_argument("--models", type=str, default=None,
-                        help="Comma-separated model subset (e.g., 'qwen3:4b,qwen3:8b')")
+                        help="Comma-separated model subset (e.g., 'qwen3.5:4b,qwen3.5:9b')")
     parser.add_argument("--chunkers", type=str, default=None,
                         help="Comma-separated chunker subset (e.g., 'recursive,sentence')")
     parser.add_argument("--skip-generation", action="store_true",
@@ -349,7 +352,7 @@ def generate_report(df: pd.DataFrame) -> str:
         overall_mean = df["consensus_quality"].mean()
 
         # Model sizes for ordering
-        model_order = {"qwen3:0.6b": 0.6, "qwen3:1.7b": 1.7, "qwen3:4b": 4.0, "qwen3:8b": 8.0}
+        model_order = {"qwen3.5:0.8b": 0.8, "qwen3.5:2b": 2.0, "qwen3.5:4b": 4.0, "qwen3.5:9b": 9.0}
 
         lines.append("| Chunker | Model | Mean Quality | Delta vs Overall |")
         lines.append("|---------|-------|-------------|------------------|")

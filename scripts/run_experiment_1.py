@@ -1,11 +1,19 @@
-"""Experiment 1: Strategy x Model Size — 5 strategies x 6 models on 200 HotpotQA.
+"""Experiment 1: Strategy x Model Size — 5 strategies x 10 models on 200 HotpotQA.
 
 This is the project's core research question: does a smart RAG strategy on a
 small model beat a naive strategy on a large model?
 
 Matrix: 5 strategies (NaiveRAG, SelfRAG, MultiQueryRAG, CorrectiveRAG,
-AdaptiveRAG) x 6 models (qwen3:0.6b, qwen3:1.7b, qwen3:4b, qwen3:8b,
-gemma3:1b, gemma3:4b) = 30 configurations.
+AdaptiveRAG) x 10 models from current open-weight families
+(Qwen 3.5 small: 0.8b/2b/4b/9b; Qwen 3.6 large: 27b dense + 35b-a3b MoE;
+Gemma 4: e2b/e4b effective + 26b MoE + 31b dense) = 50 configurations.
+
+Why this model set (task-054, 2026-05-06): supersedes the original Qwen3 +
+Gemma 3 matrix with current open weights so the writeup uses the same
+generation a reader would actually run today. Cross-family pairings
+(qwen3.5:2b ↔ gemma4:e2b, qwen3.5:4b ↔ gemma4:e4b, qwen3.6:27b ↔ gemma4:31b
+dense, qwen3.6:35b-a3b ↔ gemma4:26b MoE) keep family-vs-family comparisons
+size-matched.
 
 Held constant: RecursiveChunker(500, 100), OllamaEmbedder(mxbai-embed-large),
 hybrid retrieval, retrieval_top_k=5, no reranker.
@@ -19,7 +27,7 @@ skipped. This is critical — 6,000 runs will take hours.
 Usage:
     python scripts/run_experiment_1.py                              # full run
     python scripts/run_experiment_1.py --resume                     # resume interrupted
-    python scripts/run_experiment_1.py --models qwen3:4b --strategies naive  # subset
+    python scripts/run_experiment_1.py --models qwen3.5:4b --strategies naive  # subset
     python scripts/run_experiment_1.py --skip-generation            # re-score only
 """
 
@@ -100,12 +108,22 @@ ALL_STRATEGIES = {
 # the resolved quantization on every row in the metadata + CSV, so analysis
 # can audit which artifact actually loaded regardless of tag form.
 ALL_MODELS = [
-    "qwen3:0.6b",
-    "qwen3:1.7b",
-    "qwen3:4b",
-    "qwen3:8b",
-    "gemma3:1b",
-    "gemma3:4b",
+    # Qwen 3.5 small (Apache 2.0, released 2026-03-02) — full small-tier curve.
+    # Announcement: https://www.marktechpost.com/2026/03/02/alibaba-just-released-qwen-3-5-small-models-a-family-of-0-8b-to-9b-parameters-built-for-on-device-applications/
+    "qwen3.5:0.8b",
+    "qwen3.5:2b",
+    "qwen3.5:4b",
+    "qwen3.5:9b",
+    # Qwen 3.6 large (Apache 2.0, released 2026-04-16/22) — large tier.
+    # Announcement: https://www.marktechpost.com/2026/04/22/alibaba-qwen-team-releases-qwen-3-6-27b-a-dense-open-weight-model-outperforming-397b-moe-on-agentic-coding-benchmarks/
+    "qwen3.6:27b",          # dense
+    "qwen3.6:35b-a3b",      # MoE, ~3B active
+    # Gemma 4 (Apache 2.0, released 2026-04-02) — cross-family.
+    # Announcement: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
+    "gemma4:e2b",           # 2.3B effective — pairs with qwen3.5:2b
+    "gemma4:e4b",           # 4.5B effective — pairs with qwen3.5:4b
+    "gemma4:26b",           # MoE, 3.8B active — pairs with qwen3.6:35b-a3b
+    "gemma4:31b",           # dense — pairs with qwen3.6:27b
 ]
 
 
@@ -172,7 +190,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-cost", type=float, default=10.0,
                         help="Maximum estimated API spend in USD (default: $10.00)")
     parser.add_argument("--models", type=str, default=None,
-                        help="Comma-separated model subset (e.g., 'qwen3:4b,gemma3:1b')")
+                        help="Comma-separated model subset (e.g., 'qwen3.5:4b,gemma4:e2b')")
     parser.add_argument("--strategies", type=str, default=None,
                         help="Comma-separated strategy subset (e.g., 'naive,self_rag')")
     parser.add_argument("--skip-generation", action="store_true",
@@ -326,9 +344,19 @@ def generate_report(df: pd.DataFrame) -> str:
         config_means = df.groupby(["strategy", "model"])["consensus_quality"].mean()
 
         # Model sizes for ordering (approximate parameter counts)
+        # Approximate parameter counts (effective for MoE) for size ordering.
+        # See ALL_MODELS for source links.
         model_sizes = {
-            "qwen3:0.6b": 0.6, "gemma3:1b": 1.0, "qwen3:1.7b": 1.7,
-            "gemma3:4b": 4.0, "qwen3:4b": 4.0, "qwen3:8b": 8.0,
+            "qwen3.5:0.8b": 0.8,
+            "qwen3.5:2b": 2.0,
+            "qwen3.5:4b": 4.0,
+            "qwen3.5:9b": 9.0,
+            "qwen3.6:27b": 27.0,
+            "qwen3.6:35b-a3b": 3.0,    # ~3B active params at inference
+            "gemma4:e2b": 2.3,
+            "gemma4:e4b": 4.5,
+            "gemma4:26b": 3.8,         # ~3.8B active params at inference
+            "gemma4:31b": 31.0,
         }
 
         beats_count = 0

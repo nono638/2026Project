@@ -50,7 +50,7 @@ python scripts/run_experiment_1.py --ollama-host http://YOUR_RUNPOD_IP:11434
 python scripts/run_experiment_1.py --resume --ollama-host http://YOUR_RUNPOD_IP:11434
 
 # Test with subset
-python scripts/run_experiment_1.py --models qwen3:4b --strategies naive,self_rag
+python scripts/run_experiment_1.py --models qwen3.5:4b --strategies naive,self_rag
 ```
 
 **Options:**

@@ -49,7 +49,7 @@ Copy `.env.example` to `.env` and add your API keys.
 python scripts/run_experiment.py --quick --scorer google:gemini-2.0-flash
 
 # Built-in dataset (50 HotpotQA examples)
-python scripts/run_experiment.py --dataset hotpotqa --sample 50 --models qwen3:4b
+python scripts/run_experiment.py --dataset hotpotqa --sample 50 --models qwen3.5:4b
 
 # Full matrix (5 strategies x 6 models x 3 chunkers = 90 configs)
 python scripts/run_experiment.py --scorer google:gemini-2.0-flash

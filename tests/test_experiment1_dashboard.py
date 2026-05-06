@@ -30,7 +30,7 @@ def _make_exp1_df(n_per_config: int = 5) -> pd.DataFrame:
     random.seed(42)
 
     strategies = ["naive", "self_rag", "multi_query", "corrective", "adaptive"]
-    models = ["qwen3:0.6b", "qwen3:4b", "qwen3:8b"]
+    models = ["qwen3.5:0.8b", "qwen3.5:4b", "qwen3.5:9b"]
     rows = []
 
     for strat in strategies:
@@ -166,8 +166,8 @@ class TestBuildFigures:
     def test_handles_partial_results(self, tmp_path):
         """Should work with only 1 config's data (partial results)."""
         df = _make_exp1_df(n_per_config=3)
-        # Keep only naive + qwen3:4b
-        df = df[(df["strategy"] == "naive") & (df["model"] == "qwen3:4b")]
+        # Keep only naive + qwen3.5:4b
+        df = df[(df["strategy"] == "naive") & (df["model"] == "qwen3.5:4b")]
         csv_path = tmp_path / "raw_scores.csv"
         df.to_csv(csv_path, index=False)
 

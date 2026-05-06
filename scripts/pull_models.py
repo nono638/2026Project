@@ -11,23 +11,31 @@ from __future__ import annotations
 import subprocess
 import sys
 
-# All Ollama models needed for the full experiment matrix.
+# All Ollama models needed for the full experiment matrix (task-054).
+# Exp 1: 10 LLMs across Qwen 3.5 small + Qwen 3.6 large + Gemma 4.
+# Exp 2: 4 LLMs (subset of Exp 1's small Qwen tier) + same embedder.
+# Total unique pulls = 10 LLMs + mxbai-embed-large = 11 entries.
 #
-# task-053: explicit-quant pinning is preferred but couldn't be verified against
-# ollama.com from the nighttime sandbox (no network). The runtime helper
-# get_ollama_model_details() captures the resolved Q* level on every row, so
-# downstream analysis records the actual quant regardless of whether the tag
-# is bare or explicit. Morning-side TODO: spot-check `ollama show <tag>` and
-# replace any of these with its `-q4_K_M` variant once confirmed published.
+# task-053: explicit-quant pinning (`-q4_K_M`) is preferred but couldn't be
+# verified against ollama.com from the nighttime sandbox. The runtime helper
+# get_ollama_model_details() stamps the resolved Q* level on every row, so
+# analysis records the actual quant regardless of whether the tag is bare or
+# explicit. Morning-side TODO: `ollama show <tag>` on the 5090 and replace
+# bare tags with `-q4_K_M` variants once confirmed published.
 REQUIRED_MODELS = [
-    # Qwen3 family — primary experiment axis
-    "qwen3:0.6b",
-    "qwen3:1.7b",
-    "qwen3:4b",
-    "qwen3:8b",
-    # Gemma 3 — cross-family validation
-    "gemma3:1b",
-    "gemma3:4b",
+    # Qwen 3.5 small — Exp 1 + Exp 2 small-tier
+    "qwen3.5:0.8b",
+    "qwen3.5:2b",
+    "qwen3.5:4b",
+    "qwen3.5:9b",
+    # Qwen 3.6 large — Exp 1 large-tier
+    "qwen3.6:27b",
+    "qwen3.6:35b-a3b",
+    # Gemma 4 — Exp 1 cross-family
+    "gemma4:e2b",
+    "gemma4:e4b",
+    "gemma4:26b",
+    "gemma4:31b",
     # Embedding model — single F16 artifact, no quant variant published
     "mxbai-embed-large",
 ]
@@ -37,7 +45,7 @@ def get_installed_models() -> set[str]:
     """Get the set of already-installed Ollama models.
 
     Returns:
-        Set of model name strings (e.g., {"qwen3:0.6b", "mxbai-embed-large"}).
+        Set of model name strings (e.g., {"qwen3.5:0.8b", "mxbai-embed-large"}).
     """
     try:
         result = subprocess.run(
@@ -82,7 +90,7 @@ def pull_models() -> None:
 
     for model in REQUIRED_MODELS:
         # Check if model is already installed (handle tag variations)
-        # Ollama may show "qwen3:0.6b" as "qwen3:0.6b" or with extra tag info
+        # Ollama may show "qwen3.5:0.8b" as "qwen3.5:0.8b" or with extra tag info
         if any(model in m or m.startswith(model.split(":")[0] + ":" + model.split(":")[-1]) for m in installed):
             print(f"  [SKIP] {model} (already installed)")
             skipped += 1

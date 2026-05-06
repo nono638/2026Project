@@ -244,10 +244,10 @@ Pod is ready!
 Ollama URL: https://abc123xyz-11434.proxy.runpod.net
 Pulling models (this takes 3-5 minutes)...
   Pulling mxbai-embed-large... done
-  Pulling qwen3:4b... done
+  Pulling qwen3.5:4b... done
 Verifying Ollama is serving...
   mxbai-embed-large: OK
-  qwen3:4b: OK
+  qwen3.5:4b: OK
 
 ========================================
   Pod is ready for experiments!
@@ -273,7 +273,7 @@ The script:
 3. Waited for the pod and Ollama to be ready (~2-5 minutes)
 4. Downloaded two AI models onto the persistent volume (~3-5 minutes):
    - `mxbai-embed-large` — the embedding model (converts text to vectors)
-   - `qwen3:4b` — the language model (generates answers)
+   - `qwen3.5:4b` — the language model (generates answers)
 5. Verified both models respond correctly
 
 ### If it fails
@@ -295,7 +295,7 @@ models for you.
 If you ever need to pull additional models (e.g., for Experiments 1 & 2), you can use:
 
 ```bash
-python deploy/setup_pod.py --pod-id abc123xyz --pull-only --models qwen3:0.6b qwen3:1.7b qwen3:8b
+python deploy/setup_pod.py --pod-id abc123xyz --pull-only --models qwen3.5:0.8b qwen3.5:2b qwen3.5:9b
 ```
 
 (Replace `abc123xyz` with your actual pod ID from Step 6.)
@@ -305,12 +305,16 @@ python deploy/setup_pod.py --pod-id abc123xyz --pull-only --models qwen3:0.6b qw
 | Model | Size | VRAM needed | Used in |
 |-------|------|-------------|---------|
 | mxbai-embed-large | ~670 MB | ~1 GB | All experiments (embeddings) |
-| qwen3:4b | ~2.5 GB | ~4 GB | Experiment 0 |
-| qwen3:0.6b | ~400 MB | ~1 GB | Experiments 1 & 2 |
-| qwen3:1.7b | ~1 GB | ~2 GB | Experiments 1 & 2 |
-| qwen3:8b | ~5 GB | ~6 GB | Experiments 1 & 2 |
-| gemma3:1b | ~800 MB | ~1.5 GB | Experiment 1 |
-| gemma3:4b | ~3 GB | ~4 GB | Experiment 1 |
+| qwen3.5:4b | ~2.5 GB | ~4 GB | Experiment 0, Experiments 1 & 2 |
+| qwen3.5:0.8b | ~500 MB | ~1 GB | Experiments 1 & 2 |
+| qwen3.5:2b | ~1.2 GB | ~2 GB | Experiments 1 & 2 |
+| qwen3.5:9b | ~5.5 GB | ~7 GB | Experiments 1 & 2 |
+| qwen3.6:27b | ~16 GB | ~20 GB | Experiment 1 |
+| qwen3.6:35b-a3b | ~22 GB | ~24 GB | Experiment 1 (MoE, ~3B active) |
+| gemma4:e2b | ~1.5 GB | ~2 GB | Experiment 1 |
+| gemma4:e4b | ~3 GB | ~4 GB | Experiment 1 |
+| gemma4:26b | ~16 GB | ~20 GB | Experiment 1 (MoE, ~3.8B active) |
+| gemma4:31b | ~19 GB | ~24 GB | Experiment 1 |
 
 ---
 
@@ -337,7 +341,7 @@ Replace `YOUR_OLLAMA_URL_HERE` with the URL from Step 6 (e.g.,
 
 **Expected output:**
 ```
-Ollama is running. Models available: ['mxbai-embed-large:latest', 'qwen3:4b']
+Ollama is running. Models available: ['mxbai-embed-large:latest', 'qwen3.5:4b']
 ```
 
 ---
@@ -374,7 +378,7 @@ Replace `abc123xyz` with your actual pod ID.
 To verify everything works before the full run, do a small test with 5 examples:
 
 ```bash
-python scripts/run_experiment_0.py --n 5 --model qwen3:4b --ollama-host https://abc123xyz-11434.proxy.runpod.net
+python scripts/run_experiment_0.py --n 5 --model qwen3.5:4b --ollama-host https://abc123xyz-11434.proxy.runpod.net
 ```
 
 This takes ~5 minutes and costs ~$0.10. If it works, run the full experiment.

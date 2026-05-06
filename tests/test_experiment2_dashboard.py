@@ -28,7 +28,7 @@ def _make_exp2_df(n_per_config: int = 5) -> pd.DataFrame:
     random.seed(42)
 
     chunkers = ["recursive", "fixed", "sentence", "semantic"]
-    models = ["qwen3:0.6b", "qwen3:4b", "qwen3:8b"]
+    models = ["qwen3.5:0.8b", "qwen3.5:4b", "qwen3.5:9b"]
     chunker_params = {
         "recursive": (500, 100),
         "fixed": (500, 0),
@@ -164,7 +164,7 @@ class TestBuildFigures:
     def test_handles_single_config(self, tmp_path):
         """Should work with only 1 config's data."""
         df = _make_exp2_df(n_per_config=3)
-        df = df[(df["chunker"] == "recursive") & (df["model"] == "qwen3:4b")]
+        df = df[(df["chunker"] == "recursive") & (df["model"] == "qwen3.5:4b")]
         csv_path = tmp_path / "raw_scores.csv"
         df.to_csv(csv_path, index=False)
 

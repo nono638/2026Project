@@ -40,13 +40,14 @@ IBM_COLORS = [
 
 # Model sizes in billions — Exp 2 uses only Qwen3
 MODEL_SIZES: dict[str, float] = {
-    "qwen3:0.6b": 0.6,
-    "qwen3:1.7b": 1.7,
-    "qwen3:4b": 4.0,
-    "qwen3:8b": 8.0,
+    # task-054: Qwen 3.5 small replaces Qwen3.
+    "qwen3.5:0.8b": 0.8,
+    "qwen3.5:2b": 2.0,
+    "qwen3.5:4b": 4.0,
+    "qwen3.5:9b": 9.0,
 }
 
-MODEL_ORDER = ["qwen3:0.6b", "qwen3:1.7b", "qwen3:4b", "qwen3:8b"]
+MODEL_ORDER = ["qwen3.5:0.8b", "qwen3.5:2b", "qwen3.5:4b", "qwen3.5:9b"]
 
 CHUNKER_ORDER = ["fixed", "recursive", "semantic", "sentence"]
 
