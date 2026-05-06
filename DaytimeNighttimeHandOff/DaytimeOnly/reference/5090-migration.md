@@ -13,13 +13,35 @@
 ## Pre-flight checklist
 
 - [ ] `nvidia-smi` prints a table showing the 5090 with CUDA Version 12.8+
-- [ ] `python --version` prints 3.11 or 3.12 (project requires 3.11+)
+- [ ] `python --version` prints 3.11 or 3.12 (project requires 3.11+ — install from
+      python.org or `winget install Python.Python.3.12` if it's older)
+- [ ] `git --version` works (install from https://git-scm.com or `winget install Git.Git`)
 - [ ] At least 150 GB free on the drive that will hold Ollama models — total pull is
       ~80–100 GB and Windows likes headroom.
-- [ ] Repo cloned to a path without spaces (Ollama and Python venv are happier).
+- [ ] Project source is present: either a Dropbox sync of the project folder, or a
+      `git clone https://github.com/nono638/2026Project.git` to a path without spaces.
 
 If `nvidia-smi` fails: NVIDIA driver isn't installed correctly. Reinstall drivers
 before continuing — nothing else matters until this works.
+
+---
+
+## Dropbox sync caveats (read this before working in a synced folder)
+
+If the project is reaching the 5090 via Dropbox sync rather than git clone:
+
+- **Delete `.venv/` if Dropbox copies one over.** Virtual envs contain
+  machine-specific binaries from the old laptop and will not work on the 5090.
+  You must recreate it locally (Step 2 below).
+- **`__pycache__/` directories** will sync uselessly. Harmless, but a clean
+  `git clone` would skip them entirely.
+- **`.env` file** may or may not sync depending on your Dropbox selective-sync
+  settings. Verify it lands on the 5090 — see Step 2.5 below.
+- **HuggingFace and Ollama model caches** live in your user profile (not the
+  project folder), so they don't sync via Dropbox. They'll repopulate from
+  scratch on the 5090.
+
+If in doubt, prefer `git clone` over Dropbox sync — fewer footguns.
 
 ---
 
@@ -46,30 +68,70 @@ on CPU — see Troubleshooting.
 
 ## Step 2 — Set up the project venv
 
+If a `.venv/` was synced from Dropbox, delete it first — the binaries are
+machine-specific and won't work here.
+
 ```powershell
 cd <project_root>
+Remove-Item -Recurse -Force .venv -ErrorAction SilentlyContinue
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-This will install PyTorch among other packages. **If pip fails on torch with a
-CUDA-related error**, you may need the nightly wheel for sm_120 (Blackwell):
+`requirements.txt` already pins both spaCy models (`en_core_web_sm` and
+`en_core_web_lg`) as direct URL deps — no separate `python -m spacy download`
+step needed despite what older sections of `ENVIRONMENT.md` may say.
+
+After pip finishes, download the NLTK data that `rake-nltk` needs (one-time):
 
 ```powershell
-pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
+python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords')"
 ```
 
-Verify torch sees the GPU:
+### PyTorch GPU verification
 
 ```powershell
-python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'no gpu')"
 ```
 
-Should print `True NVIDIA GeForce RTX 5090 Laptop GPU` (or similar). If `False`,
-the BGE reranker and cross-encoder filter will fall back to CPU. **That's
-acceptable for the deadline** — they're optional pipeline stages and CPU is slow
-but functional. Don't get stuck here.
+- Prints `True NVIDIA GeForce RTX 5090 ...` → you're done with PyTorch setup.
+- Prints `False`, or errors mentioning `sm_120` / "no kernel image is available
+  for execution on the device" → install the nightly wheel for Blackwell:
+  ```powershell
+  pip install --pre --upgrade torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+  ```
+  Then re-run the verification.
+
+**If torch GPU support fails even with nightly:** don't get stuck here. The
+experiments still run — Ollama doesn't depend on PyTorch. The only fallout is
+that the BGE reranker and cross-encoder filter run on CPU (slow but functional),
+and the experiment scripts default to `reranker=None` anyway. Make a note in
+inbox.md and move on.
+
+## Step 2.5 — API keys (`.env` file)
+
+The experiments use cloud-based LLM judges, so the 5090 needs API keys. Required:
+
+- `ANTHROPIC_API_KEY` — Claude judges
+- `OPENAI_API_KEY` — GPT judges
+- `GOOGLE_API_KEY` — Gemini judges + Google text embedder
+- `RUNPOD_API_KEY` — only if you want RunPod as a fallback
+
+If a `.env` file synced via Dropbox, verify it's present in the project root and
+the keys are populated:
+
+```powershell
+Get-Content .env | Select-String -Pattern "API_KEY"
+```
+
+If missing or incomplete, copy from `.env.example` and paste keys from your
+password manager:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
 
 ---
 
@@ -174,6 +236,18 @@ python scripts/run_experiment_2.py --resume
 
 Expected runtime: 10–15 hrs (4 chunkers × 4 models × 200 questions, smaller
 models only).
+
+---
+
+## Optional (nice-to-have)
+
+- **Claude Code CLI** — if you want me available on the 5090 for live troubleshooting
+  during setup. `winget install Anthropic.Claude` or follow the install steps at
+  https://claude.ai/code. Note: a fresh Claude Code install on the 5090 starts with
+  empty memory; this runbook (read from the synced project folder) is your handoff.
+- **VS Code** — if your editor isn't already there. `winget install Microsoft.VisualStudioCode`.
+- **PowerShell 7** — Windows 11 ships with PowerShell 5.1; commands in this runbook
+  work on either, but PS 7 is nicer. `winget install Microsoft.PowerShell`.
 
 ---
 
