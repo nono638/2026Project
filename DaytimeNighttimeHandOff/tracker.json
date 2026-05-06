@@ -1052,6 +1052,7 @@
       "Run retroactive Exp 0 v3 scoring on 5090: ollama show <both tags>; python scripts/run_experiment_0.py --version v3 --skip-generation --judges ollama; then regenerate gallery. Expected ~4h.",
       "Fixed stale comment in run_experiment_0.py JUDGE_CONFIGS header (was 9/3 Claude; list already had 11/5 Claude before this task).",
       "Added JUDGE_DISPLAY_NAMES entries for both ollama models — required by existing TestJudgeConfigDisplayNamesInSync test (not listed in spec files-to-modify but enforced by regression)."
-    ]
+    ],
+    "daytime_reviewed": "2026-05-06T16:48:05"
   }
 ]
