@@ -56,8 +56,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Default models to pull — embedding model + generation model for Experiment 0
-DEFAULT_MODELS = ["mxbai-embed-large", "qwen3:4b"]
+# Default models to pull — embedding model + generation model for Experiment 0.
+# task-053: pin an explicit -q4_K_M tag for the generation model so the
+# downloaded artifact is deterministic across pulls. The embedder
+# (mxbai-embed-large) has no published explicit-quant variant — Ollama serves
+# a single F16 artifact, so the bare tag is equivalent to pinning.
+DEFAULT_MODELS = ["mxbai-embed-large", "qwen3:4b-q4_K_M"]
 
 # Timeouts — community cloud image pull + Ollama boot can take a few minutes
 POD_READY_TIMEOUT_S = 600
@@ -90,7 +94,7 @@ def parse_args() -> argparse.Namespace:
         "--models",
         nargs="+",
         default=DEFAULT_MODELS,
-        help="Models to pull (default: mxbai-embed-large qwen3:4b).",
+        help="Models to pull (default: mxbai-embed-large qwen3:4b-q4_K_M).",
     )
     parser.add_argument(
         "--name",

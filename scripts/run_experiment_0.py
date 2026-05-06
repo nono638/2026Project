@@ -664,6 +664,15 @@ def write_metadata(
             "n_scored": int(df[f"{safe}_quality"].notna().sum()),
         })
 
+    # task-053: capture Ollama provenance for the generation model so the
+    # quantization (etc.) is recorded alongside judge versions and config.
+    from experiment_utils import get_ollama_model_details
+
+    ollama_host = getattr(args, "ollama_host", None)
+    model_details = {
+        args.model: get_ollama_model_details(args.model, host=ollama_host)
+    }
+
     write_experiment_metadata(
         output_dir=output_dir,
         n_examples=len(df),
@@ -676,6 +685,7 @@ def write_metadata(
             "difficulty": args.difficulty,
         },
         judges=judges_in_data,
+        model_details=model_details,
     )
 
 
@@ -914,6 +924,18 @@ def main() -> None:
         logger.info("Generating answers with NaiveRAG + %s (reranker=%s)...",
                      args.model, args.reranker)
 
+        # task-053: capture Ollama provenance for the generation model
+        from scripts.experiment_utils import get_ollama_model_details
+        gen_model_details = get_ollama_model_details(
+            args.model, host=args.ollama_host,
+        )
+        logger.info(
+            "Ollama details for %s: quant=%s digest=%s",
+            args.model,
+            gen_model_details.get("quantization_level"),
+            gen_model_details.get("digest"),
+        )
+
         # Resume support: load existing answers to skip already-generated IDs.
         # Append-per-row ensures crash only loses the current question (~10s),
         # not all prior work. The CSV write overhead (~1ms) is negligible
@@ -957,6 +979,7 @@ def main() -> None:
                 ollama_host=args.ollama_host,
                 reranker=reranker,
                 reranker_top_k=args.reranker_top_k,
+                model_details=gen_model_details,
             )
 
             answer_row = {
@@ -984,6 +1007,8 @@ def main() -> None:
                 "reranker_model": reranker_model_name,
                 "reranker_top_k": args.reranker_top_k if reranker_model_name else None,
                 "retrieval_top_k": args.retrieval_top_k,
+                # task-053 quantization provenance
+                "llm_quantization": result.get("llm_quantization", "unknown"),
             }
 
             answers.append(answer_row)
