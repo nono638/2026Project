@@ -45,6 +45,31 @@ If in doubt, prefer `git clone` over Dropbox sync — fewer footguns.
 
 ---
 
+## Step 0.5 — Configure Git identity
+
+If git was just installed (e.g., as a prerequisite for Claude Code) without
+identity configuration, the night instance's commits will fail. Set this once:
+
+```powershell
+git config --global user.name "Noah"
+git config --global user.email "ncollin1985@yahoo.com"
+```
+
+(These match the planning laptop's existing identity. Use the same values so
+commit history stays consistent.)
+
+For pushing to GitHub from the 5090: the remote is HTTPS
+(`https://github.com/nono638/2026Project.git`). On your first `git push`, Git
+Credential Manager will open a browser window for OAuth — approve it once and
+credentials are cached. Alternatives if GCM doesn't work: `gh auth login` if
+GitHub CLI is installed, or create a Personal Access Token at
+https://github.com/settings/tokens and paste it as the password on first push.
+
+You don't need to configure auth before setup — only before the first push back
+to GitHub.
+
+---
+
 ## Step 1 — Install Ollama for Windows
 
 Download from https://ollama.com/download/windows. Run the installer. After
