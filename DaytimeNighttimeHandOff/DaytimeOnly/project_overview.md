@@ -102,8 +102,9 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - [x] Experiment 0v1: Scorer validation — 50 HotpotQA × NaiveRAG × Qwen3-4B, scored by 6 LLM judges. Results in `results/experiment_0/`. Finding: Claude Sonnet best (r=0.682), Gemini Flash budget alternative.
 - [x] Experiment 0v2: Scorer validation — 150 medium+hard HotpotQA × NaiveRAG + BGE reranker × Qwen3-4B, scored by 7 judges. Results in `results/experiment_0_v2/`. Finding: Haiku best (r=0.640), Sonnet dropped to r=0.561. gemini-3.1-pro-preview partial (11/150, rate limited).
 - [ ] Experiment 0v3: Tiebreaker — 500 medium+hard HotpotQA, 6 judges (drops gemini-3.1-pro). Resolves v1 vs v2 scorer ranking discrepancy before Experiments 1 & 2.
-- [ ] Experiment 1: Strategy × Model Size — 5 strategies × 6 models = 30 configs. Held constant: Recursive chunker (500/100), mxbai-embed-large.
+- [ ] Experiment 1: Strategy × Model Size — 5 strategies × 10 models = 50 configs. Models: Qwen 3.5 (0.8B, 2B, 4B, 9B) + Qwen 3.6 (27B dense, 35B-A3B MoE) + Gemma 4 (E2B, E4B, 26B MoE, 31B Dense). Cross-family matched pairs: 2B↔E2B, 4B↔E4B, 27B↔31B Dense, 35B-A3B↔26B MoE. Held constant: Recursive chunker (500/100), mxbai-embed-large.
 - [ ] Experiment 2: Chunking × Model Size — 4 chunkers × 4 Qwen3 models = 16 configs. Held constant: NaiveRAG strategy, mxbai-embed-large.
+- [~] Experiment 3 (deferred): Quantization Sensitivity in RAG — moved to incubating.md on 2026-05-06. Doesn't fit alongside Exp 1 (50 configs) + Exp 2 (16 configs) within the May 15 writeup deadline. Trigger for promotion: post-writeup, conference paper / capstone extension prep.
 
 ### Next — Infrastructure
 - [x] Set up RunPod account, deploy GPU pod with Ollama (used for Experiment 0 answer generation)
@@ -143,7 +144,7 @@ floor, etc. The experiment data is the same — the question you ask of it chang
 - Portable setup scripts for cross-machine transferability
 
 **Our experiments (specific use cases):**
-- Experiment 1: 5 RAG strategies × Qwen3 (0.6B, 1.7B, 4B, 8B) + Gemma 3 (1B, 4B)
+- Experiment 1: 5 RAG strategies × 10 latest-gen models — Qwen 3.5 (0.8B, 2B, 4B, 9B) + Qwen 3.6 (27B dense, 35B-A3B MoE) + Gemma 4 (E2B, E4B, 26B MoE, 31B Dense) = 50 configs. Designed for 4 cross-family matched-size pairs.
 - Experiment 0: Scorer validation — 5 LLM judges compared on 50 HotpotQA examples
 - Experiment 2: 4 chunking strategies × Qwen3 (0.6B, 1.7B, 4B, 8B)
 - Embedding: mxbai-embed-large via Ollama (held constant in both experiments)
@@ -243,3 +244,7 @@ Validated Queries × (Chunker × Embedder × Strategy × Model) → Answers
 | 2026-03-19 | Experiment 0 complete | 6 judges scored (Flash-Lite, Flash, 2.5 Pro partial, 3.1 Pro, Haiku, Sonnet). Gemini Flash = best cost/quality. RunPod used for answer generation. | Scorer choice informed — use Flash for Exp 1 & 2 |
 | 2026-03-19 | Visualization pipeline built + run | task-028: generate_visuals.py produces PNGs + HTML gallery from experiment CSVs | Visuals ready for Exp 0; skeleton for Exp 1 & 2 |
 | 2026-03-19 | Added --judges flag to experiment scripts | Allows running specific judges by substring match, merges into existing CSV | Incremental scoring without re-running all judges |
+| 2026-05-06 | Replaced Gemma 3 with Gemma 4 (E2B, E4B) in Exp 1 | Gemma 4 released 2026-04-02; in a research repo running on current hardware, latest model > matched-size historical comparison | Update Exp 1 model list; pull gemma4:e2b and gemma4:e4b instead of gemma3:1b and gemma3:4b |
+| 2026-05-06 | Replaced Qwen3 with Qwen 3.5 small + Qwen 3.6 large in Exp 1 (and Exp 2 small tier) | Qwen3 (April 2025) is now ~13 months old; Qwen 3.5 small (Mar 2026) and Qwen 3.6 27B/35B-A3B (Apr 2026) are the current open-weight Qwen lineup. Same rationale as Gemma swap: latest open weights beat historical comparison | Pull qwen3.5:{0.8b,2b,4b,9b} + qwen3.6:{27b,35b-a3b}. Exp 1 grows from 30 → 50 configs (4 small Qwen + 2 large Qwen + 4 Gemma 4 × 5 strategies). Exp 2 swaps Qwen3 → Qwen 3.5 small (16 configs unchanged) |
+| 2026-05-06 | RTX 5090 mobile (24GB) acquired; experiments will run locally | Free, faster (~1.5–2× A5000 for inference), no rate limits; keeps RunPod warm as fallback during migration | Migration spec needed (task-054); experiment scripts need ollama-host pointed at localhost |
+| 2026-05-06 | Quantization is now a tracked dimension (task-053) | Exp 0 ran with implicit Ollama defaults — reproducibility hole. Closing it before Exp 1/2/3 | Per-row llm_quantization column; model_details in metadata.json; explicit-quant Ollama tags |

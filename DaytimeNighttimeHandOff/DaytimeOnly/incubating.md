@@ -23,6 +23,12 @@
 
 ## Active
 
+## Experiment 3: Quantization Sensitivity in RAG
+**Captured:** 2026-05-06
+**Last reviewed:** 2026-05-06
+**Context:** Single model × single strategy × 5–6 quantization levels (FP16, Q8_0, Q5_K_M, Q4_K_M, Q3_K_M, Q2_K) on Qwen 3.5-4B + NaiveRAG. Goal: measure how quantization affects RAG-specific properties (faithfulness to retrieved context, hallucination rate) versus general perplexity. Existing literature focuses on general QA/chat; RAG-specific quantization sensitivity is undercharacterized. ~1200 generations, ~3–5 hrs on 5090. Headline finding likely: "Q4_K_M is near-lossless for RAG faithfulness, Q3 starts hallucinating despite acceptable perplexity" — or the inverse, which would also be interesting. Built on infrastructure delivered by task-053 (per-row llm_quantization column). Deferred from main project: doesn't fit alongside Exp 1 (50 configs, 30–45 hrs) and Exp 2 (16 configs, 10–15 hrs) within the May 15 writeup deadline.
+**Next trigger:** After writeup submission, when prepping for a conference paper, capstone extension, or v2 of the project. Also: anytime someone asks "should I run Q4 or Q5 for my local RAG setup?" — that's the question this experiment answers.
+
 ## Document characterization features for meta-learner — PROMOTED 2026-03-19
 **Promoted to:** Implemented directly during daytime session (commit 47f9f5b). Five features added to `src/features.py`, 13 tests in `tests/test_doc_features.py`.
 

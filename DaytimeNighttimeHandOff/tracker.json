@@ -980,5 +980,21 @@
     "daytime_comments": "Adds --scorers nargs+ flag, per-judge column schema (matches Exp 0), consensus_quality column, per-judge resume on --skip-generation, per-judge agreement section in report.md. Default panel = Haiku 4.5 + GPT-5.4 Mini. Pre-written tests in WrittenByDaytime/task-052-multi-judge-exp12/tests/. Does NOT run real Exp 1/2 data \u2014 that is task-053+ deferred for RTX 5090 discussion.",
     "depends_on": null,
     "status": "todo"
+  },
+  {
+    "task_id": "task-053",
+    "description": "Quantization tracking: Ollama /api/show metadata + per-row CSV column + explicit tag pinning + backfill script",
+    "daytime_created": "2026-05-06T12:00:00",
+    "daytime_comments": "Closes the quantization-provenance hole before Exp 1/2/3 generate data on the 5090. Adds get_ollama_model_details() helper, model_details field in metadata.json, llm_quantization column in CSVs, explicit-quant tags in default model lists, and a one-shot backfill_quant_metadata.py for retroactively annotating Exp 0 v1/v2/v3. Infrastructure-only \u2014 no experiments run.",
+    "depends_on": null,
+    "status": "todo"
+  },
+  {
+    "task_id": "task-054",
+    "description": "Update Exp 1 / Exp 2 model matrices to latest open weights (Qwen 3.5 small + Qwen 3.6 large + Gemma 4)",
+    "daytime_created": "2026-05-06T13:30:00",
+    "daytime_comments": "Replaces Qwen3 + Gemma 3 with Qwen 3.5 / 3.6 + Gemma 4 in run_experiment_1.py and run_experiment_2.py. Exp 1 grows to 50 configs (10 models x 5 strategies); Exp 2 stays at 16 configs (4 Qwen 3.5 small x 4 chunkers). Also updates deploy/setup_pod.py, scripts/pull_models.py, docs, and tests. Includes Ollama tag-existence verification step. Independent from task-052 and task-053 \u2014 coordinate setup_pod.py change with task-053. Infrastructure only \u2014 no experiments run.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
