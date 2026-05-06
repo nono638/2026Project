@@ -63,7 +63,7 @@ from scripts.generate_experiment0_dashboard import JUDGE_DISPLAY_NAMES
 
 
 # ---------------------------------------------------------------------------
-# Scorer configurations — 9 LLM judges (4 Gemini + 3 Claude + 2 OpenAI)
+# Scorer configurations — 13 LLM judges (4 Gemini + 5 Claude + 2 OpenAI + 2 Ollama)
 # ---------------------------------------------------------------------------
 JUDGE_CONFIGS = [
     # Gemini judges (free via Google AI Studio)
@@ -85,6 +85,12 @@ JUDGE_CONFIGS = [
     # o1/o3 reasoning models (no benefit for straightforward JSON scoring).
     {"provider": "openai", "model": "gpt-5.4-mini"},
     {"provider": "openai", "model": "gpt-5.4"},
+    # Ollama judges (task-055) — large local dense models on the 5090.
+    # Skipped at init time when Ollama is unreachable (e.g., from sandbox).
+    # Active params drive judgment quality on careful-reading tasks, so dense
+    # 27–31B is preferred over MoE alternatives for the judge role.
+    {"provider": "ollama", "model": "gemma4:31b"},
+    {"provider": "ollama", "model": "qwen3.6:27b"},
 ]
 
 
