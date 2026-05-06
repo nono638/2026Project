@@ -162,6 +162,35 @@ notepad .env
 
 ## Step 3 — Pull models (run in background while you do other things)
 
+### 3.0 Verify all tags exist before pulling
+
+The model matrix was bumped to Qwen 3.5 / 3.6 + Gemma 4 in task-054, but those
+10 tags were never confirmed against the Ollama registry from the planning
+laptop (sandbox network was blocked). A bad tag fails with a confusing 404 in
+the middle of an 80 GB pull. Verify first:
+
+```powershell
+foreach ($tag in @(
+    "qwen3.5:0.8b","qwen3.5:2b","qwen3.5:4b","qwen3.5:9b",
+    "qwen3.6:27b","qwen3.6:35b-a3b",
+    "gemma4:e2b","gemma4:e4b","gemma4:26b","gemma4:31b",
+    "mxbai-embed-large"
+)) {
+    Write-Host "Checking $tag..." -NoNewline
+    $r = Invoke-WebRequest "https://ollama.com/library/$($tag.Split(':')[0])" -UseBasicParsing -Method Head -ErrorAction SilentlyContinue
+    if ($r.StatusCode -eq 200) { Write-Host " family OK" } else { Write-Host " MISSING — investigate" }
+}
+```
+
+(Family-level check; does not validate the exact `:tag` suffix. For a per-tag
+check, run `ollama show <tag>` after Step 1's install and see if it pulls
+metadata in <2s, vs. starting a download.) If any 404, search ollama.com for
+the actual published tag and update `scripts/pull_models.py` REQUIRED_MODELS,
+`run_experiment_1.py` ALL_MODELS, `run_experiment_2.py` ALL_MODELS, and
+`deploy/setup_pod.py` DEFAULT_MODELS in lockstep before continuing.
+
+### 3.1 Pull tiers
+
 Order matters: pull smallest first so you can smoke-test before the big ones
 finish.
 
@@ -208,6 +237,41 @@ clear to do a longer dry run.
 
 ---
 
+## Step 4.5 — Verify Ollama metadata helper (task-053)
+
+task-053 added `get_ollama_model_details()` which calls `/api/show` to capture
+the resolved quantization level on every CSV row. The helper has unit tests
+against mocks but was never exercised against a live Ollama. Before launching
+Exp 1/2 (which depend on it for `llm_quantization` column), confirm it works:
+
+```powershell
+python -c "from scripts.experiment_utils import get_ollama_model_details; import json; print(json.dumps(get_ollama_model_details('qwen3.5:4b'), indent=2))"
+```
+
+Expected output: a dict with `quantization_level` (e.g., `"Q4_K_M"`),
+`digest`, and other model details. If you get an empty dict or an error,
+fix before proceeding — every CSV row will otherwise stamp `"unknown"`.
+
+---
+
+## Step 4.6 — Backfill quant metadata for v1/v2/v3 (task-053)
+
+task-053 also added `scripts/backfill_quant_metadata.py` to retroactively
+annotate Exp 0 v1/v2/v3 (which were generated before the helper existed). One
+shot — Ollama must be running with `qwen3:4b` (the v1/v2/v3 generation model)
+loadable:
+
+```powershell
+ollama pull qwen3:4b   # if not already pulled — v1/v2/v3 used the older tag
+python scripts/backfill_quant_metadata.py
+```
+
+After it finishes, the gallery will show the actual quant for the v1/v2/v3
+runs instead of `unknown`. Optional but cheap, and the writeup is cleaner
+with real values.
+
+---
+
 ## Step 5 — 10-question dry run of Exp 1
 
 Once Tier 1 models are pulled and the smoke test passes:
@@ -220,8 +284,9 @@ This runs 2 models × 2 strategies × 10 questions = 40 generations against the
 local Ollama. Should finish in 5–10 minutes. Verify:
 
 - [ ] `results/experiment_1/raw_answers.csv` is created with 40 rows.
-- [ ] `llm_quantization` column appears (will exist after task-053 lands; before
-      then it's expected to be missing — note this in your review).
+- [ ] `llm_quantization` column appears with a real value like `Q4_K_M` (not
+      `unknown`). If `unknown` shows up everywhere, the `/api/show` call from
+      `get_ollama_model_details()` is failing silently — go back to Step 4.5.
 - [ ] No CUDA OOM errors in the log.
 - [ ] Latencies are reasonable (< 30 s per generation for small models).
 
@@ -261,6 +326,51 @@ python scripts/run_experiment_2.py --resume
 
 Expected runtime: 10–15 hrs (4 chunkers × 4 models × 200 questions, smaller
 models only).
+
+---
+
+## Step 8 — Retroactive Ollama-judge scoring on Exp 0 v3 (task-055)
+
+This validates whether large local LLMs are viable scorer candidates by
+re-scoring v3's existing 500 generations with `gemma4:31b` and `qwen3.6:27b`,
+then reading the new rows in v3 report.md's "Correlation with Gold Metrics"
+table. If either local judge correlates with BERT/F1 on par with the API
+judges, future panels can adopt it for free.
+
+This is **not on the critical path** for Exp 1/2. Best run during a quiet
+window — model-pull idle time, overnight after Exp 1 launches, or in parallel
+with Exp 2 (one judge model fits in <24 GB, can co-exist with Exp 2's small
+Qwens at separate VRAM slots if scheduled carefully).
+
+```powershell
+# Make sure both judge models are pulled (Step 3 already covers this if
+# Tier 3 finished)
+ollama pull gemma4:31b
+ollama pull qwen3.6:27b
+
+# OLLAMA_HOST default (http://localhost:11434) is correct on the 5090 — no
+# action needed unless Ollama is on a different host. The Ollama scorer
+# adapter reads OLLAMA_HOST from env; bare hosts get an http:// prefix
+# auto-prepended.
+
+python scripts/run_experiment_0.py `
+  --version v3 `
+  --skip-generation `
+  --judges ollama
+```
+
+Expected runtime: ~4 hrs total (500 rows × 2 judges, ~10 s per call on a
+31B at Q4_K_M). CostGuard ceiling stays at default $5 — Ollama is free.
+
+After it finishes, regenerate the gallery so the new judges show up:
+
+```powershell
+python scripts/generate_gallery.py
+```
+
+The `## Correlation with Gold Metrics` table in
+`results/experiment_0_v3/report.md` will gain two rows — `ollama:gemma4:31b`
+and `ollama:qwen3.6:27b`. That's the answer to the validation question.
 
 ---
 
