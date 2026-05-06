@@ -998,8 +998,18 @@
     "daytime_created": "2026-05-06T12:00:00",
     "daytime_comments": "Closes the quantization-provenance hole before Exp 1/2/3 generate data on the 5090. Adds get_ollama_model_details() helper, model_details field in metadata.json, llm_quantization column in CSVs, explicit-quant tags in default model lists, and a one-shot backfill_quant_metadata.py for retroactively annotating Exp 0 v1/v2/v3. Infrastructure-only \u2014 no experiments run.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-05-06T12:20:15"
+    "status": "done",
+    "nighttime_started": "2026-05-06T12:20:15",
+    "nighttime_completed": "2026-05-06T12:35:03",
+    "nighttime_comments": "Quantization tracking: get_ollama_model_details helper, model_details in metadata.json, llm_quantization CSV column, setup_pod pinned to qwen3:4b-q4_K_M, backfill_quant_metadata.py script. Tag pinning across run_experiment_1/pull_models deferred to morning (network blocked). Live Ollama verification pending.",
+    "branch": "night/task-053-quantization-tracking",
+    "commit_sha": "47714ae59eb5a5525b7eba6922c42f9441f996da",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": [
+      "Live Ollama verification (spec section 7) pending \u2014 run on 5090",
+      "Tag pinning for run_experiment_1 model list, run_experiment_2 model list, and pull_models.py REQUIRED_MODELS deferred \u2014 needs ollama show <tag> verification per spec; runtime helper still records resolved quant on every row"
+    ]
   },
   {
     "task_id": "task-054",
