@@ -68,6 +68,7 @@ from experiment_utils import (
     append_rows,
     format_duration,
     build_scorer,
+    get_ollama_model_details,
     write_experiment_metadata,
 )
 
@@ -93,7 +94,10 @@ ALL_CHUNKERS = {
     "semantic": "SemanticChunker()",
 }
 
-# Qwen3 only — isolates chunking effect within one model family
+# Qwen3 only — isolates chunking effect within one model family.
+# task-053: bare tags retained; runtime stamps resolved quantization in CSV
+# + metadata via get_ollama_model_details(). See run_experiment_1.py for the
+# rationale (verification against ollama.com couldn't run from the sandbox).
 ALL_MODELS = [
     "qwen3:0.6b",
     "qwen3:1.7b",
@@ -465,6 +469,10 @@ def main() -> None:
 
     cost_limit_hit = False  # May be set True during generation; stays False for --skip-generation
 
+    # task-053: populated below when not --skip-generation; stays empty so
+    # the metadata write at the bottom can reference it unconditionally.
+    model_details_by_tag: dict[str, dict] = {}
+
     if args.skip_generation:
         if not raw_scores_path.exists():
             print(f"\nERROR: {raw_scores_path} not found. Run without --skip-generation first.")
@@ -523,6 +531,17 @@ def main() -> None:
         embedder = OllamaEmbedder(host=args.ollama_host)
         llm = OllamaLLM(host=args.ollama_host)
         strategy = NaiveRAG(llm=llm)
+
+        # task-053: capture per-tag Ollama provenance once at startup so
+        # every row gets a llm_quantization stamp without re-querying.
+        model_details_by_tag = {
+            m: get_ollama_model_details(m, host=args.ollama_host) for m in models
+        }
+        for tag, det in model_details_by_tag.items():
+            logger.info(
+                "Ollama details for %s: quant=%s digest=%s",
+                tag, det.get("quantization_level"), det.get("digest"),
+            )
 
         # Build the config matrix
         config_list = [
@@ -590,6 +609,7 @@ def main() -> None:
                     doc=doc,
                     model=model_name,
                     ollama_host=args.ollama_host,
+                    model_details=model_details_by_tag.get(model_name),
                 )
 
                 # Score answer — use context_sent_to_llm so faithfulness is
@@ -654,6 +674,7 @@ def main() -> None:
                     "llm_provider": "ollama",
                     "llm_host": args.ollama_host or "local",
                     "llm_model": model_name,
+                    "llm_quantization": result.get("llm_quantization", "unknown"),
                     "dataset_name": "hotpotqa",
                     "dataset_sample_seed": args.seed,
                 }
@@ -724,6 +745,7 @@ def main() -> None:
                 "scorers": list(args.scorers),
             },
             judges=judges_in_data,
+            model_details=model_details_by_tag or None,
             extra={"experiment_axis": "chunking_x_model_size"},
         )
     else:

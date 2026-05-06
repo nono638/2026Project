@@ -11,7 +11,14 @@ from __future__ import annotations
 import subprocess
 import sys
 
-# All Ollama models needed for the full experiment matrix
+# All Ollama models needed for the full experiment matrix.
+#
+# task-053: explicit-quant pinning is preferred but couldn't be verified against
+# ollama.com from the nighttime sandbox (no network). The runtime helper
+# get_ollama_model_details() captures the resolved Q* level on every row, so
+# downstream analysis records the actual quant regardless of whether the tag
+# is bare or explicit. Morning-side TODO: spot-check `ollama show <tag>` and
+# replace any of these with its `-q4_K_M` variant once confirmed published.
 REQUIRED_MODELS = [
     # Qwen3 family — primary experiment axis
     "qwen3:0.6b",
@@ -21,7 +28,7 @@ REQUIRED_MODELS = [
     # Gemma 3 — cross-family validation
     "gemma3:1b",
     "gemma3:4b",
-    # Embedding model
+    # Embedding model — single F16 artifact, no quant variant published
     "mxbai-embed-large",
 ]
 

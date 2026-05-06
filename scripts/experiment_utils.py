@@ -21,6 +21,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+import requests
 
 # Ensure project root is on sys.path so src imports work
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -205,6 +206,90 @@ def compute_bertscores(predictions: list[str], golds: list[str]) -> list[float]:
 # Ollama model management
 # ---------------------------------------------------------------------------
 
+def get_ollama_model_details(
+    model_tag: str,
+    host: str | None = None,
+) -> dict:
+    """Query Ollama's /api/show for resolved model details.
+
+    Captures provenance fields (quantization, digest, parameter size, family,
+    format) so experiments can record exactly which artifact Ollama loaded.
+    Reproducibility hole closer for task-053 — Ollama can re-point a default
+    tag without notice; this stamps the resolved manifest at run time.
+
+    See: https://github.com/ollama/ollama/blob/main/docs/api.md#show-model-information
+
+    Never raises — on any HTTP error, missing model, or unreachable host the
+    return dict still has tag and captured_at populated, with the rest None.
+    A misconfigured Ollama host shouldn't kill an experiment that already
+    generated answers; better to write 'unknown' and surface the issue in
+    logs than lose hours of generation.
+
+    Args:
+        model_tag: The Ollama tag (e.g., "qwen3:4b" or "qwen3:4b-q4_K_M").
+        host: Ollama server URL like "http://1.2.3.4:11434". When None,
+            defaults to http://localhost:11434.
+
+    Returns:
+        Dict with keys: tag, digest, quantization_level, parameter_size,
+        family, format, captured_at. Only tag and captured_at are guaranteed
+        non-None.
+    """
+    captured_at = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    base_host = host or "http://localhost:11434"
+    if not base_host.startswith(("http://", "https://")):
+        # Allow callers to pass a bare host:port like the Ollama Python client
+        base_host = f"http://{base_host}"
+    url = f"{base_host.rstrip('/')}/api/show"
+
+    blank = {
+        "tag": model_tag,
+        "digest": None,
+        "quantization_level": None,
+        "parameter_size": None,
+        "family": None,
+        "format": None,
+        "captured_at": captured_at,
+    }
+
+    try:
+        resp = requests.post(
+            url,
+            json={"model": model_tag, "verbose": False},
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        logger.warning("Ollama /api/show unreachable for %s: %s", model_tag, exc)
+        return blank
+
+    if not resp.ok:
+        logger.warning(
+            "Ollama /api/show returned %s for %s: %s",
+            resp.status_code, model_tag, resp.text[:200],
+        )
+        return blank
+
+    try:
+        body = resp.json()
+    except ValueError as exc:
+        logger.warning("Ollama /api/show returned non-JSON for %s: %s", model_tag, exc)
+        return blank
+
+    details = body.get("details") if isinstance(body, dict) else None
+    if not isinstance(details, dict):
+        details = {}
+
+    return {
+        "tag": model_tag,
+        "digest": body.get("digest") if isinstance(body, dict) else None,
+        "quantization_level": details.get("quantization_level"),
+        "parameter_size": details.get("parameter_size"),
+        "family": details.get("family"),
+        "format": details.get("format"),
+        "captured_at": captured_at,
+    }
+
+
 def ensure_model(client: object, model_name: str) -> None:
     """Verify an Ollama model is available; pull it if not.
 
@@ -295,6 +380,7 @@ def generate_answer(
     ollama_host: str | None = None,
     reranker: object | None = None,
     reranker_top_k: int | None = None,
+    model_details: dict | None = None,
 ) -> dict:
     """Generate a single RAG answer with timing and metadata.
 
@@ -366,6 +452,9 @@ def generate_answer(
                 "gold_in_chunks": False,
                 "gold_in_retrieved": False,
                 "gold_in_context": False,
+                "llm_quantization": (
+                    (model_details or {}).get("quantization_level") or "unknown"
+                ),
             }
 
     gold_answer = query.reference_answer or ""
@@ -413,6 +502,12 @@ def generate_answer(
         "gold_in_chunks": gold_in_chunks,
         "gold_in_retrieved": gold_in_retrieved,
         "gold_in_context": gold_in_context,
+        # task-053: per-row quantization provenance. "unknown" when the
+        # /api/show lookup wasn't supplied or returned None — keeps the
+        # column populated so downstream analysis never silently sees NaN.
+        "llm_quantization": (
+            (model_details or {}).get("quantization_level") or "unknown"
+        ),
     }
 
 
@@ -718,6 +813,7 @@ def write_experiment_metadata(
     n_examples: int,
     config: dict,
     judges: list[dict],
+    model_details: dict[str, dict] | None = None,
     extra: dict | None = None,
 ) -> None:
     """Write a metadata.json sidecar capturing run provenance.
@@ -747,6 +843,10 @@ def write_experiment_metadata(
         "config": config,
         "judges": judges,
     }
+    # task-053: optional Ollama model_details map (tag -> /api/show fields).
+    # Only written when supplied; absent metadata predates this hook.
+    if model_details:
+        metadata["model_details"] = model_details
     if extra:
         metadata.update(extra)
     metadata_path = output_dir / "metadata.json"

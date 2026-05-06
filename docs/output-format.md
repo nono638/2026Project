@@ -57,6 +57,7 @@ Scored by the configured LLM judge (default: Gemini 2.5 Flash).
 | `llm_provider` | str | LLM provider (ollama) |
 | `llm_host` | str | Ollama server URL or "local" |
 | `llm_model` | str | Ollama model name (e.g., qwen3:4b) |
+| `llm_quantization` | str | Resolved Ollama quantization level (e.g., `Q4_K_M`, `F16`); `"unknown"` if `/api/show` lookup failed. Captured via `experiment_utils.get_ollama_model_details`. Run-level provenance also lives in `metadata.json["model_details"]`. |
 | `dataset_name` | str | Dataset used (hotpotqa, squad, custom) |
 | `dataset_sample_seed` | int | Random seed for reproducibility |
 
