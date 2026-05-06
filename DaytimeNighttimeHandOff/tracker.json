@@ -979,8 +979,18 @@
     "daytime_created": "2026-04-30T15:30:12",
     "daytime_comments": "Adds --scorers nargs+ flag, per-judge column schema (matches Exp 0), consensus_quality column, per-judge resume on --skip-generation, per-judge agreement section in report.md. Default panel = Haiku 4.5 + GPT-5.4 Mini. Pre-written tests in WrittenByDaytime/task-052-multi-judge-exp12/tests/. Does NOT run real Exp 1/2 data \u2014 that is task-053+ deferred for RTX 5090 discussion.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-05-06T11:49:03"
+    "status": "done",
+    "nighttime_started": "2026-05-06T11:49:03",
+    "nighttime_completed": "2026-05-06T12:15:03",
+    "nighttime_comments": "Multi-judge support added: --scorers nargs+, score_answer_multi helper, per-judge prefixed columns + consensus_quality, dashboards updated, all tests pass.",
+    "branch": "night/task-052-multi-judge-exp12",
+    "commit_sha": "6e983d8eb8873872d98e654df7f73dd0842a9442",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": [
+      "Pre-flight --scorer rejection prints stderr text directly (not via argparse)",
+      "--skip-generation drops legacy bare metric columns from prior single-judge CSVs"
+    ]
   },
   {
     "task_id": "task-053",
