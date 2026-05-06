@@ -1033,5 +1033,13 @@
       "VRAM/disk size table in runpod-setup-guide.md uses estimates, not measured numbers — refresh after first pull on the 5090"
     ],
     "daytime_reviewed": "2026-05-06T14:15:12"
+  },
+  {
+    "task_id": "task-055",
+    "description": "Ollama provider adapter + 2 large local judges (gemma4:31b, qwen3.6:27b) for retroactive Exp 0 v3 scoring",
+    "daytime_created": "2026-05-06T14:34:44",
+    "daytime_comments": "Reuses task-050 post-hoc-add pattern (OpenAI was added the same way). Adds requests-based Ollama adapter, two judges, /usr/bin/bash.0 cost-guard entries, defensive consensus_quality fence in dashboard. Code lands at night; the actual --skip-generation --judges ollama scoring run is morning-side on the 5090 (Ollama not reachable from sandbox; gated on tag verification per task-054 inbox flag). Validation reuses the existing per-judge BERT/F1 correlation table in v3 report.md — no new metrics or report code.",
+    "depends_on": null,
+    "status": "todo"
   }
 ]
