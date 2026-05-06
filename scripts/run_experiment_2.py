@@ -62,13 +62,22 @@ from experiment_utils import (
     ensure_model,
     load_hotpotqa_examples,
     generate_answer,
-    score_answer,
+    score_answer_multi,
+    _safe_scorer_name,
     load_checkpoint,
     append_rows,
     format_duration,
     build_scorer,
     write_experiment_metadata,
 )
+
+# Default judge panel for Experiments 1 and 2: cross-provider two-judge
+# panel chosen from Exp 0 v3 cost vs accuracy results. Documented in
+# docs/methodology.html "Scorer Selection".
+DEFAULT_SCORER_PANEL = [
+    "anthropic:claude-haiku-4-5-20251001",
+    "openai:gpt-5.4-mini",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -158,8 +167,19 @@ def parse_args() -> argparse.Namespace:
     Returns:
         Parsed argument namespace.
     """
+    # Pre-flight: reject the removed singular `--scorer` flag explicitly
+    # before argparse runs, so `--scorer X --help` exits non-zero (argparse
+    # would otherwise let `--help` win and exit 0). See task-052 spec.
+    if "--scorer" in sys.argv:
+        print(
+            "error: unrecognized argument '--scorer' (renamed to '--scorers' in task-052)",
+            file=sys.stderr,
+        )
+        sys.exit(2)
     parser = argparse.ArgumentParser(
         description="Experiment 2: Chunking x Model Size — 4 chunkers x 4 Qwen3 models on HotpotQA.",
+        # Disable prefix matching so `--scorer` cannot abbreviate to `--scorers`.
+        allow_abbrev=False,
     )
     parser.add_argument("--n", type=int, default=200,
                         help="Number of HotpotQA examples (default: 200)")
@@ -179,11 +199,24 @@ def parse_args() -> argparse.Namespace:
                         help="Comma-separated chunker subset (e.g., 'recursive,sentence')")
     parser.add_argument("--skip-generation", action="store_true",
                         help="Re-score existing answers without re-generating")
-    parser.add_argument("--scorer", type=str, default="google:gemini-2.5-flash",
-                        help="Scorer as provider:model (default: google:gemini-2.5-flash)")
+    parser.add_argument(
+        "--scorers",
+        type=str,
+        nargs="+",
+        default=list(DEFAULT_SCORER_PANEL),
+        help=(
+            "Judge panel as one or more provider:model strings "
+            "(default: anthropic:claude-haiku-4-5-20251001 openai:gpt-5.4-mini)."
+        ),
+    )
     parser.add_argument("--no-gallery", action="store_true",
                         help="Skip automatic gallery regeneration after experiment completes")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if len(set(args.scorers)) != len(args.scorers):
+        parser.error(
+            "Duplicate scorers in --scorers are not allowed; pass unique provider:model entries."
+        )
+    return args
 
 
 def validate_models(model_str: str | None) -> list[str]:
@@ -255,9 +288,9 @@ def generate_report(df: pd.DataFrame) -> str:
 
     # --- Chunker x Model quality heatmap ---
     lines.append("## Chunker x Model Quality Heatmap\n")
-    if "quality" in df.columns and "chunker" in df.columns and "model" in df.columns:
+    if "consensus_quality" in df.columns and "chunker" in df.columns and "model" in df.columns:
         pivot = df.pivot_table(
-            values="quality", index="chunker", columns="model", aggfunc="mean",
+            values="consensus_quality", index="chunker", columns="model", aggfunc="mean",
         )
         pivot = pivot.round(3)
         lines.append(pivot.to_markdown())
@@ -267,18 +300,39 @@ def generate_report(df: pd.DataFrame) -> str:
 
     # --- Per-chunker ranking ---
     lines.append("## Per-Chunker Ranking\n")
-    if "quality" in df.columns:
-        chunk_stats = df.groupby("chunker")["quality"].agg(["mean", "std", "count"])
+    if "consensus_quality" in df.columns:
+        chunk_stats = df.groupby("chunker")["consensus_quality"].agg(["mean", "std", "count"])
         chunk_stats = chunk_stats.sort_values("mean", ascending=False).round(3)
         lines.append(chunk_stats.to_markdown())
         lines.append("")
 
     # --- Per-model ranking ---
     lines.append("## Per-Model Ranking\n")
-    if "quality" in df.columns:
-        model_stats = df.groupby("model")["quality"].agg(["mean", "std", "count"])
+    if "consensus_quality" in df.columns:
+        model_stats = df.groupby("model")["consensus_quality"].agg(["mean", "std", "count"])
         model_stats = model_stats.sort_values("mean", ascending=False).round(3)
         lines.append(model_stats.to_markdown())
+        lines.append("")
+
+    # --- Per-judge agreement (Pearson r between each judge pair) ---
+    judge_quality_cols = [
+        c for c in df.columns
+        if c.endswith("_quality") and c not in ("consensus_quality", "answer_quality")
+    ]
+    if len(judge_quality_cols) >= 2:
+        lines.append("## Per-Judge Agreement\n")
+        lines.append("Pearson correlation of per-row quality between each judge pair:\n")
+        lines.append("| Judge A | Judge B | Pearson r | n |")
+        lines.append("|---------|---------|-----------|---|")
+        for i in range(len(judge_quality_cols)):
+            for j in range(i + 1, len(judge_quality_cols)):
+                a_col, b_col = judge_quality_cols[i], judge_quality_cols[j]
+                pair = df[[a_col, b_col]].dropna()
+                if len(pair) >= 2:
+                    r = pair[a_col].corr(pair[b_col])
+                    a_short = a_col.replace("_quality", "")
+                    b_short = b_col.replace("_quality", "")
+                    lines.append(f"| {a_short} | {b_short} | {r:.3f} | {len(pair)} |")
         lines.append("")
 
     # --- Chunking impact analysis ---
@@ -286,9 +340,9 @@ def generate_report(df: pd.DataFrame) -> str:
     lines.append("## Chunking Impact Analysis\n")
     lines.append("Quality delta (chunker mean - overall mean) by model size:\n")
 
-    if "quality" in df.columns and "chunker" in df.columns and "model" in df.columns:
-        config_means = df.groupby(["chunker", "model"])["quality"].mean()
-        overall_mean = df["quality"].mean()
+    if "consensus_quality" in df.columns and "chunker" in df.columns and "model" in df.columns:
+        config_means = df.groupby(["chunker", "model"])["consensus_quality"].mean()
+        overall_mean = df["consensus_quality"].mean()
 
         # Model sizes for ordering
         model_order = {"qwen3:0.6b": 0.6, "qwen3:1.7b": 1.7, "qwen3:4b": 4.0, "qwen3:8b": 8.0}
@@ -344,10 +398,11 @@ def generate_report(df: pd.DataFrame) -> str:
 
     # --- Cost summary ---
     lines.append("## Cost Summary\n")
-    n_scored = len(df.dropna(subset=["quality"])) if "quality" in df.columns else 0
-    est_cost = n_scored * 0.0001  # Gemini Flash
-    lines.append(f"- Total scored answers: {n_scored}")
-    lines.append(f"- Estimated scorer cost: ${est_cost:.2f}")
+    n_scored = (
+        len(df.dropna(subset=["consensus_quality"]))
+        if "consensus_quality" in df.columns else 0
+    )
+    lines.append(f"- Total scored answers (any judge non-NaN): {n_scored}")
     lines.append("")
 
     return "\n".join(lines)
@@ -379,7 +434,7 @@ def main() -> None:
     print(f"  Strategy:         {STRATEGY} (held constant)")
     print(f"  HotpotQA examples: {args.n}")
     print(f"  Seed:             {args.seed}")
-    print(f"  Scorer:           {args.scorer}")
+    print(f"  Scorer panel:     {', '.join(args.scorers)}")
     print(f"  Max API cost:     ${args.max_cost:.2f}")
     print(f"  Output:           {output_dir}")
     print(f"  Resume:           {args.resume}")
@@ -399,10 +454,14 @@ def main() -> None:
                         len(completed_configs),
                         ", ".join(f"{c}+{m}" for c, m in completed_configs))
 
-    # Build scorer
-    from src.cost_guard import CostLimitExceeded
+    # Build judge panel — one shared CostGuard so --max-cost is the global
+    # ceiling across the panel, not a per-judge ceiling.
+    from src.cost_guard import CostGuard, CostLimitExceeded
 
-    scorer = build_scorer(args.scorer, max_cost=args.max_cost)
+    shared_guard = CostGuard(max_cost_usd=args.max_cost)
+    scorers = [build_scorer(s, cost_guard=shared_guard) for s in args.scorers]
+    logger.info("Built %d-judge panel (shared cost limit: $%.2f)",
+                len(scorers), args.max_cost)
 
     cost_limit_hit = False  # May be set True during generation; stays False for --skip-generation
 
@@ -413,16 +472,31 @@ def main() -> None:
         logger.info("Loading existing answers for re-scoring...")
         existing_df = pd.read_csv(raw_scores_path)
 
-        # Re-score each row using context_sent_to_llm (what the model saw)
-        logger.info("Re-scoring %d answers...", len(existing_df))
+        # Re-score each row using context_sent_to_llm (what the model saw).
+        # Per-judge resume: rows that already have non-NaN values for a
+        # judge keep them; new judges are scored from scratch.
+        logger.info("Re-scoring %d answers across %d judges...",
+                    len(existing_df), len(scorers))
         for idx, row in existing_df.iterrows():
-            scores = score_answer(
-                scorer, row["question"],
-                row.get("context_sent_to_llm", ""),
-                row["rag_answer"],
-            )
+            try:
+                scores = score_answer_multi(
+                    scorers,
+                    row["question"],
+                    row.get("context_sent_to_llm", ""),
+                    row["rag_answer"],
+                    existing_row=row.to_dict(),
+                )
+            except CostLimitExceeded as exc:
+                logger.error("\nCOST LIMIT REACHED during re-score: %s", exc)
+                cost_limit_hit = True
+                break
             for k, v in scores.items():
                 existing_df.at[idx, k] = v
+
+        for legacy in ("faithfulness", "relevance", "conciseness", "quality",
+                       "scorer_latency_ms"):
+            if legacy in existing_df.columns:
+                existing_df = existing_df.drop(columns=[legacy])
 
         existing_df.to_csv(raw_scores_path, index=False)
         logger.info("Re-scored and saved to %s", raw_scores_path)
@@ -519,23 +593,22 @@ def main() -> None:
                 )
 
                 # Score answer — use context_sent_to_llm so faithfulness is
-                # judged against what the model actually saw (Exp 0 v2 fix)
+                # judged against what the model actually saw (Exp 0 v2 fix).
                 scorer_context = result.get("context_sent_to_llm", "")
-                try:
-                    scores = score_answer(
-                        scorer, query.text, scorer_context, result["answer"]
-                    )
-                except CostLimitExceeded as exc:
-                    logger.error("\nCOST LIMIT REACHED: %s", exc)
+                scores = score_answer_multi(
+                    scorers, query.text, scorer_context, result["answer"],
+                )
+                if shared_guard.total_estimated_cost > args.max_cost and not cost_limit_hit:
+                    logger.error("\nCOST LIMIT REACHED: %s", shared_guard.summary())
                     logger.error("Saving partial results for this config...")
                     cost_limit_hit = True
-                    scores = {
-                        "faithfulness": float("nan"),
-                        "relevance": float("nan"),
-                        "conciseness": float("nan"),
-                        "quality": float("nan"),
-                        "scorer_latency_ms": float("nan"),
-                    }
+
+                total_scorer_latency = 0.0
+                for s in scorers:
+                    safe = _safe_scorer_name(s.name)
+                    lat = scores.get(f"{safe}_scorer_latency_ms", 0.0)
+                    if isinstance(lat, (int, float)) and not math.isnan(lat):
+                        total_scorer_latency += float(lat)
 
                 # Build row with all columns
                 gold_answer = query.reference_answer or ""
@@ -550,17 +623,13 @@ def main() -> None:
                     # Gold metrics
                     "gold_f1": result.get("gold_f1", float("nan")),
                     "gold_exact_match": result.get("gold_exact_match", False),
-                    # Scorer metrics
-                    "faithfulness": scores.get("faithfulness", float("nan")),
-                    "relevance": scores.get("relevance", float("nan")),
-                    "conciseness": scores.get("conciseness", float("nan")),
-                    "quality": scores.get("quality", float("nan")),
+                    # Per-judge scorer metrics + consensus_quality
+                    **scores,
                     # Latency
                     "strategy_latency_ms": result.get("strategy_latency_ms", float("nan")),
-                    "scorer_latency_ms": scores.get("scorer_latency_ms", float("nan")),
+                    "scorer_latency_ms_total": total_scorer_latency,
                     "total_latency_ms": (
-                        result.get("strategy_latency_ms", 0) +
-                        scores.get("scorer_latency_ms", 0)
+                        result.get("strategy_latency_ms", 0) + total_scorer_latency
                     ),
                     # Diagnostics
                     "context_sent_to_llm": result.get("context_sent_to_llm", ""),
@@ -627,10 +696,21 @@ def main() -> None:
         logger.info("Saved report to %s", report_path)
         print("\n" + report)
 
-        # Write metadata sidecar — judge model versions + run config
+        # Write metadata sidecar — judge model versions + run config.
         from scripts.generate_experiment0_dashboard import JUDGE_DISPLAY_NAMES
-        provider, model = args.scorer.split(":", 1)
-        safe = f"{provider}:{model}".replace(":", "_").replace(".", "_").replace("-", "_")
+        judges_in_data = []
+        for s in scorers:
+            provider, model = s.name.split(":", 1)
+            safe = _safe_scorer_name(s.name)
+            q_col = f"{safe}_quality"
+            if q_col not in results_df.columns:
+                continue
+            judges_in_data.append({
+                "provider": provider,
+                "model": model,
+                "display_name": JUDGE_DISPLAY_NAMES.get(safe, model),
+                "n_scored": int(results_df[q_col].notna().sum()),
+            })
         write_experiment_metadata(
             output_dir=output_dir,
             n_examples=len(results_df),
@@ -641,12 +721,9 @@ def main() -> None:
                 "chunkers": chunkers,
                 "ollama_host": args.ollama_host,
                 "skip_generation": args.skip_generation,
+                "scorers": list(args.scorers),
             },
-            judges=[{
-                "provider": provider,
-                "model": model,
-                "display_name": JUDGE_DISPLAY_NAMES.get(safe, model),
-            }],
+            judges=judges_in_data,
             extra={"experiment_axis": "chunking_x_model_size"},
         )
     else:

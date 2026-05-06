@@ -100,7 +100,7 @@ def _chart_summary_card(df: pd.DataFrame) -> tuple[str, go.Figure]:
     Returns:
         Tuple of (title, Plotly figure).
     """
-    config_means = df.groupby(["strategy", "model"])["quality"].mean()
+    config_means = df.groupby(["strategy", "model"])["consensus_quality"].mean()
     best_idx = config_means.idxmax()
     worst_idx = config_means.idxmin()
 
@@ -117,7 +117,7 @@ def _chart_summary_card(df: pd.DataFrame) -> tuple[str, go.Figure]:
             str(len(df)),
             f"{best_idx[0]} + {best_idx[1]} ({config_means[best_idx]:.3f})",
             f"{worst_idx[0]} + {worst_idx[1]} ({config_means[worst_idx]:.3f})",
-            f"{df['quality'].mean():.3f}",
+            f"{df['consensus_quality'].mean():.3f}",
         ],
     }
 
@@ -142,7 +142,7 @@ def _chart_quality_heatmap(df: pd.DataFrame) -> tuple[str, go.Figure]:
     Returns:
         Tuple of (title, Plotly figure).
     """
-    pivot = df.pivot_table(values="quality", index="strategy", columns="model", aggfunc="mean")
+    pivot = df.pivot_table(values="consensus_quality", index="strategy", columns="model", aggfunc="mean")
     models = _order_models([c for c in pivot.columns])
     strategies = _order_strategies(list(pivot.index))
     pivot = pivot.reindex(index=strategies, columns=models)
@@ -230,7 +230,7 @@ def _chart_quality_vs_model_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
         sdf = sdf.copy()
         sdf["model_size"] = sdf["model"].map(MODEL_SIZES)
         sdf = sdf.dropna(subset=["model_size"])
-        stats = sdf.groupby(["model", "model_size"])["quality"].agg(["mean", "std"]).reset_index()
+        stats = sdf.groupby(["model", "model_size"])["consensus_quality"].agg(["mean", "std"]).reset_index()
         stats = stats.sort_values("model_size")
 
         fig.add_trace(go.Scatter(
@@ -309,7 +309,7 @@ def _chart_strategy_beats_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
     Returns:
         Tuple of (title, Plotly figure).
     """
-    config_means = df.groupby(["strategy", "model"])["quality"].mean().reset_index()
+    config_means = df.groupby(["strategy", "model"])["consensus_quality"].mean().reset_index()
     config_means["model_size"] = config_means["model"].map(MODEL_SIZES)
 
     naive_configs = config_means[config_means["strategy"] == "naive"]
@@ -320,12 +320,12 @@ def _chart_strategy_beats_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
         # Find naive configs with larger models
         bigger_naive = naive_configs[naive_configs["model_size"] > row["model_size"]]
         for _, naive_row in bigger_naive.iterrows():
-            if row["quality"] > naive_row["quality"]:
+            if row["consensus_quality"] > naive_row["consensus_quality"]:
                 results.append({
                     "strategy": row["strategy"],
                     "small_model": row["model"],
                     "large_naive_model": naive_row["model"],
-                    "delta": row["quality"] - naive_row["quality"],
+                    "delta": row["consensus_quality"] - naive_row["consensus_quality"],
                 })
 
     if not results:
@@ -375,9 +375,9 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
     if not available:
         return ("Per-Metric Breakdown", go.Figure())
 
-    config_means = df.groupby(["strategy", "model"])[["quality"] + available].mean().reset_index()
+    config_means = df.groupby(["strategy", "model"])[["consensus_quality"] + available].mean().reset_index()
     config_means["config"] = config_means["strategy"] + " + " + config_means["model"]
-    config_means = config_means.sort_values("quality", ascending=False)
+    config_means = config_means.sort_values("consensus_quality", ascending=False)
 
     # Top 10 and bottom 5
     top = config_means.head(10)
@@ -415,7 +415,7 @@ def _chart_score_distributions_by_strategy(df: pd.DataFrame) -> tuple[str, go.Fi
     fig = go.Figure()
     for i, strat in enumerate(strategies):
         fig.add_trace(go.Violin(
-            y=df[df["strategy"] == strat]["quality"],
+            y=df[df["strategy"] == strat]["consensus_quality"],
             name=strat, box_visible=True, meanline_visible=True,
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
@@ -440,7 +440,7 @@ def _chart_score_distributions_by_model(df: pd.DataFrame) -> tuple[str, go.Figur
     fig = go.Figure()
     for i, model in enumerate(models):
         fig.add_trace(go.Violin(
-            y=df[df["model"] == model]["quality"],
+            y=df[df["model"] == model]["consensus_quality"],
             name=model, box_visible=True, meanline_visible=True,
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
@@ -502,14 +502,14 @@ def _chart_pareto_frontier(df: pd.DataFrame) -> tuple[str, go.Figure]:
         return ("Quality vs Latency (Pareto)", go.Figure())
 
     config_stats = df.groupby(["strategy", "model"]).agg(
-        quality=("quality", "mean"),
+        consensus_quality=("consensus_quality", "mean"),
         latency=("strategy_latency_ms", "mean"),
     ).reset_index()
     config_stats["config"] = config_stats["strategy"] + " + " + config_stats["model"]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=config_stats["latency"], y=config_stats["quality"],
+        x=config_stats["latency"], y=config_stats["consensus_quality"],
         mode="markers+text", text=config_stats["config"],
         textposition="top center", textfont=dict(size=8),
         marker=dict(size=10, color=IBM_COLORS[0]),
@@ -522,8 +522,8 @@ def _chart_pareto_frontier(df: pd.DataFrame) -> tuple[str, go.Figure]:
     for _, row in config_stats.iterrows():
         dominated = False
         for _, other in config_stats.iterrows():
-            if other["quality"] >= row["quality"] and other["latency"] <= row["latency"]:
-                if other["quality"] > row["quality"] or other["latency"] < row["latency"]:
+            if other["consensus_quality"] >= row["consensus_quality"] and other["latency"] <= row["latency"]:
+                if other["consensus_quality"] > row["consensus_quality"] or other["latency"] < row["latency"]:
                     dominated = True
                     break
         if not dominated:
@@ -532,7 +532,7 @@ def _chart_pareto_frontier(df: pd.DataFrame) -> tuple[str, go.Figure]:
     if pareto:
         pareto_df = pd.DataFrame(pareto).sort_values("latency")
         fig.add_trace(go.Scatter(
-            x=pareto_df["latency"], y=pareto_df["quality"],
+            x=pareto_df["latency"], y=pareto_df["consensus_quality"],
             mode="lines", name="Pareto Frontier",
             line=dict(color="#DC267F", dash="dash", width=2),
         ))
@@ -556,7 +556,7 @@ def _chart_per_query_detail(df: pd.DataFrame) -> tuple[str, go.Figure]:
     Returns:
         Tuple of (title, Plotly figure).
     """
-    sorted_df = df.sort_values("quality")
+    sorted_df = df.sort_values("consensus_quality")
     worst = sorted_df.head(10)
     best = sorted_df.tail(10)
     selected = pd.concat([worst, best])
@@ -574,7 +574,7 @@ def _chart_per_query_detail(df: pd.DataFrame) -> tuple[str, go.Figure]:
                 selected["strategy"],
                 selected["model"],
                 question_col,
-                selected["quality"].round(3),
+                selected["consensus_quality"].round(3),
                 gold_f1_col,
             ],
             fill_color=[["#ffe0e0"] * 10 + ["#e0ffe0"] * 10],
@@ -614,7 +614,7 @@ def build_experiment1_figures(
         logger.warning("Empty or unparseable CSV at %s — returning empty figures", csv_path)
         return []
 
-    if df.empty or "quality" not in df.columns:
+    if df.empty or "consensus_quality" not in df.columns:
         logger.warning("Empty or invalid CSV at %s — returning empty figures", csv_path)
         return []
 
