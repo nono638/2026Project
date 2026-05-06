@@ -536,7 +536,11 @@ def append_rows(csv_path: Path, rows: list[dict]) -> None:
 # Scorer construction
 # ---------------------------------------------------------------------------
 
-def build_scorer(scorer_str: str, max_cost: float = 10.0) -> object:
+def build_scorer(
+    scorer_str: str,
+    max_cost: float = 10.0,
+    cost_guard: object | None = None,
+) -> object:
     """Build an LLMScorer from a "provider:model" string with CostGuard.
 
     Parses the scorer string, validates the format, and constructs the
@@ -545,7 +549,12 @@ def build_scorer(scorer_str: str, max_cost: float = 10.0) -> object:
     Args:
         scorer_str: Scorer specification as "provider:model"
             (e.g., "google:gemini-2.5-flash").
-        max_cost: Maximum estimated API spend in USD.
+        max_cost: Maximum estimated API spend in USD. Ignored if
+            ``cost_guard`` is provided.
+        cost_guard: Optional pre-built CostGuard to share across multiple
+            scorers. When None, a fresh guard is built from ``max_cost``.
+            Multi-judge panels use a single shared guard so ``--max-cost``
+            is the global ceiling, not a per-judge ceiling.
 
     Returns:
         An LLMScorer instance with cost guard attached.
@@ -564,10 +573,120 @@ def build_scorer(scorer_str: str, max_cost: float = 10.0) -> object:
         )
 
     provider, model = scorer_str.split(":", 1)
-    cost_guard = CostGuard(max_cost_usd=max_cost)
+    if cost_guard is None:
+        cost_guard = CostGuard(max_cost_usd=max_cost)
     scorer = LLMScorer(provider=provider, model=model, cost_guard=cost_guard)
-    logger.info("Built scorer: %s (cost limit: $%.2f)", scorer.name, max_cost)
+    logger.info("Built scorer: %s", scorer.name)
     return scorer
+
+
+# ---------------------------------------------------------------------------
+# Multi-judge scoring
+# ---------------------------------------------------------------------------
+
+def _safe_scorer_name(name: str) -> str:
+    """Convert a scorer name to a CSV-safe column prefix.
+
+    Mirrors the helper exported from run_experiment_0.py so this module
+    doesn't import a sibling experiment script (avoiding the circular
+    import that would create).
+    """
+    return name.replace(":", "_").replace("-", "_").replace(".", "_")
+
+
+def score_answer_multi(
+    scorers: list,
+    query: str,
+    context: str,
+    answer: str,
+    existing_row: dict | None = None,
+) -> dict:
+    """Score one answer with a panel of judges and return prefixed columns.
+
+    For each judge in ``scorers``, produces five columns prefixed with the
+    judge's safe name: ``<safe>_faithfulness``, ``<safe>_relevance``,
+    ``<safe>_conciseness``, ``<safe>_quality``, ``<safe>_scorer_latency_ms``.
+    Adds an unprefixed ``consensus_quality`` = NaN-safe mean of each judge's
+    quality score.
+
+    Resume support: if ``existing_row`` is provided AND already has a
+    non-NaN ``<safe>_quality`` for a judge, that judge's call is skipped
+    and the existing values are copied through. Why: re-scoring with a
+    larger panel shouldn't re-pay for judges that already scored.
+
+    Failure handling: any exception from a judge's ``.score(...)`` call
+    (transient retries already happen inside ``score_answer``) yields NaN
+    for that judge's columns. Cost-limit exceptions are also caught here
+    so a tripped guard doesn't poison the rest of the panel. The caller
+    can detect a cost-limit hit by inspecting the shared CostGuard.
+
+    Args:
+        scorers: List of LLMScorer instances (or mocks with .name and
+            .score(query, context, answer)).
+        query: Question text.
+        context: Source/retrieved context the answer was generated against.
+        answer: RAG-generated answer text.
+        existing_row: Optional dict of pre-existing per-judge values for
+            the same (query, answer). Keys must use the same safe-name
+            prefix scheme.
+
+    Returns:
+        Flat dict with per-judge prefixed columns + consensus_quality.
+    """
+    import math as _math
+
+    out: dict = {}
+    quality_values: list[float] = []
+
+    for scorer in scorers:
+        safe = _safe_scorer_name(scorer.name)
+        q_col = f"{safe}_quality"
+
+        # Resume: skip judge that already has a non-NaN quality value.
+        # Why: lets us add new judges to a panel without re-paying for
+        # previously-scored rows. Same pattern as score_all_answers in
+        # run_experiment_0.py.
+        if existing_row is not None and q_col in existing_row:
+            existing_q = existing_row.get(q_col)
+            try:
+                if existing_q is not None and not _math.isnan(float(existing_q)):
+                    for metric in ("faithfulness", "relevance", "conciseness",
+                                   "quality", "scorer_latency_ms"):
+                        col = f"{safe}_{metric}"
+                        if col in existing_row:
+                            out[col] = existing_row[col]
+                    quality_values.append(float(existing_q))
+                    continue
+            except (TypeError, ValueError):
+                # Existing value isn't numeric — fall through to re-score
+                pass
+
+        start = time.perf_counter()
+        try:
+            scores = scorer.score(query=query, context=context, answer=answer)
+            scorer_latency_ms = (time.perf_counter() - start) * 1000
+            quality = sum(scores.values()) / len(scores)
+            out[f"{safe}_faithfulness"] = scores.get("faithfulness", float("nan"))
+            out[f"{safe}_relevance"] = scores.get("relevance", float("nan"))
+            out[f"{safe}_conciseness"] = scores.get("conciseness", float("nan"))
+            out[f"{safe}_quality"] = quality
+            out[f"{safe}_scorer_latency_ms"] = scorer_latency_ms
+            quality_values.append(quality)
+        except Exception as exc:
+            scorer_latency_ms = (time.perf_counter() - start) * 1000
+            logger.warning("Judge %s failed: %s", scorer.name, exc)
+            out[f"{safe}_faithfulness"] = float("nan")
+            out[f"{safe}_relevance"] = float("nan")
+            out[f"{safe}_conciseness"] = float("nan")
+            out[f"{safe}_quality"] = float("nan")
+            out[f"{safe}_scorer_latency_ms"] = scorer_latency_ms
+
+    # NaN-safe consensus: mean of judges that produced numeric quality.
+    valid = [q for q in quality_values if not _math.isnan(q)]
+    out["consensus_quality"] = (
+        sum(valid) / len(valid) if valid else float("nan")
+    )
+    return out
 
 
 # ---------------------------------------------------------------------------

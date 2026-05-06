@@ -97,7 +97,7 @@ def _chart_summary_card(df: pd.DataFrame) -> tuple[str, go.Figure]:
     Returns:
         Tuple of (title, Plotly figure).
     """
-    config_means = df.groupby(["chunker", "model"])["quality"].mean()
+    config_means = df.groupby(["chunker", "model"])["consensus_quality"].mean()
     best_idx = config_means.idxmax()
     worst_idx = config_means.idxmin()
 
@@ -114,7 +114,7 @@ def _chart_summary_card(df: pd.DataFrame) -> tuple[str, go.Figure]:
             str(len(df)),
             f"{best_idx[0]} + {best_idx[1]} ({config_means[best_idx]:.3f})",
             f"{worst_idx[0]} + {worst_idx[1]} ({config_means[worst_idx]:.3f})",
-            f"{df['quality'].mean():.3f}",
+            f"{df['consensus_quality'].mean():.3f}",
         ],
     }
 
@@ -139,7 +139,7 @@ def _chart_quality_heatmap(df: pd.DataFrame) -> tuple[str, go.Figure]:
     Returns:
         Tuple of (title, Plotly figure).
     """
-    pivot = df.pivot_table(values="quality", index="chunker", columns="model", aggfunc="mean")
+    pivot = df.pivot_table(values="consensus_quality", index="chunker", columns="model", aggfunc="mean")
     models = _order_models([c for c in pivot.columns])
     chunkers = _order_chunkers(list(pivot.index))
     pivot = pivot.reindex(index=chunkers, columns=models)
@@ -212,7 +212,7 @@ def _chart_quality_vs_model_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
         cdf = df[df["chunker"] == chunker].copy()
         cdf["model_size"] = cdf["model"].map(MODEL_SIZES)
         cdf = cdf.dropna(subset=["model_size"])
-        stats = cdf.groupby(["model", "model_size"])["quality"].agg(["mean", "std"]).reset_index()
+        stats = cdf.groupby(["model", "model_size"])["consensus_quality"].agg(["mean", "std"]).reset_index()
         stats = stats.sort_values("model_size")
 
         fig.add_trace(go.Scatter(
@@ -287,7 +287,7 @@ def _chart_chunking_impact(df: pd.DataFrame) -> tuple[str, go.Figure]:
     Returns:
         Tuple of (title, Plotly figure).
     """
-    config_means = df.groupby(["chunker", "model"])["quality"].mean().reset_index()
+    config_means = df.groupby(["chunker", "model"])["consensus_quality"].mean().reset_index()
     config_means["model_size"] = config_means["model"].map(MODEL_SIZES)
 
     models = _order_models(config_means["model"].unique().tolist())
@@ -302,9 +302,9 @@ def _chart_chunking_impact(df: pd.DataFrame) -> tuple[str, go.Figure]:
             best_chunkers.append("N/A")
             worst_chunkers.append("N/A")
             continue
-        best_row = mdf.loc[mdf["quality"].idxmax()]
-        worst_row = mdf.loc[mdf["quality"].idxmin()]
-        deltas.append(best_row["quality"] - worst_row["quality"])
+        best_row = mdf.loc[mdf["consensus_quality"].idxmax()]
+        worst_row = mdf.loc[mdf["consensus_quality"].idxmin()]
+        deltas.append(best_row["consensus_quality"] - worst_row["consensus_quality"])
         best_chunkers.append(best_row["chunker"])
         worst_chunkers.append(worst_row["chunker"])
 
@@ -338,9 +338,9 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
     if not available:
         return ("Per-Metric Breakdown", go.Figure())
 
-    config_means = df.groupby(["chunker", "model"])[["quality"] + available].mean().reset_index()
+    config_means = df.groupby(["chunker", "model"])[["consensus_quality"] + available].mean().reset_index()
     config_means["config"] = config_means["chunker"] + " + " + config_means["model"]
-    config_means = config_means.sort_values("quality", ascending=False)
+    config_means = config_means.sort_values("consensus_quality", ascending=False)
 
     fig = go.Figure()
     for i, metric in enumerate(available):
@@ -373,7 +373,7 @@ def _chart_score_distributions_by_chunker(df: pd.DataFrame) -> tuple[str, go.Fig
     fig = go.Figure()
     for i, chunker in enumerate(chunkers):
         fig.add_trace(go.Violin(
-            y=df[df["chunker"] == chunker]["quality"],
+            y=df[df["chunker"] == chunker]["consensus_quality"],
             name=chunker, box_visible=True, meanline_visible=True,
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
@@ -398,7 +398,7 @@ def _chart_score_distributions_by_model(df: pd.DataFrame) -> tuple[str, go.Figur
     fig = go.Figure()
     for i, model in enumerate(models):
         fig.add_trace(go.Violin(
-            y=df[df["model"] == model]["quality"],
+            y=df[df["model"] == model]["consensus_quality"],
             name=model, box_visible=True, meanline_visible=True,
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
@@ -457,14 +457,14 @@ def _chart_pareto_frontier(df: pd.DataFrame) -> tuple[str, go.Figure]:
         return ("Quality vs Latency (Pareto)", go.Figure())
 
     config_stats = df.groupby(["chunker", "model"]).agg(
-        quality=("quality", "mean"),
+        consensus_quality=("consensus_quality", "mean"),
         latency=("strategy_latency_ms", "mean"),
     ).reset_index()
     config_stats["config"] = config_stats["chunker"] + " + " + config_stats["model"]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=config_stats["latency"], y=config_stats["quality"],
+        x=config_stats["latency"], y=config_stats["consensus_quality"],
         mode="markers+text", text=config_stats["config"],
         textposition="top center", textfont=dict(size=8),
         marker=dict(size=10, color=IBM_COLORS[0]),
@@ -476,8 +476,8 @@ def _chart_pareto_frontier(df: pd.DataFrame) -> tuple[str, go.Figure]:
     for _, row in config_stats.iterrows():
         dominated = False
         for _, other in config_stats.iterrows():
-            if other["quality"] >= row["quality"] and other["latency"] <= row["latency"]:
-                if other["quality"] > row["quality"] or other["latency"] < row["latency"]:
+            if other["consensus_quality"] >= row["consensus_quality"] and other["latency"] <= row["latency"]:
+                if other["consensus_quality"] > row["consensus_quality"] or other["latency"] < row["latency"]:
                     dominated = True
                     break
         if not dominated:
@@ -486,7 +486,7 @@ def _chart_pareto_frontier(df: pd.DataFrame) -> tuple[str, go.Figure]:
     if pareto:
         pareto_df = pd.DataFrame(pareto).sort_values("latency")
         fig.add_trace(go.Scatter(
-            x=pareto_df["latency"], y=pareto_df["quality"],
+            x=pareto_df["latency"], y=pareto_df["consensus_quality"],
             mode="lines", name="Pareto Frontier",
             line=dict(color="#DC267F", dash="dash", width=2),
         ))
@@ -515,7 +515,7 @@ def _chart_chunk_count_analysis(df: pd.DataFrame) -> tuple[str, go.Figure]:
         return ("Chunk Count Analysis", go.Figure())
 
     config_stats = df.groupby(["chunker", "model"]).agg(
-        quality=("quality", "mean"),
+        consensus_quality=("consensus_quality", "mean"),
         num_chunks=("num_chunks", "mean"),
     ).reset_index()
     config_stats["config"] = config_stats["chunker"] + " + " + config_stats["model"]
@@ -528,7 +528,7 @@ def _chart_chunk_count_analysis(df: pd.DataFrame) -> tuple[str, go.Figure]:
     for chunker in chunkers:
         cdf = config_stats[config_stats["chunker"] == chunker]
         fig.add_trace(go.Scatter(
-            x=cdf["num_chunks"], y=cdf["quality"],
+            x=cdf["num_chunks"], y=cdf["consensus_quality"],
             mode="markers+text", text=cdf["model"],
             textposition="top center", textfont=dict(size=8),
             marker=dict(size=12, color=color_map[chunker]),
@@ -570,7 +570,7 @@ def build_experiment2_figures(
         logger.warning("Empty or unparseable CSV at %s — returning empty figures", csv_path)
         return []
 
-    if df.empty or "quality" not in df.columns:
+    if df.empty or "consensus_quality" not in df.columns:
         logger.warning("Empty or invalid CSV at %s — returning empty figures", csv_path)
         return []
 
