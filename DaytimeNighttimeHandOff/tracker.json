@@ -1017,7 +1017,18 @@
     "daytime_created": "2026-05-06T13:30:00",
     "daytime_comments": "Replaces Qwen3 + Gemma 3 with Qwen 3.5 / 3.6 + Gemma 4 in run_experiment_1.py and run_experiment_2.py. Exp 1 grows to 50 configs (10 models x 5 strategies); Exp 2 stays at 16 configs (4 Qwen 3.5 small x 4 chunkers). Also updates deploy/setup_pod.py, scripts/pull_models.py, docs, and tests. Includes Ollama tag-existence verification step. Independent from task-052 and task-053 \u2014 coordinate setup_pod.py change with task-053. Infrastructure only \u2014 no experiments run.",
     "depends_on": null,
-    "status": "in_progress",
-    "nighttime_started": "2026-05-06T12:39:12"
+    "status": "done",
+    "nighttime_started": "2026-05-06T12:39:12",
+    "nighttime_completed": "2026-05-06T12:53:42",
+    "nighttime_comments": "Exp 1 ALL_MODELS now 10 models (Qwen 3.5 small + Qwen 3.6 large + Gemma 4) = 50 configs. Exp 2 ALL_MODELS now 4 Qwen 3.5 small. setup_pod.py + pull_models.py + dashboards + docs + tests updated. Tag verification against ollama.com couldnt run from sandbox (network blocked). Coordinate with task-053 in morning merge for setup_pod / pull_models overlap.",
+    "branch": "night/task-054-new-model-matrix",
+    "commit_sha": "3531b5b22de78c1a89c043025193834570bf01ac",
+    "tests_passed": true,
+    "attempted_approaches": [],
+    "flags": [
+      "Tag verification against ollama.com couldnt run (network blocked) \u2014 verify the 10 new tags exist before launching",
+      "Coordinate with task-053 branch on setup_pod.py + pull_models.py overlap; reconcile to qwen3.5:4b-q4_K_M if both land",
+      "VRAM/disk size table in runpod-setup-guide.md uses estimates, not measured numbers \u2014 refresh after first pull on the 5090"
+    ]
   }
 ]
