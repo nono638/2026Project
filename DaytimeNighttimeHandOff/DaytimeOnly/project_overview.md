@@ -4,6 +4,23 @@
 
 ---
 
+## 🚧 ACTIVE: 5090 Migration In Progress (started 2026-05-06)
+
+**If you are reading this on the 5090 mobile machine for the first time:**
+follow `DaytimeNighttimeHandOff/DaytimeOnly/reference/5090-migration.md` to set up
+the local Ollama + Python + PyTorch environment, then launch Experiments 1 & 2
+locally instead of on RunPod.
+
+**If you are reading this on the planning laptop:** ask the user about migration
+status (Step 1–7 of the runbook). The runbook is the source of truth — this banner
+just points to it.
+
+**Remove this banner** once `results/experiment_1/raw_scores.csv` and
+`results/experiment_2/raw_scores.csv` both exist with full data. At that point the
+migration's purpose is complete.
+
+---
+
 ## What This Project Is
 
 **RAGBench** is a configurable RAG evaluation pipeline that runs the full cartesian product
