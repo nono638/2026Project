@@ -56,8 +56,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Default models to pull — embedding model + generation model for Experiment 0
-DEFAULT_MODELS = ["mxbai-embed-large", "qwen3:4b"]
+# Default models to pull — embedding model + generation model for Experiment 0.
+# task-054: bumped to Qwen 3.5 small (current open weights). Coordinate with
+# task-053's explicit-quant pinning (`-q4_K_M`) — whichever lands second
+# should fold the other's change.
+DEFAULT_MODELS = ["mxbai-embed-large", "qwen3.5:4b"]
 
 # Timeouts — community cloud image pull + Ollama boot can take a few minutes
 POD_READY_TIMEOUT_S = 600
@@ -90,7 +93,7 @@ def parse_args() -> argparse.Namespace:
         "--models",
         nargs="+",
         default=DEFAULT_MODELS,
-        help="Models to pull (default: mxbai-embed-large qwen3:4b).",
+        help="Models to pull (default: mxbai-embed-large qwen3.5:4b).",
     )
     parser.add_argument(
         "--name",
@@ -186,7 +189,7 @@ def pull_model(url: str, model_name: str) -> bool:
 
     Args:
         url: Base Ollama URL.
-        model_name: Model to pull (e.g., 'qwen3:4b').
+        model_name: Model to pull (e.g., 'qwen3.5:4b').
 
     Returns:
         True if pull succeeded, False otherwise.

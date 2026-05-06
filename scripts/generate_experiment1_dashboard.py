@@ -38,18 +38,28 @@ IBM_COLORS = [
     "#000000", "#AAAAAA",
 ]
 
-# Model sizes in billions of parameters — used for x-axis ordering
+# Model sizes in billions of parameters — used for x-axis ordering.
+# task-054: updated to current open weights (2026-05-06). For MoE entries,
+# the value is effective active params at inference.
 MODEL_SIZES: dict[str, float] = {
-    "qwen3:0.6b": 0.6,
-    "gemma3:1b": 1.0,
-    "qwen3:1.7b": 1.7,
-    "gemma3:4b": 4.0,
-    "qwen3:4b": 4.0,
-    "qwen3:8b": 8.0,
+    "qwen3.5:0.8b": 0.8,
+    "qwen3.5:2b": 2.0,
+    "gemma4:e2b": 2.3,
+    "qwen3.6:35b-a3b": 3.0,
+    "gemma4:26b": 3.8,
+    "qwen3.5:4b": 4.0,
+    "gemma4:e4b": 4.5,
+    "qwen3.5:9b": 9.0,
+    "qwen3.6:27b": 27.0,
+    "gemma4:31b": 31.0,
 }
 
-# Canonical model order by parameter count
-MODEL_ORDER = ["qwen3:0.6b", "gemma3:1b", "qwen3:1.7b", "gemma3:4b", "qwen3:4b", "qwen3:8b"]
+# Canonical model order by (effective) parameter count
+MODEL_ORDER = [
+    "qwen3.5:0.8b", "qwen3.5:2b", "gemma4:e2b", "qwen3.6:35b-a3b",
+    "gemma4:26b", "qwen3.5:4b", "gemma4:e4b", "qwen3.5:9b",
+    "qwen3.6:27b", "gemma4:31b",
+]
 
 STRATEGY_ORDER = ["adaptive", "corrective", "multi_query", "naive", "self_rag"]
 
@@ -221,7 +231,7 @@ def _chart_quality_vs_model_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
     fig = go.Figure()
     strategies = _order_strategies(df["strategy"].unique().tolist())
 
-    # Markers: different symbols to distinguish overlapping points (e.g. gemma3:4b and qwen3:4b)
+    # Markers: different symbols to distinguish overlapping points (e.g. gemma4:e4b and qwen3.5:4b)
     markers = ["circle", "square", "diamond", "cross", "triangle-up", "star", "hexagon"]
 
     for i, strat in enumerate(strategies):

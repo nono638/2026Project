@@ -79,10 +79,10 @@ Judge name prefixes: `google_gemini_2_5_flash_lite`, `google_gemini_2_5_flash`,
 | Column | Type | Description |
 |--------|------|-------------|
 | `strategy` | str | RAG strategy (naive, self_rag, multi_query, corrective, adaptive) |
-| `model` | str | LLM model (qwen3:0.6b, qwen3:1.7b, qwen3:4b, qwen3:8b, gemma3:1b, gemma3:4b) |
+| `model` | str | LLM model — Qwen 3.5 small (qwen3.5:0.8b/2b/4b/9b), Qwen 3.6 large (qwen3.6:27b, qwen3.6:35b-a3b), Gemma 4 (gemma4:e2b, gemma4:e4b, gemma4:26b, gemma4:31b) |
 
 ### Experiment 2 (Chunking x Model)
 | Column | Type | Description |
 |--------|------|-------------|
 | `chunker` | str | Chunking strategy (recursive, fixed, sentence, semantic) |
-| `model` | str | LLM model (qwen3:0.6b, qwen3:1.7b, qwen3:4b, qwen3:8b) |
+| `model` | str | LLM model — Qwen 3.5 small (qwen3.5:0.8b, qwen3.5:2b, qwen3.5:4b, qwen3.5:9b) |
