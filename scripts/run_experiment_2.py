@@ -546,11 +546,15 @@ def main() -> None:
                 tag, det.get("quantization_level"), det.get("digest"),
             )
 
-        # Build the config matrix
+        # Build the config matrix.
+        # Model is the OUTER loop so each model loads into VRAM exactly once
+        # and runs through every chunker before the next model takes over.
+        # Reversing this (chunker outer, model inner) made models reload
+        # len(chunkers) times each on the 5090 — observed 2026-05-06.
         config_list = [
             (chunker_name, model_name)
-            for chunker_name in chunkers
             for model_name in models
+            for chunker_name in chunkers
         ]
         total_configs = len(config_list)
         configs_done = 0
