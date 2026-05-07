@@ -10,6 +10,89 @@
 
 ---
 
+## Picking up on the 5090 — 2026-05-07
+
+> **Read this first when you sit down at the 5090 tonight.** The rest of the
+> runbook is reference; this is the actual sequence. Claude on the 5090 has no
+> memory of the planning-laptop session — everything you need is in files in
+> the repo, and this section threads them together.
+
+### What happened last night (2026-05-06)
+
+The 5090 ran task-055 (Step 8 — Ollama-judge scoring on Exp 0 v3). It
+finished `gemma4:31b`, started `qwen3.6:27b`, and the laptop crashed mid-pass.
+The 5090 also moved `.venv/` out of Dropbox to dodge a sync issue. Nothing was
+pushed to GitHub — recovery requires hands on the 5090.
+
+### What today's planning session shipped to `main`
+
+1. **Loop-reordering fix** in `run_experiment_0.py`, `run_experiment_1.py`,
+   `run_experiment_2.py`. Local Ollama models now load once per run instead
+   of being evicted-and-reloaded per row (Exp 0 judges) or per config
+   (Exp 1/2). This addresses the VRAM thrash observed last night.
+2. **Recovery checklist** at `DaytimeOnly/reference/5090-crash-recovery.md`
+   for retrieving last night's partial judge data from the 5090's local disk.
+3. **Dropbox-ignore flag** set on the planning laptop's `.venv/` so it stops
+   syncing. The 5090's `.venv/` is already outside Dropbox.
+
+### Sequence for tonight
+
+**1. Pull today's fixes.**
+
+```powershell
+git pull origin main
+```
+
+**2. Recover last night's data.** Open
+`DaytimeNighttimeHandOff/DaytimeOnly/reference/5090-crash-recovery.md` and
+follow Steps 1–5. Goal: figure out what gemma4:31b / qwen3.6:27b judge data
+the 5090 actually has on local disk.
+
+**3. Decide based on recovery findings.**
+
+| Recovery outcome | Next move | Time |
+|---|---|---|
+| Both judges complete (n_scored=500 each) | Push the recovery branch, regen gallery, task-055 done. Skip to step 5. | — |
+| gemma4 complete, qwen3.6 partial | Push recovery branch, then re-run task-055 with `--judges ollama` to finish qwen3.6. The new judge-major loop resumes per-judge correctly. | ~2 hrs |
+| Lost / unsalvageable | Re-run task-055 from scratch. Doubles as real-scale validation of today's loop fix. | ~4 hrs |
+
+**4. (Conditional) Smoke test Exp 1 and Exp 2** — only if you skipped the
+task-055 re-run above. Otherwise that re-run already exercised the new loop
+ordering at scale and a separate smoke is redundant.
+
+```powershell
+# Exp 1 smoke — 2 models × 2 strategies × 10 questions, ~5–10 min
+python scripts/run_experiment_1.py `
+  --models qwen3.5:0.8b qwen3.5:2b `
+  --strategies naive,self_rag `
+  --n 10 `
+  --output-dir results/experiment_1_smoke
+
+# Exp 2 smoke — 1 model × 2 chunkers × 10 questions, ~3–5 min
+python scripts/run_experiment_2.py `
+  --models qwen3.5:0.8b `
+  --chunkers recursive,fixed `
+  --n 10 `
+  --output-dir results/experiment_2_smoke
+```
+
+**`--output-dir` matters.** The smoke writes to `*_smoke` directories so the
+full launches (which use the default `results/experiment_1` /
+`results/experiment_2`) start with empty resume state. Mixing them would mark
+the smoke's `(strategy, model)` configs as "complete" with only 10 rows and
+the full run would skip them — `load_checkpoint` keys on configs, not row
+counts. `sample_hotpotqa` is also stratified, so `--n 10` and `--n 200` aren't
+nested subsets anyway.
+
+While the smoke runs, watch `ollama ps` in another terminal. You should see
+exactly one model resident at a time, swapping when the outer loop advances.
+Multiple models simultaneously means the loop fix didn't take.
+
+**5. Launch full Exp 1 (Step 6 below).** Then Exp 2 once Exp 1 finishes
+(Step 7).
+
+---
+
 ## Pre-flight checklist
 
 - [ ] `nvidia-smi` prints a table showing the 5090 with CUDA Version 12.8+
