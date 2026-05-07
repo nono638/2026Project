@@ -24,3 +24,7 @@
 <!-- 2026-05-06: VERIFY OLLAMA TAGS, live get_ollama_model_details smoke test, and backfill_quant_metadata.py — promoted to 5090-migration.md Steps 3.0, 4.5, 4.6 -->
 <!-- 2026-05-06: task-055 retroactive Ollama-judge scoring on v3 — promoted to 5090-migration.md Step 8 -->
 
+## 2026-05-07
+- **5090 VRAM thrash from concurrent model runs (observed 2026-05-06 night).** Running multiple Ollama models in parallel caused them to bounce in and out of 24 GB VRAM, killing throughput. **Rule going forward: one model at a time, sequentially — finish a full pass with model A before launching model B.** Audit `run_experiment_1.py`, `run_experiment_2.py`, and `run_experiment_0.py --judges ollama` for any concurrency. Likely needs a `--sequential` enforcement or removal of any threadpool/asyncio.gather across models. Critical to fix before tonight's Exp 1 launch.
+- **5090 crashed mid-task-055 (qwen3.6:27b judge pass).** Recovery checklist drafted at `DaytimeOnly/reference/5090-crash-recovery.md`. Awaiting access to 5090 tonight to inspect git state + data files. Until recovered, don't reset metadata.json or raw_scores.csv on the planning laptop.
+
