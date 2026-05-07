@@ -313,7 +313,14 @@ def score_all_answers(
     scorers = []
     for config in configs_to_run:
         try:
-            scorer = LLMScorer(**config, cost_guard=cost_guard)
+            # Ollama judges run locally and have no transient API errors worth
+            # retrying — a 300s timeout on a thinking model usually means the
+            # model entered a long chain-of-thought loop, and 4× retry burns
+            # 20 min per stuck row. Fail fast (1 attempt) keeps total runtime
+            # bounded; the row stays NaN and downstream correlation analysis
+            # tolerates dropped rows.
+            retries = 0 if config["provider"] == "ollama" else 3
+            scorer = LLMScorer(**config, cost_guard=cost_guard, max_retries=retries)
             scorers.append(scorer)
             logger.info("Initialized scorer: %s", scorer.name)
         except (ScorerError, Exception) as exc:
