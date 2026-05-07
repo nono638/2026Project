@@ -332,7 +332,7 @@ models only).
 ## Step 8 — Retroactive Ollama-judge scoring on Exp 0 v3 (task-055)
 
 This validates whether large local LLMs are viable scorer candidates by
-re-scoring v3's existing 500 generations with `gemma4:31b` and `qwen3.6:27b`,
+re-scoring v3's existing 500 generations with `gemma4:31b` and `qwen3.5:27b`,
 then reading the new rows in v3 report.md's "Correlation with Gold Metrics"
 table. If either local judge correlates with BERT/F1 on par with the API
 judges, future panels can adopt it for free.
@@ -346,7 +346,7 @@ Qwens at separate VRAM slots if scheduled carefully).
 # Make sure both judge models are pulled (Step 3 already covers this if
 # Tier 3 finished)
 ollama pull gemma4:31b
-ollama pull qwen3.6:27b
+ollama pull qwen3.5:27b
 
 # OLLAMA_HOST default (http://localhost:11434) is correct on the 5090 — no
 # action needed unless Ollama is on a different host. The Ollama scorer
@@ -370,7 +370,7 @@ python scripts/generate_gallery.py
 
 The `## Correlation with Gold Metrics` table in
 `results/experiment_0_v3/report.md` will gain two rows — `ollama:gemma4:31b`
-and `ollama:qwen3.6:27b`. That's the answer to the validation question.
+and `ollama:qwen3.5:27b`. That's the answer to the validation question.
 
 ---
 

@@ -66,7 +66,7 @@ class TestOllamaAdapterURL:
     def test_bare_host_gets_http_prefix(self, mock_post):
         mock_post.return_value = _mock_ollama_response()
         from src.scorers.llm import LLMScorer
-        scorer = LLMScorer(provider="ollama", model="qwen3.6:27b", max_retries=0)
+        scorer = LLMScorer(provider="ollama", model="qwen3.5:27b", max_retries=0)
         scorer.score(query="q", context="c", answer="a")
 
         called_url = mock_post.call_args.args[0] if mock_post.call_args.args else mock_post.call_args.kwargs.get("url")
@@ -120,7 +120,7 @@ class TestOllamaAdapterPayload:
     def test_payload_sets_temperature_zero(self, mock_post):
         mock_post.return_value = _mock_ollama_response()
         from src.scorers.llm import LLMScorer
-        scorer = LLMScorer(provider="ollama", model="qwen3.6:27b", max_retries=0)
+        scorer = LLMScorer(provider="ollama", model="qwen3.5:27b", max_retries=0)
         scorer.score(query="q", context="c", answer="a")
 
         body = mock_post.call_args.kwargs["json"]

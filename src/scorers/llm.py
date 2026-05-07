@@ -163,7 +163,7 @@ def _ollama_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
     construction in LLMScorer provider-agnostic.
 
     Args:
-        model: Ollama model tag (e.g., "gemma4:31b", "qwen3.6:27b").
+        model: Ollama model tag (e.g., "gemma4:31b", "qwen3.5:27b").
         api_key: Ignored. Kept for adapter signature symmetry.
 
     Returns:

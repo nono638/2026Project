@@ -90,7 +90,7 @@ JUDGE_CONFIGS = [
     # Active params drive judgment quality on careful-reading tasks, so dense
     # 27–31B is preferred over MoE alternatives for the judge role.
     {"provider": "ollama", "model": "gemma4:31b"},
-    {"provider": "ollama", "model": "qwen3.6:27b"},
+    {"provider": "ollama", "model": "qwen3.5:27b"},
 ]
 
 
