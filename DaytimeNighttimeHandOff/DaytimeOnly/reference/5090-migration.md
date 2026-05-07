@@ -354,10 +354,15 @@ ollama pull qwen3.5:27b
 # auto-prepended.
 
 python scripts/run_experiment_0.py `
-  --version v3 `
+  --output-dir results/experiment_0_v3 `
   --skip-generation `
-  --judges ollama
+  --judges qwen3.5:27b gemma4:31b
 ```
+
+Note on the `--judges` filter: it does substring match against the
+**model name**, not the provider, so `--judges ollama` doesn't work.
+Pass the full ollama tags (or unique substrings like `qwen3.5 gemma4`)
+to select just those two judges.
 
 Expected runtime: ~4 hrs total (500 rows × 2 judges, ~10 s per call on a
 31B at Q4_K_M). CostGuard ceiling stays at default $5 — Ollama is free.
