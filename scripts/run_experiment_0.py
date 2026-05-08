@@ -426,26 +426,25 @@ def score_all_answers(
 
     logger.info("%d judge×row pairs need scoring.", total_needing_scoring)
 
-    rows = []
-    total = len(answers)
-    cost_limit_hit = False
+    # Pre-build per-row metadata once. The scoring loop below iterates
+    # judges OUTER and rows INNER so local Ollama judges (gemma4:31b,
+    # qwen3.6:27b, ...) stay resident in 24 GB VRAM for the duration of
+    # their pass instead of being evicted and reloaded on every row.
+    # Row-major scoring (the prior shape) thrashed VRAM on the 5090 —
+    # observed 2026-05-06 during the first task-055 run.
+    base_rows: dict[int, dict] = {}
+    answers_to_process: list[dict] = []
 
-    for i, ans in enumerate(answers):
+    for ans in answers:
         eid = ans["example_id"]
         existing_for_row = existing_judge_scores.get(eid, {})
-
-        # Check if all requested judges already scored for this row
         judges_needed = [
             safe_name for safe_name in scorer_safe_names
             if safe_name not in existing_for_row
         ]
         if not judges_needed:
-            logger.info("[%d/%d] All judges already scored, skipping.", i + 1, total)
             continue
-
-        logger.info("[%d/%d] Scoring: %s (judges needed: %d/%d)",
-                    i + 1, total, str(ans["question"])[:60],
-                    len(judges_needed), len(scorers))
+        answers_to_process.append(ans)
 
         # Base columns
         row = {
@@ -488,8 +487,7 @@ def score_all_answers(
         }
 
         # Carry forward existing judge scores for this row
-        for safe_name, val in existing_for_row.items():
-            # Restore all 4 metric columns from existing data
+        for safe_name in existing_for_row:
             if existing_scores_df is not None:
                 emask = existing_scores_df["example_id"] == eid
                 if emask.any():
@@ -500,12 +498,40 @@ def score_all_answers(
                             if pd.notna(existing_val):
                                 row[col] = existing_val
 
-        # Score with each judge — v2 fix: use context_sent_to_llm, not doc_text
-        scorer_context = ans.get("context_sent_to_llm", ans.get("doc_text", ""))
-        for scorer, safe_name in zip(scorers, scorer_safe_names):
-            # Per-judge resume: skip judges that already have non-NaN quality
+        base_rows[eid] = row
+
+    n_skipped = len(answers) - len(answers_to_process)
+    if n_skipped:
+        logger.info(
+            "%d rows already fully scored across requested judges — skipping.",
+            n_skipped,
+        )
+    logger.info(
+        "%d rows × %d judges to score (after per-judge resume).",
+        len(answers_to_process), len(scorers),
+    )
+
+    cost_limit_hit = False
+
+    # Judge-major scoring loop. v2 fix: scorer receives context_sent_to_llm
+    # so faithfulness is judged against what the model actually saw.
+    for j_idx, (scorer, safe_name) in enumerate(zip(scorers, scorer_safe_names), 1):
+        judge_label = scorer.name
+        logger.info(
+            "[judge %d/%d] %s — pass starting.",
+            j_idx, len(scorers), judge_label,
+        )
+        n_judge_rows = 0
+
+        for i, ans in enumerate(answers_to_process):
+            eid = ans["example_id"]
+            existing_for_row = existing_judge_scores.get(eid, {})
+
+            # Per-judge resume: skip rows this judge already scored
             if safe_name in existing_for_row:
                 continue
+
+            scorer_context = ans.get("context_sent_to_llm", ans.get("doc_text", ""))
 
             # CostLimitExceeded must be caught BEFORE the generic Exception
             # to prevent it from being swallowed by the error handler.
@@ -518,39 +544,53 @@ def score_all_answers(
                     answer=str(ans["rag_answer"]),
                 )
                 for metric, value in scores.items():
-                    row[f"{safe_name}_{metric}"] = value
+                    base_rows[eid][f"{safe_name}_{metric}"] = value
                 # Compute quality as mean of the three metrics
-                row[f"{safe_name}_quality"] = sum(scores.values()) / len(scores)
+                base_rows[eid][f"{safe_name}_quality"] = sum(scores.values()) / len(scores)
             except CostLimitExceeded:
-                # Break immediately — no further API calls
                 logger.error(
                     "COST LIMIT HIT during scoring of example %d with %s. "
-                    "Breaking scoring loop.",
-                    eid, scorer.name,
+                    "Breaking scoring loops.",
+                    eid, judge_label,
                 )
-                # Record NaN for remaining metrics on this judge
                 for metric in ["faithfulness", "relevance", "conciseness", "quality"]:
-                    row[f"{safe_name}_{metric}"] = float("nan")
+                    base_rows[eid][f"{safe_name}_{metric}"] = float("nan")
                 cost_limit_hit = True
-                break  # Break inner (per-scorer) loop
+                break  # break inner (per-row) loop
             except (ScorerError, Exception) as exc:
-                logger.error("Scorer %s failed on example %d: %s",
-                             scorer.name, eid, exc)
-                # Record NaN for all metrics on failure
+                logger.error(
+                    "Scorer %s failed on example %d: %s",
+                    judge_label, eid, exc,
+                )
                 for metric in ["faithfulness", "relevance", "conciseness", "quality"]:
-                    row[f"{safe_name}_{metric}"] = float("nan")
+                    base_rows[eid][f"{safe_name}_{metric}"] = float("nan")
 
-        rows.append(row)
+            n_judge_rows += 1
 
-        # Write row to checkpoint immediately — survives crashes
-        row_df = pd.DataFrame([row])
-        write_header = not checkpoint_path.exists()
-        row_df.to_csv(checkpoint_path, mode="a", header=write_header, index=False)
+            # Snapshot checkpoint after each row. Overwrites prior snapshot —
+            # base_rows accumulates across judges so the file always represents
+            # the full known scoring state. A crash mid-row loses at most one
+            # row's just-computed score; prior judges' full passes are intact.
+            snapshot_df = pd.DataFrame(list(base_rows.values()))
+            snapshot_df.to_csv(checkpoint_path, index=False)
 
-        # Break outer (per-answer) loop if cost limit was hit
+            if (i + 1) % 50 == 0:
+                logger.info(
+                    "[judge %d/%d %s] %d/%d rows.",
+                    j_idx, len(scorers), judge_label,
+                    i + 1, len(answers_to_process),
+                )
+
+        logger.info(
+            "[judge %d/%d] %s — pass finished. %d rows newly scored.",
+            j_idx, len(scorers), judge_label, n_judge_rows,
+        )
+
         if cost_limit_hit:
             logger.error("Cost limit reached — stopping all scoring. Partial checkpoint saved.")
             break
+
+    rows = list(base_rows.values())
 
     # Build full result by merging existing data with newly scored rows.
     # Re-read checkpoint to get all rows (prior + this run).
