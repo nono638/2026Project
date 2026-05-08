@@ -574,30 +574,30 @@ def score_answer(
 
 def load_checkpoint(
     csv_path: Path,
-    key_cols: tuple[str, str] = ("strategy", "model"),
-) -> set[tuple[str, str]]:
-    """Load completed config pairs from a checkpoint CSV.
+    key_cols: tuple[str, ...] = ("strategy", "model"),
+) -> set[tuple]:
+    """Load completed key tuples from a checkpoint CSV.
 
-    Reads the CSV and extracts unique pairs of the specified key columns.
+    Reads the CSV and extracts unique tuples across the specified key columns.
     If the file doesn't exist or is empty, returns an empty set.
 
     Args:
         csv_path: Path to the raw_scores.csv checkpoint file.
-        key_cols: Tuple of two column names to use as the checkpoint key.
-            Default is ("strategy", "model") for Experiment 1.
-            Experiment 2 uses ("chunker", "model").
+        key_cols: Tuple of column names to use as the checkpoint key.
+            Default is ("strategy", "model") for Experiment 1 config-level
+            resume. Pass ("strategy", "model", "question") for row-level
+            resume so a partial config picks up where it left off.
 
     Returns:
-        Set of (col1_value, col2_value) tuples already completed.
+        Set of value-tuples already present in the CSV.
     """
     if not csv_path.exists():
         return set()
     try:
         df = pd.read_csv(csv_path)
-        col1, col2 = key_cols
-        if df.empty or col1 not in df.columns or col2 not in df.columns:
+        if df.empty or any(c not in df.columns for c in key_cols):
             return set()
-        return set(zip(df[col1], df[col2]))
+        return set(zip(*(df[c] for c in key_cols)))
     except Exception:
         return set()
 

@@ -460,14 +460,22 @@ def main() -> None:
         print(f"  Ollama host:      {args.ollama_host}")
     print()
 
-    # Check for resume
-    completed_configs = set()
+    # Check for resume — row-level so a partial config (interrupted mid-run
+    # by power loss / restart) picks up exactly where it left off instead of
+    # being re-run from question 1.
+    completed_rows: set[tuple] = set()
     if args.resume:
-        completed_configs = load_checkpoint(raw_scores_path)
-        if completed_configs:
-            logger.info("Resuming — %d configs already completed: %s",
-                        len(completed_configs),
-                        ", ".join(f"{s}+{m}" for s, m in completed_configs))
+        completed_rows = load_checkpoint(
+            raw_scores_path, key_cols=("strategy", "model", "question"),
+        )
+        if completed_rows:
+            by_config: dict[tuple[str, str], int] = {}
+            for s, m, _q in completed_rows:
+                by_config[(s, m)] = by_config.get((s, m), 0) + 1
+            logger.info("Resuming — %d rows across %d configs already done.",
+                        len(completed_rows), len(by_config))
+            for (s, m), n in sorted(by_config.items()):
+                logger.info("  %s x %s: %d rows", s, m, n)
 
     # Build judge panel — one shared CostGuard so --max-cost is the global
     # ceiling across the panel, not a per-judge ceiling.
@@ -573,14 +581,24 @@ def main() -> None:
         cost_limit_hit = False
 
         for config_idx, (strat_name, model_name) in enumerate(config_list, 1):
-            if (strat_name, model_name) in completed_configs:
-                logger.info("[config %d/%d] SKIPPING %s x %s (already completed)",
-                            config_idx, total_configs, strat_name, model_name)
+            done_questions_this_config = {
+                q for (s, m, q) in completed_rows
+                if s == strat_name and m == model_name
+            }
+            if len(done_questions_this_config) >= len(queries):
+                logger.info("[config %d/%d] SKIPPING %s x %s (all %d rows already done)",
+                            config_idx, total_configs, strat_name, model_name,
+                            len(done_questions_this_config))
                 configs_done += 1
                 continue
 
-            logger.info("[config %d/%d] %s x %s", config_idx, total_configs,
-                        strat_name, model_name)
+            if done_questions_this_config:
+                logger.info("[config %d/%d] %s x %s — resuming, %d/%d rows already done",
+                            config_idx, total_configs, strat_name, model_name,
+                            len(done_questions_this_config), len(queries))
+            else:
+                logger.info("[config %d/%d] %s x %s", config_idx, total_configs,
+                            strat_name, model_name)
 
             # Ensure model is available
             try:
@@ -594,10 +612,13 @@ def main() -> None:
             strategy = _make_strategy(strat_name, llm)
 
             # Run all queries for this config
-            config_rows = []
+            config_rows_written = 0
             config_start = time.perf_counter()
 
             for q_idx, (doc, query) in enumerate(zip(docs, queries)):
+                if query.text in done_questions_this_config:
+                    continue
+
                 # Progress display with ETA
                 elapsed = time.perf_counter() - experiment_start
                 if configs_done > 0:
@@ -695,19 +716,21 @@ def main() -> None:
                     "dataset_name": "hotpotqa",
                     "dataset_sample_seed": args.seed,
                 }
-                config_rows.append(row)
+                # Per-row checkpoint: flush+fsync immediately so a power loss
+                # mid-config loses at most this single row, not the whole
+                # ~25-min config. Resume picks up by question text.
+                append_rows(raw_scores_path, [row])
+                completed_rows.add((strat_name, model_name, query.text))
+                config_rows_written += 1
 
                 if cost_limit_hit:
                     break
 
-            # Checkpoint: flush this config's rows to CSV
             print()  # newline after progress display
             config_elapsed = time.perf_counter() - config_start
-            logger.info("Config %s x %s done: %d queries in %s",
-                        strat_name, model_name, len(config_rows),
+            logger.info("Config %s x %s done: %d new rows in %s",
+                        strat_name, model_name, config_rows_written,
                         format_duration(config_elapsed))
-
-            append_rows(raw_scores_path, config_rows)
             configs_done += 1
 
             if cost_limit_hit:
