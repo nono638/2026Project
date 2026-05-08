@@ -53,7 +53,7 @@ JUDGE_DISPLAY_NAMES: dict[str, str] = {
     "openai_gpt_5_4_mini": "GPT-5.4 Mini",
     "openai_gpt_5_4": "GPT-5.4",
     "ollama_gemma4_31b": "Gemma 4 31B (local)",
-    "ollama_qwen3_6_27b": "Qwen 3.6 27B (local)",
+    "ollama_qwen3_5_27b": "Qwen 3.5 27B (local)",
 }
 
 _METRICS = ("faithfulness", "relevance", "conciseness")

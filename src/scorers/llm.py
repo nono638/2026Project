@@ -163,7 +163,7 @@ def _ollama_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
     construction in LLMScorer provider-agnostic.
 
     Args:
-        model: Ollama model tag (e.g., "gemma4:31b", "qwen3.6:27b").
+        model: Ollama model tag (e.g., "gemma4:31b", "qwen3.5:27b").
         api_key: Ignored. Kept for adapter signature symmetry.
 
     Returns:
@@ -193,7 +193,20 @@ def _ollama_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
-                "options": {"temperature": 0.0},
+                # num_ctx=8192 caps the KV cache so the model fits 100% on
+                # 24 GB VRAM. Default (32768) forced ~12% CPU/88% GPU split
+                # for qwen3.5:27b, and the resulting CPU spillover triggered
+                # 500s on every call (observed 2026-05-07). Judge prompts
+                # peak around 1.5K tokens, so 8192 leaves ample headroom.
+                "options": {"temperature": 0.0, "num_ctx": 8192},
+                # think=False suppresses the model's chain-of-thought trace.
+                # Without it, qwen3.5:27b spent >300s per row generating
+                # internal reasoning before emitting JSON, blowing the read
+                # timeout on every row. With think=False the same prompt
+                # finishes in ~2s and still produces a clean rubric score
+                # (verified 2026-05-07 against the same JSON schema).
+                # Models without a thinking capability silently ignore this.
+                "think": False,
             },
             # 300s: large dense models on a 5090 take ~30s for first-call
             # VRAM load + 5–10s inference. Generous margin without hanging

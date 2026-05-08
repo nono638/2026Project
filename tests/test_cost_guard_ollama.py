@@ -17,10 +17,10 @@ def test_cost_guard_has_ollama_gemma4_31b_zero():
     assert COST_PER_CALL["ollama:gemma4:31b"] == 0.0
 
 
-def test_cost_guard_has_ollama_qwen36_27b_zero():
+def test_cost_guard_has_ollama_qwen35_27b_zero():
     from src.cost_guard import COST_PER_CALL
-    assert "ollama:qwen3.6:27b" in COST_PER_CALL
-    assert COST_PER_CALL["ollama:qwen3.6:27b"] == 0.0
+    assert "ollama:qwen3.5:27b" in COST_PER_CALL
+    assert COST_PER_CALL["ollama:qwen3.5:27b"] == 0.0
 
 
 def test_cost_guard_500_row_run_does_not_trip_ceiling():
@@ -29,5 +29,5 @@ def test_cost_guard_500_row_run_does_not_trip_ceiling():
     guard = CostGuard(max_cost_usd=5.0)
     for _ in range(500):
         guard.record_call("ollama", "gemma4:31b")
-        guard.record_call("ollama", "qwen3.6:27b")
+        guard.record_call("ollama", "qwen3.5:27b")
     # No exception means the ceiling was not tripped

@@ -45,7 +45,7 @@ COST_PER_CALL: dict[str, float] = {
     # Explicit $0.0 prevents the $0.01 default fallback from burning the
     # $5 ceiling on a 500-row × 2-judge retroactive run (task-055).
     "ollama:gemma4:31b": 0.0,
-    "ollama:qwen3.6:27b": 0.0,
+    "ollama:qwen3.5:27b": 0.0,
 }
 
 # Intentionally high default for unknown models — conservative safety net

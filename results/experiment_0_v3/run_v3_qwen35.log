@@ -1,0 +1,182 @@
+2026-05-07 22:46:09,965 [INFO] Loading faiss with AVX2 support.
+2026-05-07 22:46:09,994 [INFO] Successfully loaded faiss with AVX2 support.
+2026-05-07 22:46:10,146 [INFO] Loading previously generated answers from results\experiment_0_v3\raw_answers.csv
+2026-05-07 22:46:10,242 [INFO] Loaded 500 answers.
+2026-05-07 22:46:10,242 [INFO] Scoring with judges (cost limit: $5.00)...
+2026-05-07 22:46:10,242 [INFO] Initialized scorer: ollama:qwen3.5:27b
+2026-05-07 22:46:10,242 [INFO] Initialized 1/13 judges: ollama:qwen3.5:27b
+2026-05-07 22:46:10,242 [INFO] Skipped 12 judges (missing API keys): google:gemini-2.5-flash-lite, google:gemini-2.5-flash, google:gemini-2.5-pro, google:gemini-3.1-pro-preview, anthropic:claude-haiku-4-5-20251001, anthropic:claude-sonnet-4-20250514, anthropic:claude-sonnet-4-6, anthropic:claude-opus-4-20250514, anthropic:claude-opus-4-7, openai:gpt-5.4-mini, openai:gpt-5.4, ollama:gemma4:31b
+2026-05-07 22:46:10,262 [INFO] Loaded 500 rows from raw_scores.csv for resume.
+2026-05-07 22:46:16,923 [INFO] Merged 466 rows from checkpoint.
+2026-05-07 22:46:16,942 [INFO] 466 judge×row pairs need scoring.
+2026-05-07 22:46:16,946 [INFO] 34 rows already fully scored across requested judges — skipping.
+2026-05-07 22:46:16,946 [INFO] 466 rows × 1 judges to score (after per-judge resume).
+2026-05-07 22:46:16,946 [INFO] [judge 1/1] ollama:qwen3.5:27b — pass starting.
+2026-05-07 22:54:38,268 [INFO] [judge 1/1 ollama:qwen3.5:27b] 50/466 rows.
+2026-05-07 23:02:07,386 [INFO] [judge 1/1 ollama:qwen3.5:27b] 100/466 rows.
+2026-05-07 23:09:19,956 [INFO] [judge 1/1 ollama:qwen3.5:27b] 150/466 rows.
+2026-05-07 23:16:45,284 [INFO] [judge 1/1 ollama:qwen3.5:27b] 200/466 rows.
+2026-05-07 23:23:56,986 [INFO] [judge 1/1 ollama:qwen3.5:27b] 250/466 rows.
+2026-05-07 23:31:31,252 [INFO] [judge 1/1 ollama:qwen3.5:27b] 300/466 rows.
+2026-05-07 23:38:54,711 [INFO] [judge 1/1 ollama:qwen3.5:27b] 350/466 rows.
+2026-05-07 23:46:20,208 [INFO] [judge 1/1 ollama:qwen3.5:27b] 400/466 rows.
+2026-05-07 23:53:35,288 [INFO] [judge 1/1 ollama:qwen3.5:27b] 450/466 rows.
+2026-05-07 23:55:54,541 [INFO] [judge 1/1] ollama:qwen3.5:27b — pass finished. 466 rows newly scored.
+2026-05-07 23:55:59,291 [INFO] Total scored rows: 500
+2026-05-07 23:55:59,291 [INFO] Computing BERTScore (local model, no API cost)...
+============================================================
+Experiment 0: Scorer Validation (v2)
+============================================================
+  HotpotQA examples: 150
+  Difficulty filter: hard, medium
+  Generation model:  qwen3:4b
+  Reranker:          bge (top_k=3)
+  Retrieval top_k:   10
+  Seed:              42
+  Output:            results\experiment_0_v3
+  Skip generation:   True
+  Max API cost:      $5.00
+  Judge filter:      qwen3.5:27b
+
+Loading weights:   0%|          | 0/389 [00:00<?, ?it/s]Loading weights: 100%|##########| 389/389 [00:00<00:00, 3908.59it/s]
+[1mRobertaModel LOAD REPORT[0m from: roberta-large
+Key                             | Status     | 
+--------------------------------+------------+-
+lm_head.dense.bias              | UNEXPECTED | 
+lm_head.dense.weight            | UNEXPECTED | 
+lm_head.layer_norm.bias         | UNEXPECTED | 
+lm_head.bias                    | UNEXPECTED | 
+lm_head.layer_norm.weight       | UNEXPECTED | 
+roberta.embeddings.position_ids | UNEXPECTED | 
+pooler.dense.weight             | MISSING    | 
+pooler.dense.bias               | MISSING    | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING[3m	:those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.[0m
+calculating scores...
+computing bert embedding.
+  0%|          | 0/12 [00:00<?, ?it/s]  8%|8         | 1/12 [00:14<02:43, 14.82s/it] 17%|#6        | 2/12 [00:18<01:20,  8.08s/it] 25%|##5       | 3/12 [00:20<00:50,  5.64s/it] 33%|###3      | 4/12 [00:21<00:29,  3.66s/it] 42%|####1     | 5/12 [00:21<00:17,  2.45s/it] 50%|#####     | 6/12 [00:22<00:10,  1.73s/it] 58%|#####8    | 7/12 [00:22<00:06,  1.26s/it] 67%|######6   | 8/12 [00:22<00:03,  1.04it/s] 75%|#######5  | 9/12 [00:23<00:02,  1.35it/s] 83%|########3 | 10/12 [00:23<00:01,  1.70it/s] 92%|#########1| 11/12 [00:23<00:00,  1.99it/s]100%|##########| 12/12 [00:23<00:00,  1.97s/it]
+computing greedy matching.
+  0%|          | 0/8 [00:00<?, ?it/s]100%|##########| 8/8 [00:00<00:00, 92.19it/s]
+2026-05-07 23:56:42,645 [INFO] BERTScore computed for 500 examples.
+2026-05-07 23:56:42,655 [INFO] answer_quality distribution: {'good': 257, 'poor': 225, 'questionable': 18}
+2026-05-07 23:56:42,674 [INFO] Saved raw scores to results\experiment_0_v3\raw_scores.csv
+2026-05-07 23:56:42,674 [INFO] Keeping checkpoint — some judge×row pairs still have NaN. Re-run to fill remaining scores.
+2026-05-07 23:56:42,702 [INFO] Saved report to results\experiment_0_v3\report.md
+2026-05-07 23:56:44,761 [WARNING] Ollama /api/show returned 404 for qwen3:4b: {"error":"model 'qwen3:4b' not found"}
+2026-05-07 23:56:44,763 [INFO] Saved metadata to results\experiment_0_v3\metadata.json
+done in 23.75 seconds, 21.06 sentences/sec
+
+# Experiment 0: Scorer Validation Report
+
+## Per-Judge Mean Scores
+
+| Judge | Faithfulness | Relevance | Conciseness | Quality |
+|-------|-------------|-----------|-------------|---------|
+| google:gemini-2.5-flash-lite | 4.568 | 4.658 | 4.786 | 4.671 |
+| google:gemini-2.5-flash | 4.684 | 4.844 | 4.700 | 4.743 |
+| google:gemini-2.5-pro | 4.673 | 4.901 | 4.667 | 4.747 |
+| anthropic:claude-haiku-4-5-20251001 | 4.592 | 4.668 | 4.450 | 4.570 |
+| anthropic:claude-sonnet-4-20250514 | 4.652 | 4.766 | 4.582 | 4.667 |
+| anthropic:claude-sonnet-4-6 | 4.712 | 4.608 | 4.254 | 4.525 |
+| anthropic:claude-opus-4-20250514 | 4.722 | 4.804 | 4.664 | 4.730 |
+| anthropic:claude-opus-4-7 | 4.712 | 4.591 | 4.106 | 4.470 |
+| openai:gpt-5.4-mini | 4.660 | 4.680 | 4.514 | 4.618 |
+| openai:gpt-5.4 | 4.706 | 4.600 | 4.472 | 4.593 |
+| ollama:gemma4:31b | 4.692 | 4.936 | 4.676 | 4.768 |
+| ollama:qwen3.5:27b | 4.756 | 4.880 | 4.632 | 4.756 |
+
+## Inter-Scorer Correlation (Pearson, Quality)
+
+|                                     |   google:gemini-2.5-flash-lite |   google:gemini-2.5-flash |   google:gemini-2.5-pro |   anthropic:claude-haiku-4-5-20251001 |   anthropic:claude-sonnet-4-20250514 |   anthropic:claude-sonnet-4-6 |   anthropic:claude-opus-4-20250514 |   anthropic:claude-opus-4-7 |   openai:gpt-5.4-mini |   openai:gpt-5.4 |   ollama:gemma4:31b |   ollama:qwen3.5:27b |
+|:------------------------------------|-------------------------------:|--------------------------:|------------------------:|--------------------------------------:|-------------------------------------:|------------------------------:|-----------------------------------:|----------------------------:|----------------------:|-----------------:|--------------------:|---------------------:|
+| google:gemini-2.5-flash-lite        |                          1     |                     0.566 |                   0.578 |                                 0.557 |                                0.564 |                         0.406 |                              0.516 |                       0.597 |                 0.399 |            0.422 |               0.539 |                0.522 |
+| google:gemini-2.5-flash             |                          0.566 |                     1     |                   0.892 |                                 0.634 |                                0.716 |                         0.574 |                              0.737 |                       0.728 |                 0.48  |            0.602 |               0.826 |                0.776 |
+| google:gemini-2.5-pro               |                          0.578 |                     0.892 |                   1     |                                 0.674 |                                0.733 |                         0.584 |                              0.731 |                       0.774 |                 0.513 |            0.635 |               0.854 |                0.813 |
+| anthropic:claude-haiku-4-5-20251001 |                          0.557 |                     0.634 |                   0.674 |                                 1     |                                0.738 |                         0.668 |                              0.751 |                       0.719 |                 0.549 |            0.644 |               0.64  |                0.73  |
+| anthropic:claude-sonnet-4-20250514  |                          0.564 |                     0.716 |                   0.733 |                                 0.738 |                                1     |                         0.678 |                              0.82  |                       0.799 |                 0.531 |            0.713 |               0.704 |                0.782 |
+| anthropic:claude-sonnet-4-6         |                          0.406 |                     0.574 |                   0.584 |                                 0.668 |                                0.678 |                         1     |                              0.645 |                       0.926 |                 0.72  |            0.796 |               0.595 |                0.651 |
+| anthropic:claude-opus-4-20250514    |                          0.516 |                     0.737 |                   0.731 |                                 0.751 |                                0.82  |                         0.645 |                              1     |                       0.784 |                 0.507 |            0.645 |               0.711 |                0.813 |
+| anthropic:claude-opus-4-7           |                          0.597 |                     0.728 |                   0.774 |                                 0.719 |                                0.799 |                         0.926 |                              0.784 |                       1     |                 0.852 |            0.921 |               0.829 |                0.755 |
+| openai:gpt-5.4-mini                 |                          0.399 |                     0.48  |                   0.513 |                                 0.549 |                                0.531 |                         0.72  |                              0.507 |                       0.852 |                 1     |            0.784 |               0.507 |                0.609 |
+| openai:gpt-5.4                      |                          0.422 |                     0.602 |                   0.635 |                                 0.644 |                                0.713 |                         0.796 |                              0.645 |                       0.921 |                 0.784 |            1     |               0.628 |                0.694 |
+| ollama:gemma4:31b                   |                          0.539 |                     0.826 |                   0.854 |                                 0.64  |                                0.704 |                         0.595 |                              0.711 |                       0.829 |                 0.507 |            0.628 |               1     |                0.786 |
+| ollama:qwen3.5:27b                  |                          0.522 |                     0.776 |                   0.813 |                                 0.73  |                                0.782 |                         0.651 |                              0.813 |                       0.755 |                 0.609 |            0.694 |               0.786 |                1     |
+
+## Correlation with Gold Metrics
+
+| Judge | BERTScore | F1 (word overlap) |
+|-------|----------|----------|
+| google:gemini-2.5-flash-lite | 0.137 | 0.139 |
+| google:gemini-2.5-flash | 0.312 | 0.301 |
+| google:gemini-2.5-pro | 0.353 | 0.348 |
+| anthropic:claude-haiku-4-5-20251001 | 0.461 | 0.450 |
+| anthropic:claude-sonnet-4-20250514 | 0.414 | 0.397 |
+| anthropic:claude-sonnet-4-6 | 0.623 | 0.575 |
+| anthropic:claude-opus-4-20250514 | 0.392 | 0.382 |
+| anthropic:claude-opus-4-7 | 0.698 | 0.635 |
+| openai:gpt-5.4-mini | 0.607 | 0.553 |
+| openai:gpt-5.4 | 0.638 | 0.605 |
+| ollama:gemma4:31b | 0.379 | 0.372 |
+| ollama:qwen3.5:27b | 0.431 | 0.419 |
+
+## Estimated Cost Breakdown
+
+| Judge | Calls | Est. Cost/Call | Est. Total |
+|-------|-------|----------------|------------|
+| google:gemini-2.5-flash-lite | 500 | $0.0001 | $0.03 |
+| google:gemini-2.5-flash | 500 | $0.0001 | $0.05 |
+| google:gemini-2.5-pro | 500 | $0.0010 | $0.50 |
+| anthropic:claude-haiku-4-5-20251001 | 500 | $0.0010 | $0.50 |
+| anthropic:claude-sonnet-4-20250514 | 500 | $0.0050 | $2.50 |
+| anthropic:claude-sonnet-4-6 | 500 | $0.0050 | $2.50 |
+| anthropic:claude-opus-4-20250514 | 500 | $0.0100 | $5.00 |
+| anthropic:claude-opus-4-7 | 500 | $0.0100 | $5.00 |
+| openai:gpt-5.4-mini | 500 | $0.0015 | $0.75 |
+| openai:gpt-5.4 | 500 | $0.0050 | $2.50 |
+| ollama:gemma4:31b | 500 | $0.0100 | $5.00 |
+| ollama:qwen3.5:27b | 500 | $0.0100 | $5.00 |
+
+## Gold Correctness Summary
+
+- Exact match rate: 76.2%
+- Mean word-overlap F1: 0.546
+- Mean BERTScore F1: 0.917
+
+## Answer Quality Distribution
+
+- **good**: 257 (51.4%)
+- **questionable**: 18 (3.6%)
+- **poor**: 225 (45.0%)
+
+## Failure Stage Breakdown
+
+- **none**: 381 (76.2%)
+- **retrieval**: 70 (14.0%)
+- **generation**: 48 (9.6%)
+- **chunker**: 1 (0.2%)
+
+## Recommendation
+
+*Review the correlation matrix and gold metric correlations above.*
+BERTScore (semantic) is more reliable than word-overlap F1 for generated text.
+Pick the cheapest judge with high BERTScore correlation for Experiments 1 & 2.
+2026-05-07 23:56:44,765 [INFO] Generating Experiment 0 v1 dashboard from D:\Projects\2026Project\results\experiment_0\raw_scores.csv
+2026-05-07 23:56:45,592 [INFO] Generating Experiment 0 v2 dashboard from D:\Projects\2026Project\results\experiment_0_v2\raw_scores.csv
+2026-05-07 23:56:45,828 [INFO] Generating Experiment 0 v3 dashboard from D:\Projects\2026Project\results\experiment_0_v3\raw_scores.csv
+2026-05-07 23:56:46,201 [INFO] Gallery generated: 3 pages in D:\Projects\2026Project\docs
+
+
+API cost summary: 466 calls, ~$0.00 estimated spend (limit: $5.00)
+WARNING: Cost limit was reached — results are partial.
+
+============================================================
+Experiment 0 (v2) complete.
+  Raw scores: results\experiment_0_v3\raw_scores.csv
+  Report:     results\experiment_0_v3\report.md
+============================================================
+
+Regenerating gallery...
+Gallery generated in D:\Projects\2026Project\docs/ (3 pages)
+Gallery updated in docs/
