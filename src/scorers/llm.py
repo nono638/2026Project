@@ -193,7 +193,13 @@ def _ollama_adapter(model: str, api_key: str | None) -> Callable[[str], str]:
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
-                "options": {"temperature": 0.0},
+                # num_ctx=8192 caps the KV cache so the model fits 100% on
+                # 24 GB VRAM. Default (32768) forced ~12% CPU/88% GPU split
+                # for qwen3.5:27b, and the resulting CPU spillover triggered
+                # 500s on every call (observed 2026-05-07). Judge prompts
+                # peak around 1.5K tokens, so 8192 leaves ample headroom for
+                # the model's thinking trace.
+                "options": {"temperature": 0.0, "num_ctx": 8192},
             },
             # 300s: large dense models on a 5090 take ~30s for first-call
             # VRAM load + 5–10s inference. Generous margin without hanging
