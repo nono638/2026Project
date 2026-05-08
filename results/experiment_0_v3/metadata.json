@@ -1,6 +1,6 @@
 {
   "experiment": "experiment_0_v3",
-  "last_updated": "2026-04-30T14:02:07",
+  "last_updated": "2026-05-07T06:19:59",
   "n_examples": 500,
   "config": {
     "model": "qwen3:4b",
@@ -70,6 +70,29 @@
       "model": "gpt-5.4",
       "display_name": "GPT-5.4",
       "n_scored": 500
+    },
+    {
+      "provider": "ollama",
+      "model": "gemma4:31b",
+      "display_name": "Gemma 4 31B (local)",
+      "n_scored": 500
+    },
+    {
+      "provider": "ollama",
+      "model": "qwen3.5:27b",
+      "display_name": "Qwen 3.5 27B (local)",
+      "n_scored": 33
     }
-  ]
+  ],
+  "model_details": {
+    "qwen3:4b": {
+      "tag": "qwen3:4b",
+      "digest": null,
+      "quantization_level": null,
+      "parameter_size": null,
+      "family": null,
+      "format": null,
+      "captured_at": "2026-05-07T06:19:57"
+    }
+  }
 }
