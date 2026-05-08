@@ -39,8 +39,12 @@ class OllamaLLM:
         Returns:
             The model's generated text response.
         """
+        # think=False: thinking-capable models (Qwen 3.5 family) otherwise
+        # consume the response budget on hidden CoT and emit empty content.
+        # Same fix applied to the Ollama judge adapter on 2026-05-07.
         response = self._client.chat(
             model=model,
             messages=[{"role": "user", "content": prompt}],
+            think=False,
         )
         return response.message.content

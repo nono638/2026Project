@@ -97,6 +97,7 @@ class TestOllamaLLM:
             mock_client.chat.assert_called_once_with(
                 model="qwen3:4b",
                 messages=[{"role": "user", "content": "What is Python?"}],
+                think=False,
             )
 
     def test_custom_host(self):
