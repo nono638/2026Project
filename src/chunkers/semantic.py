@@ -20,7 +20,7 @@ class SemanticChunker:
     Uses an embedding model to find meaning boundaries in text.
     """
 
-    def __init__(self, embedding_model: str = "mxbai-embed-large") -> None:
+    def __init__(self, embedding_model: str = "qwen3-embedding:4b") -> None:
         """Initialize with the embedding model to use for chunk boundary detection.
 
         Args:

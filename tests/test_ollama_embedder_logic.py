@@ -78,7 +78,7 @@ class TestOllamaEmbedderDimension:
 
         assert dim == 1024
         mock_client.embed.assert_called_once_with(
-            model="mxbai-embed-large", input=["hello"]
+            model="qwen3-embedding:4b", input=["hello"]
         )
 
     def test_dimension_cached_after_first_call(self, mock_client_cls: MagicMock) -> None:
@@ -105,6 +105,73 @@ class TestOllamaEmbedderDimension:
 
 
 @patch("src.embedders.ollama.Client")
+class TestOllamaEmbedderTruncation:
+    """Tests for client-side input truncation in embed()."""
+
+    def test_embed_truncates_long_inputs_to_max_chars(
+        self, mock_client_cls: MagicMock,
+    ) -> None:
+        """Long inputs are clipped to ``max_chars`` before being sent to Ollama.
+
+        mxbai-embed-large has a 512-token cap and Ollama 0.23.2 returns 400 on
+        oversized inputs even with ``truncate=True``, so we clip client-side.
+        """
+        mock_client = mock_client_cls.return_value
+        mock_client.embed.return_value = MagicMock(embeddings=[[1.0, 2.0]])
+
+        embedder = OllamaEmbedder(max_chars=10)
+        embedder.embed(["abcdefghijklmnopqrstuvwxyz"])
+
+        call_kwargs = mock_client.embed.call_args.kwargs
+        assert call_kwargs["input"] == ["abcdefghij"]
+
+    def test_embed_does_not_truncate_short_inputs(
+        self, mock_client_cls: MagicMock,
+    ) -> None:
+        mock_client = mock_client_cls.return_value
+        mock_client.embed.return_value = MagicMock(embeddings=[[1.0, 2.0]])
+
+        embedder = OllamaEmbedder(max_chars=100)
+        embedder.embed(["short text"])
+
+        call_kwargs = mock_client.embed.call_args.kwargs
+        assert call_kwargs["input"] == ["short text"]
+
+    def test_embed_truncates_each_item_in_batch(
+        self, mock_client_cls: MagicMock,
+    ) -> None:
+        """Per-item truncation — one oversized chunk shouldn't leak in."""
+        mock_client = mock_client_cls.return_value
+        mock_client.embed.return_value = MagicMock(
+            embeddings=[[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]
+        )
+
+        embedder = OllamaEmbedder(max_chars=5)
+        embedder.embed(["aaaaaaa", "bb", "ccccccccc"])
+
+        call_kwargs = mock_client.embed.call_args.kwargs
+        assert call_kwargs["input"] == ["aaaaa", "bb", "ccccc"]
+
+    def test_embed_default_max_chars_is_7000(
+        self, mock_client_cls: MagicMock,
+    ) -> None:
+        """Default sized for qwen3-embedding's 40K context with headroom.
+
+        Truncation is a defensive guard, not the hot path — qwen3-embedding:4b
+        easily fits any chunk our chunkers produce.
+        """
+        mock_client = mock_client_cls.return_value
+        mock_client.embed.return_value = MagicMock(embeddings=[[1.0, 2.0]])
+
+        embedder = OllamaEmbedder()
+        long_text = "x" * 10000
+        embedder.embed([long_text])
+
+        call_kwargs = mock_client.embed.call_args.kwargs
+        assert len(call_kwargs["input"][0]) == 7000
+
+
+@patch("src.embedders.ollama.Client")
 class TestOllamaEmbedderName:
     """Tests for OllamaEmbedder.name property."""
 
@@ -114,4 +181,4 @@ class TestOllamaEmbedderName:
 
     def test_default_name(self, mock_client_cls: MagicMock) -> None:
         embedder = OllamaEmbedder()
-        assert embedder.name == "ollama:mxbai-embed-large"
+        assert embedder.name == "ollama:qwen3-embedding:4b"

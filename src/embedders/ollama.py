@@ -20,18 +20,34 @@ class OllamaEmbedder:
     Implements the Embedder protocol from src.protocols.
     """
 
-    def __init__(self, model: str = "mxbai-embed-large", host: str | None = None) -> None:
+    # 7000 chars (~1750 tokens at 4 chars/token avg) sits well below qwen3-embedding's
+    # 40K context, so truncation is effectively a defensive guard for any future
+    # embedder swap rather than the hot path. Pre-2026-05-09 the default was
+    # mxbai-embed-large (512-token cap), which forced 1800-char truncation and
+    # biased Exp 2 chunking comparisons; switching to qwen3-embedding:4b removed
+    # that constraint. See docs/methodology.html "Embedder" section for rationale.
+    DEFAULT_MAX_CHARS = 7000
+
+    def __init__(
+        self,
+        model: str = "qwen3-embedding:4b",
+        host: str | None = None,
+        max_chars: int | None = None,
+    ) -> None:
         """Initialize with the Ollama model name and optional remote host.
 
         Args:
             model: Name of the Ollama embedding model to use.
             host: Ollama server URL. None uses the default localhost:11434.
                   Pass a RunPod proxy URL for remote GPU embeddings.
+            max_chars: Per-input character cap; inputs longer than this are
+                truncated before embedding. None uses DEFAULT_MAX_CHARS.
         """
         self._model = model
         # Match the pattern used by OllamaLLM — pass host only when specified
         self._client = Client(host=host) if host else Client()
         self._dimension: int | None = None
+        self._max_chars = max_chars if max_chars is not None else self.DEFAULT_MAX_CHARS
 
     @property
     def name(self) -> str:
@@ -54,13 +70,17 @@ class OllamaEmbedder:
     def embed(self, texts: list[str]) -> np.ndarray:
         """Embed texts using the Ollama model.
 
+        Each input is truncated to ``self._max_chars`` before embedding so a
+        single oversized chunk in a batch doesn't fail the entire request.
+
         Args:
             texts: List of strings to embed.
 
         Returns:
             numpy array of shape (len(texts), dimension).
         """
-        response = self._client.embed(model=self._model, input=texts)
+        clipped = [t[: self._max_chars] for t in texts]
+        response = self._client.embed(model=self._model, input=clipped)
         result = np.array(response.embeddings, dtype=np.float32)
         if self._dimension is None:
             self._dimension = result.shape[1]

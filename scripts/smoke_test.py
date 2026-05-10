@@ -26,7 +26,7 @@ REQUIRED_MODELS = [
     "qwen3:8b",
     "gemma3:1b",
     "gemma3:4b",
-    "mxbai-embed-large",
+    "qwen3-embedding:4b",
 ]
 
 # API keys and their descriptions
@@ -235,7 +235,7 @@ def run_smoke_test() -> None:
         if models_available == 0:
             print("    - Pull models: python scripts/pull_models.py")
         if not embedding_ok:
-            print("    - Check Ollama and mxbai-embed-large model")
+            print("    - Check Ollama and qwen3-embedding:4b model")
 
 
 if __name__ == "__main__":

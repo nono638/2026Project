@@ -14,7 +14,7 @@ import sys
 # All Ollama models needed for the full experiment matrix (task-054).
 # Exp 1: 10 LLMs across Qwen 3.5 small + Qwen 3.6 large + Gemma 4.
 # Exp 2: 4 LLMs (subset of Exp 1's small Qwen tier) + same embedder.
-# Total unique pulls = 10 LLMs + mxbai-embed-large = 11 entries.
+# Total unique pulls = 10 LLMs + qwen3-embedding:4b = 11 entries.
 #
 # task-053: explicit-quant pinning (`-q4_K_M`) is preferred but couldn't be
 # verified against ollama.com from the nighttime sandbox. The runtime helper
@@ -36,8 +36,9 @@ REQUIRED_MODELS = [
     "gemma4:e4b",
     "gemma4:26b",
     "gemma4:31b",
-    # Embedding model — single F16 artifact, no quant variant published
-    "mxbai-embed-large",
+    # Embedding model — qwen3-embedding:4b (40K context, 2.5 GB on disk).
+    # Replaced mxbai-embed-large 2026-05-09; see docs/methodology.html for why.
+    "qwen3-embedding:4b",
 ]
 
 

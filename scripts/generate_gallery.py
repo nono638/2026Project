@@ -54,14 +54,14 @@ _EXPERIMENT_DESCRIPTIONS = {
         "Strategy × Model Size — 5 RAG strategies (NaiveRAG, SelfRAG, "
         "CorrectiveRAG, AdaptiveRAG, MultiQueryRAG) × 6 models "
         "(Qwen3 0.6B/1.7B/4B/8B, Gemma 3 1B/4B) = 30 configurations. "
-        "Held constant: Recursive chunker (500/100), mxbai-embed-large, "
+        "Held constant: Recursive chunker (500/100), qwen3-embedding:4b, "
         "hybrid retrieval."
     ),
     2: (
         "Chunking × Model Size — 4 chunking strategies "
         "(Fixed 512, Recursive 500/100, Sentence, Semantic) × 4 Qwen3 models "
         "(0.6B/1.7B/4B/8B) = 16 configurations. Held constant: NaiveRAG "
-        "strategy, mxbai-embed-large, hybrid retrieval."
+        "strategy, qwen3-embedding:4b, hybrid retrieval."
     ),
 }
 
@@ -2243,7 +2243,7 @@ def _generate_experiment_1(csv_path: Path) -> str:
             We test 5 RAG strategies (NaiveRAG, SelfRAG, CorrectiveRAG, AdaptiveRAG,
             MultiQueryRAG) across 6 models ranging from 0.6B to 8B parameters.
             All other variables are held constant: Recursive chunker (500/100),
-            mxbai-embed-large embedder, hybrid retrieval.
+            qwen3-embedding:4b embedder, hybrid retrieval.
         </p>
         <p>
             200 HotpotQA questions are scored by Gemini 2.5 Flash (validated in Experiment 0).
@@ -2482,7 +2482,46 @@ def _generate_methodology() -> str:
 
         <h3>Embedder</h3>
         <p>How text chunks become vector representations for similarity search.
-           Held constant across experiments: mxbai-embed-large via Ollama.</p>
+           Held constant across experiments: <strong>qwen3-embedding:4b</strong> via Ollama
+           (Apache 2.0, ~2.5 GB on disk, 40K-token context window).</p>
+        <p>The original choice was <code>mxbai-embed-large</code>, which has a 512-token
+           context — adequate for short chunks but a methodological liability for an
+           experiment whose whole purpose is to compare chunking strategies. During the
+           first Experiment 2 run, the <code>FixedSizeChunker(500&nbsp;words)</code> and
+           <code>SemanticChunker</code> configurations triggered hundreds of HTTP&nbsp;400s
+           because their chunks (~700 tokens and up) overflowed the embedder's window;
+           setting Ollama's server-side <code>truncate=true</code> didn't help on the
+           current Ollama version, leaving client-side truncation as the only fix.
+           Truncating chunks to fit a small embedder isn't a fair test of chunkers — it
+           penalizes any strategy that prefers larger units (semantic, large-window
+           fixed) by silently discarding the tail of every oversized chunk before
+           similarity is computed.</p>
+        <p>Switching to <code>qwen3-embedding:4b</code> removes the constraint entirely.
+           Some of what tipped the choice:</p>
+        <ul>
+          <li><strong>Context window: 40K tokens</strong> — about 80&times; mxbai's 512.
+              No chunker our experiments produce comes close to filling it, so
+              chunker-vs-chunker comparisons run on the embedder's terms instead of
+              the other way round.</li>
+          <li><strong>Top-tier retrieval quality.</strong> The Qwen3-Embedding family
+              (released by Alibaba in 2025) leads MTEB multilingual at the 8B size and
+              the 4B variant is within a couple of points; competitive with
+              closed-API offerings.</li>
+          <li><strong>Apache 2.0, fully local.</strong> No API spend on the
+              retrieval path, no provider lock-in, reproducible by anyone with the
+              same Ollama tag.</li>
+          <li><strong>Same family as our generation models.</strong> Experiments 1
+              and 2 already exercise the Qwen 3.5 / 3.6 line for generation; using a
+              Qwen embedder keeps the stack coherent rather than mixing tokenizer
+              philosophies on either side of the retrieve / generate seam.</li>
+          <li><strong>Fits the hardware.</strong> 4B parameters &asymp; 2.5 GB on
+              disk, which leaves headroom alongside our largest generation models
+              on a 24 GB GPU. The 8B variant would be tighter; the 0.6B variant
+              would underperform on retrieval.</li>
+        </ul>
+        <p>The earlier <code>mxbai-embed-large</code> data is preserved in the experiment backups
+           but no longer drives the live gallery. See the changelog at the bottom of
+           Experiment 2 for the date this switch took effect.</p>
 
         <h3>Reranker</h3>
         <p>An optional second-pass ranker that re-scores retrieved chunks before they reach
@@ -2563,13 +2602,13 @@ def _generate_methodology() -> str:
                     <td>1 (Strategy x Model)</td>
                     <td>Does strategy compensate for model size?</td>
                     <td>5 strategies x 6 models</td>
-                    <td>Recursive chunker, mxbai-embed-large</td>
+                    <td>Recursive chunker, qwen3-embedding:4b</td>
                 </tr>
                 <tr>
                     <td>2 (Chunking x Model)</td>
                     <td>Does chunking strategy interact with model capability?</td>
                     <td>4 chunkers x 4 models</td>
-                    <td>NaiveRAG, mxbai-embed-large</td>
+                    <td>NaiveRAG, qwen3-embedding:4b</td>
                 </tr>
             </tbody>
         </table>
