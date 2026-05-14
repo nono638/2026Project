@@ -282,46 +282,42 @@ p { margin: 12px 0; }
 
         <h3>Embedder</h3>
         <p>How text chunks become vector representations for similarity search.
-           Held constant across experiments: <strong>qwen3-embedding:4b</strong> via Ollama
-           (Apache 2.0, ~2.5 GB on disk, 40K-token context window).</p>
-        <p>The original choice was <code>mxbai-embed-large</code>, which has a 512-token
-           context — adequate for short chunks but a methodological liability for an
-           experiment whose whole purpose is to compare chunking strategies. During the
-           first Experiment 2 run, the <code>FixedSizeChunker(500&nbsp;words)</code> and
-           <code>SemanticChunker</code> configurations triggered hundreds of HTTP&nbsp;400s
-           because their chunks (~700 tokens and up) overflowed the embedder's window;
-           setting Ollama's server-side <code>truncate=true</code> didn't help on the
-           current Ollama version, leaving client-side truncation as the only fix.
-           Truncating chunks to fit a small embedder isn't a fair test of chunkers — it
-           penalizes any strategy that prefers larger units (semantic, large-window
-           fixed) by silently discarding the tail of every oversized chunk before
-           similarity is computed.</p>
-        <p>Switching to <code>qwen3-embedding:4b</code> removes the constraint entirely.
-           Some of what tipped the choice:</p>
-        <ul>
-          <li><strong>Context window: 40K tokens</strong> — about 80&times; mxbai's 512.
-              No chunker our experiments produce comes close to filling it, so
-              chunker-vs-chunker comparisons run on the embedder's terms instead of
-              the other way round.</li>
-          <li><strong>Top-tier retrieval quality.</strong> The Qwen3-Embedding family
-              (released by Alibaba in 2025) leads MTEB multilingual at the 8B size and
-              the 4B variant is within a couple of points; competitive with
-              closed-API offerings.</li>
-          <li><strong>Apache 2.0, fully local.</strong> No API spend on the
-              retrieval path, no provider lock-in, reproducible by anyone with the
-              same Ollama tag.</li>
-          <li><strong>Same family as our generation models.</strong> Experiments 1
-              and 2 already exercise the Qwen 3.5 / 3.6 line for generation; using a
-              Qwen embedder keeps the stack coherent rather than mixing tokenizer
-              philosophies on either side of the retrieve / generate seam.</li>
-          <li><strong>Fits the hardware.</strong> 4B parameters &asymp; 2.5 GB on
-              disk, which leaves headroom alongside our largest generation models
-              on a 24 GB GPU. The 8B variant would be tighter; the 0.6B variant
-              would underperform on retrieval.</li>
-        </ul>
-        <p>The earlier <code>mxbai-embed-large</code> data is preserved in the experiment backups
-           but no longer drives the live gallery. See the changelog at the bottom of
-           Experiment 2 for the date this switch took effect.</p>
+           Held constant across experiments: <strong>embeddinggemma:300m</strong>
+           via Ollama (Google, Apache 2.0, ~300 MB on disk, 8K-token context, 768-d
+           output).</p>
+        <p>The embedder went through three stages, each fixing the previous one's
+           problem:</p>
+        <ol>
+          <li><strong>mxbai-embed-large</strong> — the original choice. 512-token
+              context was a methodological liability for an experiment whose whole
+              purpose is to compare chunking strategies. During the first Experiment 2
+              run, the <code>FixedSizeChunker(500&nbsp;words)</code> and
+              <code>SemanticChunker</code> configurations triggered hundreds of
+              HTTP&nbsp;400s because their chunks (~700 tokens and up) overflowed
+              the embedder's window; Ollama's server-side <code>truncate=true</code>
+              didn't help, leaving client-side truncation as the only fix.
+              Truncating chunks to fit a small embedder isn't a fair test of
+              chunkers — it penalizes any strategy that prefers larger units by
+              silently discarding the tail before similarity is computed.</li>
+          <li><strong>qwen3-embedding:4b</strong> — switched on 2026-05-09 to remove
+              the context-window constraint (40K tokens, ~80&times; mxbai's 512).
+              Solved the chunker-overflow problem cleanly but introduced a different
+              one: 4B parameters and ~2.5 GB on disk is disproportionate to the
+              small-model project the rest of this work studies, and forces an
+              expensive embedder onto anyone trying to reproduce it.</li>
+          <li><strong>embeddinggemma:300m</strong> (current, 2026-05-13). 8K context
+              still amply solves the chunker-overflow problem — no chunker our
+              experiments produce comes close to filling it — at ~13&times; smaller
+              than the 4B variant. Cross-family (Google, not Qwen) so the project
+              isn't locked to a single open-weights vendor. Apache 2.0, fully local
+              via Ollama. Validated empirically against the 4B baseline through the
+              Experiment 2 embedder-size sweep (see Experiment 2-E).</li>
+        </ol>
+        <p>Earlier <code>mxbai-embed-large</code> and
+           <code>qwen3-embedding:4b</code> data are preserved in the experiment
+           backups (<code>results/experiment_1_mxbai_partial/</code> and
+           <code>results/experiment_2/</code> respectively) but no longer drive the
+           live gallery.</p>
 
         <h3>Reranker</h3>
         <p>An optional second-pass ranker that re-scores retrieved chunks before they reach
@@ -336,8 +332,16 @@ p { margin: 12px 0; }
            (query expansion).</p>
 
         <h3>Model</h3>
-        <p>Which language model generates the final answer. Tested: Qwen3 (0.6B, 1.7B,
-           4B, 8B) and Gemma 3 (1B, 4B) — all running locally via Ollama.</p>
+        <p>Which language model generates the final answer. Tested:
+           <strong>Qwen 3.5</strong> (0.8B, 2B, 4B, 9B; Alibaba, Apache 2.0,
+           released 2026-03-02) for the full small-tier size curve, and
+           <strong>Gemma 4 e-tier</strong> (e2b ≈ 2.3B effective, e4b ≈ 4.5B
+           effective; Google, Apache 2.0, released 2026-04-02) for two cross-family
+           comparison points size-matched to qwen3.5:2b and qwen3.5:4b. All run
+           locally via Ollama. Experiment 1's original 10-model matrix included
+           four larger models (qwen3.6:27b/35b-a3b, gemma4:26b/31b); these were
+           dropped from the held-constant matrix on 2026-05-13 to fit a 48 h budget
+           on a single 24 GB VRAM GPU.</p>
 
         <h2>Evaluation Approach</h2>
         <p>RAGBench uses dual evaluation to assess answer quality from two perspectives:</p>
@@ -401,14 +405,20 @@ p { margin: 12px 0; }
                 <tr>
                     <td>1 (Strategy x Model)</td>
                     <td>Does strategy compensate for model size?</td>
-                    <td>5 strategies x 6 models</td>
-                    <td>Recursive chunker, qwen3-embedding:4b</td>
+                    <td>5 strategies x 6 models = 30 configs</td>
+                    <td>Recursive chunker, embeddinggemma:300m</td>
                 </tr>
                 <tr>
                     <td>2 (Chunking x Model)</td>
                     <td>Does chunking strategy interact with model capability?</td>
-                    <td>4 chunkers x 4 models</td>
-                    <td>NaiveRAG, qwen3-embedding:4b</td>
+                    <td>4 chunkers x 4 models = 16 configs</td>
+                    <td>NaiveRAG, embeddinggemma:300m</td>
+                </tr>
+                <tr>
+                    <td>2-E (Embedder Size)</td>
+                    <td>Does retrieval embedder size matter when chunker, model, and dataset are held constant?</td>
+                    <td>Exp 2 matrix re-run across 5 embedders (22M to 4B)</td>
+                    <td>4 chunkers x 4 Qwen 3.5 models, NaiveRAG</td>
                 </tr>
             </tbody>
         </table>

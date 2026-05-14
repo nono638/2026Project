@@ -442,7 +442,7 @@ p { margin: 12px 0; }
             <a href="experiment_1.html">
                 <span class="status status-ready">Results Available</span>
                 <h3>Experiment 1: Strategy × Model Size</h3>
-                <p>Strategy × Model Size — 5 RAG strategies (NaiveRAG, SelfRAG, CorrectiveRAG, AdaptiveRAG, MultiQueryRAG) × 6 models (Qwen3 0.6B/1.7B/4B/8B, Gemma 3 1B/4B) = 30 configurations. Held constant: Recursive chunker (500/100), qwen3-embedding:4b, hybrid retrieval.</p>
+                <p>Strategy × Model Size — 5 RAG strategies (NaiveRAG, SelfRAG, CorrectiveRAG, AdaptiveRAG, MultiQueryRAG) × 6 models (Qwen 3.5 0.8B/2B/4B/9B, Gemma 4 e2b/e4b) = 30 configurations. Held constant: Recursive chunker (500/100), embeddinggemma:300m, hybrid retrieval.</p>
             </a>
         </div>
 
@@ -450,7 +450,7 @@ p { margin: 12px 0; }
             <a href="experiment_2.html">
                 <span class="status status-ready">Results Available</span>
                 <h3>Experiment 2: Chunking × Model Size</h3>
-                <p>Chunking × Model Size — 4 chunking strategies (Fixed 512, Recursive 500/100, Sentence, Semantic) × 4 Qwen3 models (0.6B/1.7B/4B/8B) = 16 configurations. Held constant: NaiveRAG strategy, qwen3-embedding:4b, hybrid retrieval.</p>
+                <p>Chunking × Model Size — 4 chunking strategies (Fixed 512, Recursive 500/100, Sentence, Semantic) × 4 Qwen 3.5 models (0.8B/2B/4B/9B) = 16 configurations. Held constant: NaiveRAG strategy, embeddinggemma:300m, hybrid retrieval. Companion run Experiment 2-E re-runs the same matrix across 5 embedder sizes (22M to 4B) to isolate the embedder's contribution.</p>
             </a>
         </div>
         
