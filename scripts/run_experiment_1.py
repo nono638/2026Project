@@ -1,24 +1,25 @@
-"""Experiment 1: Strategy x Model Size — 5 strategies x 10 models on 200 HotpotQA.
+"""Experiment 1: Strategy x Model Size — 5 strategies x 6 models on 200 HotpotQA.
 
 This is the project's core research question: does a smart RAG strategy on a
 small model beat a naive strategy on a large model?
 
 Matrix: 5 strategies (NaiveRAG, SelfRAG, MultiQueryRAG, CorrectiveRAG,
-AdaptiveRAG) x 10 models from current open-weight families
-(Qwen 3.5 small: 0.8b/2b/4b/9b; Qwen 3.6 large: 27b dense + 35b-a3b MoE;
-Gemma 4: e2b/e4b effective + 26b MoE + 31b dense) = 50 configurations.
+AdaptiveRAG) x 6 models from current open-weight families
+(Qwen 3.5 small: 0.8b/2b/4b/9b; Gemma 4 e-tier: e2b/e4b) = 30 configurations.
 
-Why this model set (task-054, 2026-05-06): supersedes the original Qwen3 +
-Gemma 3 matrix with current open weights so the writeup uses the same
-generation a reader would actually run today. Cross-family pairings
-(qwen3.5:2b ↔ gemma4:e2b, qwen3.5:4b ↔ gemma4:e4b, qwen3.6:27b ↔ gemma4:31b
-dense, qwen3.6:35b-a3b ↔ gemma4:26b MoE) keep family-vs-family comparisons
-size-matched.
+Why this model set (2026-05-13 redesign): the original 10-model matrix
+(adding qwen3.6:27b/35b-a3b and gemma4:26b/31b) was infeasible inside a
+24 GB VRAM single-GPU budget and 48 h deadline. Drop the four largest
+models, keep the full small-Qwen size curve (0.8b/2b/4b/9b) and two
+size-matched Gemma 4 cross-family points (e2b ↔ qwen3.5:2b, e4b ↔ qwen3.5:4b).
+The dropped models remain available via --models for future runs.
 
-Held constant: RecursiveChunker(500, 100), OllamaEmbedder(mxbai-embed-large),
-hybrid retrieval, retrieval_top_k=5, no reranker.
+Held constant: RecursiveChunker(500, 100), OllamaEmbedder(embeddinggemma:300m),
+hybrid retrieval, retrieval_top_k=5, no reranker. Embedder switched from
+qwen3-embedding:4b → embeddinggemma:300m on 2026-05-13 (project-wide; see
+docs/methodology.html).
 
-Scorer: Gemini 2.5 Flash — best cost/quality from Experiment 0.
+Scorer: two-judge panel (Claude Haiku + GPT-5.4 mini), validated in Exp 0.
 
 Checkpoint/resume: after each (strategy, model) config completes, rows are
 flushed to raw_scores.csv. On restart with --resume, completed configs are
@@ -102,6 +103,11 @@ ALL_STRATEGIES = {
     "adaptive": "AdaptiveRAG",
 }
 
+# 2026-05-13 redesign: trimmed from 10 models to 6 to fit a 24 GB VRAM single-GPU
+# budget and 48 h deadline. The dropped 4 (qwen3.6:27b, qwen3.6:35b-a3b,
+# gemma4:26b, gemma4:31b) remain pull-able via `ollama pull` and runnable via
+# `--models <name>`; they're just not in the held-constant matrix anymore.
+#
 # task-053: bare tags retained — explicit -q4_K_M pinning per the spec's
 # verification table couldn't be confirmed against ollama.com from the
 # nighttime sandbox. The runtime helper get_ollama_model_details() stamps
@@ -114,16 +120,10 @@ ALL_MODELS = [
     "qwen3.5:2b",
     "qwen3.5:4b",
     "qwen3.5:9b",
-    # Qwen 3.6 large (Apache 2.0, released 2026-04-16/22) — large tier.
-    # Announcement: https://www.marktechpost.com/2026/04/22/alibaba-qwen-team-releases-qwen-3-6-27b-a-dense-open-weight-model-outperforming-397b-moe-on-agentic-coding-benchmarks/
-    "qwen3.6:27b",          # dense
-    "qwen3.6:35b-a3b",      # MoE, ~3B active
-    # Gemma 4 (Apache 2.0, released 2026-04-02) — cross-family.
+    # Gemma 4 (Apache 2.0, released 2026-04-02) — cross-family small tier.
     # Announcement: https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/
     "gemma4:e2b",           # 2.3B effective — pairs with qwen3.5:2b
     "gemma4:e4b",           # 4.5B effective — pairs with qwen3.5:4b
-    "gemma4:26b",           # MoE, 3.8B active — pairs with qwen3.6:35b-a3b
-    "gemma4:31b",           # dense — pairs with qwen3.6:27b
 ]
 
 
@@ -185,6 +185,15 @@ def parse_args() -> argparse.Namespace:
                         help="Output directory (default: results/experiment_1)")
     parser.add_argument("--ollama-host", type=str, default=None,
                         help="Ollama server URL (default: localhost:11434)")
+    parser.add_argument("--embedder", type=str, default="embeddinggemma:300m",
+                        help="Ollama embedding model tag for retrieval (default: "
+                             "embeddinggemma:300m, the project-wide held-constant "
+                             "embedder since 2026-05-13). Override only for embedder "
+                             "A/B experiments; held-constant runs should leave this.")
+    parser.add_argument("--embedder-max-chars", type=int, default=None,
+                        help="Override OllamaEmbedder client-side input cap. "
+                             "Default uses OllamaEmbedder.DEFAULT_MAX_CHARS (7000). "
+                             "Lower for embedders with small context windows.")
     parser.add_argument("--resume", action="store_true",
                         help="Skip configs already in raw_scores.csv")
     parser.add_argument("--max-cost", type=float, default=10.0,
@@ -552,7 +561,15 @@ def main() -> None:
         from src.llms import OllamaLLM
 
         chunker = RecursiveChunker(500, 100)
-        embedder = OllamaEmbedder(host=args.ollama_host)
+        embedder = OllamaEmbedder(
+            model=args.embedder,
+            host=args.ollama_host,
+            max_chars=args.embedder_max_chars,
+        )
+        logger.info(
+            "Embedder: %s (max_chars=%d, dim=%d)",
+            embedder.name, embedder._max_chars, embedder.dimension,
+        )
 
         # task-053: capture per-tag Ollama provenance once at startup so
         # every row gets a llm_quantization stamp without re-querying.

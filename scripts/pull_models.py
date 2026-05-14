@@ -11,34 +11,36 @@ from __future__ import annotations
 import subprocess
 import sys
 
-# All Ollama models needed for the full experiment matrix (task-054).
-# Exp 1: 10 LLMs across Qwen 3.5 small + Qwen 3.6 large + Gemma 4.
+# All Ollama models needed for the full experiment matrix.
+# Exp 1 (post-2026-05-13 redesign): 6 LLMs — 4 Qwen 3.5 small + 2 Gemma 4 e-tier.
 # Exp 2: 4 LLMs (subset of Exp 1's small Qwen tier) + same embedder.
-# Total unique pulls = 10 LLMs + qwen3-embedding:4b = 11 entries.
+# Total unique pulls = 6 LLMs + embeddinggemma:300m = 7 entries.
+#
+# Larger models (qwen3.6:27b/35b-a3b, gemma4:26b/31b) are kept available via
+# the run_experiment_1.py --models override but are not pulled by default —
+# they were dropped from the held-constant Exp 1 matrix for tractability under
+# the 24 GB VRAM single-GPU budget.
 #
 # task-053: explicit-quant pinning (`-q4_K_M`) is preferred but couldn't be
 # verified against ollama.com from the nighttime sandbox. The runtime helper
 # get_ollama_model_details() stamps the resolved Q* level on every row, so
 # analysis records the actual quant regardless of whether the tag is bare or
-# explicit. Morning-side TODO: `ollama show <tag>` on the 5090 and replace
-# bare tags with `-q4_K_M` variants once confirmed published.
+# explicit.
 REQUIRED_MODELS = [
     # Qwen 3.5 small — Exp 1 + Exp 2 small-tier
     "qwen3.5:0.8b",
     "qwen3.5:2b",
     "qwen3.5:4b",
     "qwen3.5:9b",
-    # Qwen 3.6 large — Exp 1 large-tier
-    "qwen3.6:27b",
-    "qwen3.6:35b-a3b",
-    # Gemma 4 — Exp 1 cross-family
+    # Gemma 4 e-tier — Exp 1 cross-family
     "gemma4:e2b",
     "gemma4:e4b",
-    "gemma4:26b",
-    "gemma4:31b",
-    # Embedding model — qwen3-embedding:4b (40K context, 2.5 GB on disk).
-    # Replaced mxbai-embed-large 2026-05-09; see docs/methodology.html for why.
-    "qwen3-embedding:4b",
+    # Embedding model — embeddinggemma:300m (8K context, ~300 MB on disk).
+    # Embedder history: mxbai-embed-large (pre-2026-05-09, 512-token cap) →
+    # qwen3-embedding:4b (2026-05-09, fixed Exp 2 chunker overflow but ~13x
+    # larger than needed) → embeddinggemma:300m (2026-05-13). See
+    # docs/methodology.html for the full rationale.
+    "embeddinggemma:300m",
 ]
 
 

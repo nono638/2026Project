@@ -43,7 +43,7 @@ class SemanticChunker:
 
     def __init__(
         self,
-        embedding_model: str = "qwen3-embedding:4b",
+        embedding_model: str = "embeddinggemma:300m",
         embedder_max_chars: int = 1500,
     ) -> None:
         """Initialize with the embedding model to use for chunk boundary detection.

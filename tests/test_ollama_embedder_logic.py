@@ -78,7 +78,7 @@ class TestOllamaEmbedderDimension:
 
         assert dim == 1024
         mock_client.embed.assert_called_once_with(
-            model="qwen3-embedding:4b", input=["hello"]
+            model="embeddinggemma:300m", input=["hello"]
         )
 
     def test_dimension_cached_after_first_call(self, mock_client_cls: MagicMock) -> None:
@@ -155,10 +155,10 @@ class TestOllamaEmbedderTruncation:
     def test_embed_default_max_chars_is_7000(
         self, mock_client_cls: MagicMock,
     ) -> None:
-        """Default sized for qwen3-embedding's 40K context with headroom.
+        """Default sized for embeddinggemma's 8K-token context with headroom.
 
-        Truncation is a defensive guard, not the hot path — qwen3-embedding:4b
-        easily fits any chunk our chunkers produce.
+        Truncation is a defensive guard, not the hot path — embeddinggemma:300m
+        comfortably fits any chunk our chunkers produce.
         """
         mock_client = mock_client_cls.return_value
         mock_client.embed.return_value = MagicMock(embeddings=[[1.0, 2.0]])
@@ -181,4 +181,4 @@ class TestOllamaEmbedderName:
 
     def test_default_name(self, mock_client_cls: MagicMock) -> None:
         embedder = OllamaEmbedder()
-        assert embedder.name == "ollama:qwen3-embedding:4b"
+        assert embedder.name == "ollama:embeddinggemma:300m"

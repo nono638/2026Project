@@ -57,11 +57,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Default models to pull — embedding model + generation model for Experiment 0.
-# task-054: Qwen 3.5 small (current open weights, Apache 2.0).
-# task-053: explicit -q4_K_M pin so the downloaded artifact is deterministic
-# across pulls. The embedder (mxbai-embed-large) has only a single F16
-# artifact, so the bare tag is equivalent to pinning.
-DEFAULT_MODELS = ["mxbai-embed-large", "qwen3.5:4b-q4_K_M"]
+# embeddinggemma:300m became the project-wide held-constant embedder on
+# 2026-05-13 (see docs/methodology.html). Generation default stays on
+# qwen3.5:4b-q4_K_M for Exp 0 sanity runs.
+DEFAULT_MODELS = ["embeddinggemma:300m", "qwen3.5:4b-q4_K_M"]
 
 # Timeouts — community cloud image pull + Ollama boot can take a few minutes
 POD_READY_TIMEOUT_S = 600

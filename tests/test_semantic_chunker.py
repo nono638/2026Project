@@ -13,7 +13,7 @@ class TestSemanticChunkerChunk:
     """Tests for SemanticChunker.chunk — the main method."""
 
     @patch("src.chunkers.semantic.LCSemanticChunker")
-    @patch("src.chunkers.semantic.OllamaEmbeddings")
+    @patch("src.chunkers.semantic._TruncatingOllamaEmbeddings")
     def test_chunk_returns_page_contents(
         self, mock_embeddings_cls: MagicMock, mock_chunker_cls: MagicMock
     ) -> None:
@@ -36,7 +36,7 @@ class TestSemanticChunkerChunk:
         )
 
     @patch("src.chunkers.semantic.LCSemanticChunker")
-    @patch("src.chunkers.semantic.OllamaEmbeddings")
+    @patch("src.chunkers.semantic._TruncatingOllamaEmbeddings")
     def test_chunk_empty_text(
         self, mock_embeddings_cls: MagicMock, mock_chunker_cls: MagicMock
     ) -> None:
@@ -49,7 +49,7 @@ class TestSemanticChunkerChunk:
         assert result == []
 
     @patch("src.chunkers.semantic.LCSemanticChunker")
-    @patch("src.chunkers.semantic.OllamaEmbeddings")
+    @patch("src.chunkers.semantic._TruncatingOllamaEmbeddings")
     def test_chunk_single_sentence(
         self, mock_embeddings_cls: MagicMock, mock_chunker_cls: MagicMock
     ) -> None:
@@ -73,4 +73,4 @@ class TestSemanticChunkerName:
 
     def test_default_name(self) -> None:
         chunker = SemanticChunker()
-        assert chunker.name == "semantic:mxbai-embed-large"
+        assert chunker.name == "semantic:embeddinggemma:300m"

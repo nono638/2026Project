@@ -20,17 +20,17 @@ class OllamaEmbedder:
     Implements the Embedder protocol from src.protocols.
     """
 
-    # 7000 chars (~1750 tokens at 4 chars/token avg) sits well below qwen3-embedding's
-    # 40K context, so truncation is effectively a defensive guard for any future
-    # embedder swap rather than the hot path. Pre-2026-05-09 the default was
-    # mxbai-embed-large (512-token cap), which forced 1800-char truncation and
-    # biased Exp 2 chunking comparisons; switching to qwen3-embedding:4b removed
-    # that constraint. See docs/methodology.html "Embedder" section for rationale.
+    # 7000 chars (~1750 tokens at 4 chars/token avg) sits below embeddinggemma's
+    # 8K-token context, so truncation is a defensive guard rather than the hot
+    # path. Embedder history: mxbai-embed-large (512-token cap, pre-2026-05-09)
+    # → qwen3-embedding:4b (40K context, fixed Exp 2 chunker overflow but was
+    # disproportionately large) → embeddinggemma:300m (2026-05-13, 8K context,
+    # ~13x smaller). See docs/methodology.html "Embedder" section for rationale.
     DEFAULT_MAX_CHARS = 7000
 
     def __init__(
         self,
-        model: str = "qwen3-embedding:4b",
+        model: str = "embeddinggemma:300m",
         host: str | None = None,
         max_chars: int | None = None,
     ) -> None:
