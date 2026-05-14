@@ -112,12 +112,24 @@ ALL_MODELS = [
 STRATEGY = "naive"
 
 
-def _make_chunker(name: str, ollama_host: str | None = None) -> object:
+def _make_chunker(
+    name: str,
+    ollama_host: str | None = None,
+    embedder_model: str = "qwen3-embedding:4b",
+    embedder_max_chars: int = 1500,
+) -> object:
     """Instantiate a chunker by its short name.
 
     Args:
         name: Chunker key from ALL_CHUNKERS.
         ollama_host: Ollama host for SemanticChunker (needs embeddings).
+        embedder_model: Ollama embedding tag used by SemanticChunker for
+            boundary detection. Held to the same model as retrieval so an
+            embedder-A/B run isolates a single variable end-to-end.
+        embedder_max_chars: Per-sentence truncation cap inside
+            SemanticChunker. Should match the retrieval embedder's cap when
+            running on small-context embedders (e.g., 800 for
+            all-minilm:22m's 512-token context).
 
     Returns:
         A Chunker instance.
@@ -134,7 +146,10 @@ def _make_chunker(name: str, ollama_host: str | None = None) -> object:
     elif name == "sentence":
         return SentenceChunker()
     elif name == "semantic":
-        return SemanticChunker()
+        return SemanticChunker(
+            embedding_model=embedder_model,
+            embedder_max_chars=embedder_max_chars,
+        )
     else:
         raise ValueError(f"Unknown chunker: {name}")
 
@@ -196,6 +211,17 @@ def parse_args() -> argparse.Namespace:
                         help="Output directory (default: results/experiment_2)")
     parser.add_argument("--ollama-host", type=str, default=None,
                         help="Ollama server URL (default: localhost:11434)")
+    parser.add_argument("--embedder", type=str, default="qwen3-embedding:4b",
+                        help="Ollama embedding model tag for retrieval and "
+                             "SemanticChunker boundary detection (default: "
+                             "qwen3-embedding:4b). Used to A/B different "
+                             "embedder sizes against the same chunker x model "
+                             "matrix.")
+    parser.add_argument("--embedder-max-chars", type=int, default=None,
+                        help="Override OllamaEmbedder client-side input cap. "
+                             "Default uses OllamaEmbedder.DEFAULT_MAX_CHARS "
+                             "(7000). Lower for embedders with small context "
+                             "(e.g., 1800 for all-minilm:22m's 512-token cap).")
     parser.add_argument("--resume", action="store_true",
                         help="Skip configs already in raw_scores.csv")
     parser.add_argument("--max-cost", type=float, default=10.0,
@@ -537,7 +563,15 @@ def main() -> None:
         from src.llms import OllamaLLM
         from src.strategies.naive import NaiveRAG
 
-        embedder = OllamaEmbedder(host=args.ollama_host)
+        embedder = OllamaEmbedder(
+            model=args.embedder,
+            host=args.ollama_host,
+            max_chars=args.embedder_max_chars,
+        )
+        logger.info(
+            "Embedder: %s (max_chars=%d, dim=%d)",
+            embedder.name, embedder._max_chars, embedder.dimension,
+        )
         llm = OllamaLLM(host=args.ollama_host)
         strategy = NaiveRAG(llm=llm)
 
@@ -569,7 +603,16 @@ def main() -> None:
 
         for config_idx, (chunker_name, model_name) in enumerate(config_list, 1):
             # Build chunker to get its .name property for checkpoint matching
-            chunker = _make_chunker(chunker_name, ollama_host=args.ollama_host)
+            chunker = _make_chunker(
+                chunker_name,
+                ollama_host=args.ollama_host,
+                embedder_model=args.embedder,
+                embedder_max_chars=(
+                    args.embedder_max_chars
+                    if args.embedder_max_chars is not None
+                    else 1500
+                ),
+            )
             chunker_full_name = chunker.name
             chunk_meta = _chunker_metadata(chunker)
 

@@ -15,6 +15,9 @@ _claude_sandbox_setup/.model_defaults
 # RunPod pod tracking (survives process death for cleanup on next run)
 .runpod_pod_id
 
+# Scheduled-task runtime lock (managed by .claude/loop runner)
+.claude/scheduled_tasks.lock
+
 # Runtime logs and artifacts
 DaytimeNighttimeHandOff/audit.jsonl
 DaytimeNighttimeHandOff/nighttime.log
