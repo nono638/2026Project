@@ -21,20 +21,24 @@ class TestOllamaEmbedderHost:
 
     @patch("src.embedders.ollama.Client")
     def test_embedder_default_host(self, mock_client_cls: MagicMock) -> None:
-        """OllamaEmbedder() with no host calls Client() with no args."""
+        """OllamaEmbedder() calls Client with default timeout."""
         from src.embedders.ollama import OllamaEmbedder
 
         embedder = OllamaEmbedder()
 
-        # Client() should be called with no arguments
-        mock_client_cls.assert_called_once_with()
+        # Client is called with timeout but no host
+        mock_client_cls.assert_called_once_with(
+            host=None, timeout=OllamaEmbedder.DEFAULT_TIMEOUT
+        )
 
     @patch("src.embedders.ollama.Client")
     def test_embedder_custom_host(self, mock_client_cls: MagicMock) -> None:
-        """OllamaEmbedder(host=...) calls Client(host=...)."""
+        """OllamaEmbedder(host=...) calls Client(host=...) with timeout."""
         from src.embedders.ollama import OllamaEmbedder
 
         embedder = OllamaEmbedder(host="http://remote:11434")
 
-        # Client should be called with the host parameter
-        mock_client_cls.assert_called_once_with(host="http://remote:11434")
+        # Client should be called with both host and timeout
+        mock_client_cls.assert_called_once_with(
+            host="http://remote:11434", timeout=OllamaEmbedder.DEFAULT_TIMEOUT
+        )

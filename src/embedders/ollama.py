@@ -28,11 +28,25 @@ class OllamaEmbedder:
     # ~13x smaller). See docs/methodology.html "Embedder" section for rationale.
     DEFAULT_MAX_CHARS = 7000
 
+    # keep_alive='30m' mirrors OllamaLLM. Without this, Ollama uses its server
+    # default (5m) and evicts the embedder between calls when a chat model is
+    # also active. The eviction/reload cycle is what generates the sustained
+    # GPU allocation churn observed before the 5090 BSODs on 2026-05-17/18.
+    # Pinning the embedder lets it co-reside with the chat model in VRAM (we
+    # have 24 GB; embeddinggemma:300m ~= 500 MB so this is essentially free).
+    DEFAULT_KEEP_ALIVE = "30m"
+
+    # Per-call timeout in seconds. Embed calls are fast (<5 s normally); 60 s
+    # is a generous ceiling that prevents silent hangs if Ollama stalls.
+    DEFAULT_TIMEOUT = 60.0
+
     def __init__(
         self,
         model: str = "embeddinggemma:300m",
         host: str | None = None,
         max_chars: int | None = None,
+        keep_alive: str | int | None = None,
+        timeout: float | None = None,
     ) -> None:
         """Initialize with the Ollama model name and optional remote host.
 
@@ -42,12 +56,19 @@ class OllamaEmbedder:
                   Pass a RunPod proxy URL for remote GPU embeddings.
             max_chars: Per-input character cap; inputs longer than this are
                 truncated before embedding. None uses DEFAULT_MAX_CHARS.
+            keep_alive: Ollama keep_alive value (Go duration string, int
+                seconds, or None to use DEFAULT_KEEP_ALIVE).
+            timeout: Per-request timeout in seconds. None uses
+                DEFAULT_TIMEOUT (60 s).
         """
         self._model = model
-        # Match the pattern used by OllamaLLM — pass host only when specified
-        self._client = Client(host=host) if host else Client()
+        _timeout = timeout if timeout is not None else self.DEFAULT_TIMEOUT
+        self._client = Client(host=host, timeout=_timeout)
         self._dimension: int | None = None
         self._max_chars = max_chars if max_chars is not None else self.DEFAULT_MAX_CHARS
+        self._keep_alive = (
+            keep_alive if keep_alive is not None else self.DEFAULT_KEEP_ALIVE
+        )
 
     @property
     def name(self) -> str:
@@ -80,7 +101,11 @@ class OllamaEmbedder:
             numpy array of shape (len(texts), dimension).
         """
         clipped = [t[: self._max_chars] for t in texts]
-        response = self._client.embed(model=self._model, input=clipped)
+        response = self._client.embed(
+            model=self._model,
+            input=clipped,
+            keep_alive=self._keep_alive,
+        )
         result = np.array(response.embeddings, dtype=np.float32)
         if self._dimension is None:
             self._dimension = result.shape[1]

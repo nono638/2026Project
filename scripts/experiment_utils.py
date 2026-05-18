@@ -36,6 +36,17 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2.0  # seconds; doubles each retry (2s, 4s, 8s)
 
+# After an Ollama model runner crash, the process needs time to restart
+# before a retry attempt will succeed. 2-8 s (normal backoff) is far too
+# short — in practice the runner takes 30-90 s to come back up.
+# The 8-17 minute hung chat() calls before BSOD #3 (2026-05-18) were caused
+# by: no generation timeout + no runner-crash recovery wait = the retry
+# immediately re-sent the request into a dead runner and hung again.
+RUNNER_CRASH_RECOVERY_S = 60.0
+# After waiting RUNNER_CRASH_RECOVERY_S we poll Ollama's /api/tags up to
+# this many seconds before giving up and retrying anyway.
+RUNNER_HEALTH_POLL_S = 60.0
+
 
 def _is_transient(exc: Exception) -> bool:
     """Check if an exception is likely transient and worth retrying.
@@ -59,6 +70,60 @@ def _is_transient(exc: Exception) -> bool:
         "server error", "internal error", "resource exhausted",
     ]
     return any(p in msg for p in transient_patterns)
+
+
+def _is_runner_crash(exc: Exception) -> bool:
+    """True if the Ollama model runner itself crashed (not a transient blip).
+
+    Runner crashes need a long recovery wait — the process has to restart
+    before any retry will succeed. This is distinct from a TCP reset or
+    HTTP 500 where Ollama itself is still up.
+
+    Args:
+        exc: The exception to classify.
+
+    Returns:
+        True when the error text matches known runner-crash patterns.
+    """
+    msg = str(exc).lower()
+    return any(p in msg for p in [
+        "model runner has unexpectedly stopped",
+        "resource limitations",
+    ])
+
+
+def _wait_for_ollama(
+    host: str | None = None,
+    max_wait_s: float = RUNNER_HEALTH_POLL_S,
+) -> bool:
+    """Poll Ollama's /api/tags until it responds or max_wait_s elapses.
+
+    Used after a model runner crash to confirm the server is accepting
+    requests again before issuing a retry. Avoids re-hanging on a
+    still-recovering runner.
+
+    Args:
+        host: Ollama server URL. None defaults to http://localhost:11434.
+        max_wait_s: Maximum seconds to poll before giving up.
+
+    Returns:
+        True if Ollama responded OK within the window; False on timeout.
+    """
+    import time as _time
+
+    base = (host or "http://localhost:11434").rstrip("/")
+    url = f"{base}/api/tags"
+    deadline = _time.monotonic() + max_wait_s
+    poll_s = 5.0
+    while _time.monotonic() < deadline:
+        try:
+            r = requests.get(url, timeout=5)
+            if r.ok:
+                return True
+        except requests.RequestException:
+            pass
+        _time.sleep(poll_s)
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -429,12 +494,30 @@ def generate_answer(
         except Exception as exc:
             last_exc = exc
             if attempt < MAX_RETRIES and _is_transient(exc):
-                delay = RETRY_BASE_DELAY * (2 ** attempt)
-                logger.warning(
-                    "Generation retry %d/%d: %s (waiting %.0fs)",
-                    attempt + 1, MAX_RETRIES, exc, delay,
-                )
-                time.sleep(delay)
+                if _is_runner_crash(exc):
+                    # Model runner process died — needs significant recovery
+                    # time before a retry will succeed. Normal 2-8 s backoff
+                    # sends the request straight back into a dead runner.
+                    logger.warning(
+                        "Generation retry %d/%d: %s (waiting %.0fs for "
+                        "runner recovery + polling until Ollama is ready)",
+                        attempt + 1, MAX_RETRIES, exc, RUNNER_CRASH_RECOVERY_S,
+                    )
+                    time.sleep(RUNNER_CRASH_RECOVERY_S)
+                    ready = _wait_for_ollama(ollama_host, max_wait_s=RUNNER_HEALTH_POLL_S)
+                    if not ready:
+                        logger.warning(
+                            "Ollama did not respond within %.0fs after runner "
+                            "crash — retrying anyway",
+                            RUNNER_HEALTH_POLL_S,
+                        )
+                else:
+                    delay = RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Generation retry %d/%d: %s (waiting %.0fs)",
+                        attempt + 1, MAX_RETRIES, exc, delay,
+                    )
+                    time.sleep(delay)
                 continue
             logger.error("Generation failed after %d attempt(s): %s",
                          attempt + 1, exc)
@@ -616,10 +699,28 @@ def append_rows(csv_path: Path, rows: list[dict]) -> None:
         return
 
     file_exists = csv_path.exists() and csv_path.stat().st_size > 0
-    fieldnames = list(rows[0].keys())
+
+    if file_exists:
+        # When appending, fieldnames MUST match the existing header's order;
+        # otherwise DictWriter writes columns in rows[0].keys() order and
+        # silently misaligns with the header already on disk. Read the header
+        # back from the file as the source of truth.
+        with open(csv_path, "r", newline="", encoding="utf-8") as f:
+            reader = csv.reader(f)
+            fieldnames = next(reader, None) or list(rows[0].keys())
+        extrasaction = "ignore"  # tolerate new columns that weren't in the original header
+    else:
+        # New file: collect all keys across the batch so heterogeneous rows
+        # don't drop columns from the very first header.
+        seen: dict[str, None] = {}
+        for row in rows:
+            for k in row.keys():
+                seen.setdefault(k, None)
+        fieldnames = list(seen.keys())
+        extrasaction = "raise"
 
     with open(csv_path, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction=extrasaction)
         if not file_exists:
             writer.writeheader()
         writer.writerows(rows)

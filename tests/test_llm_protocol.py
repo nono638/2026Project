@@ -99,6 +99,7 @@ class TestOllamaLLM:
                 messages=[{"role": "user", "content": "What is Python?"}],
                 think=False,
                 keep_alive="30m",
+                options={"num_predict": 512},
             )
 
     def test_custom_host(self):
@@ -106,7 +107,10 @@ class TestOllamaLLM:
         from src.llms import OllamaLLM
         with patch("src.llms.ollama.Client") as MockClient:
             llm = OllamaLLM(host="http://gpu-server:11434")
-            MockClient.assert_called_with(host="http://gpu-server:11434")
+            MockClient.assert_called_with(
+                host="http://gpu-server:11434",
+                timeout=OllamaLLM.DEFAULT_TIMEOUT,
+            )
 
 
 # ---------------------------------------------------------------------------
