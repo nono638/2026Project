@@ -98,6 +98,7 @@ class TestOllamaLLM:
                 model="qwen3:4b",
                 messages=[{"role": "user", "content": "What is Python?"}],
                 think=False,
+                keep_alive="30m",
             )
 
     def test_custom_host(self):
