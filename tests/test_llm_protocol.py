@@ -99,7 +99,7 @@ class TestOllamaLLM:
                 messages=[{"role": "user", "content": "What is Python?"}],
                 think=False,
                 keep_alive="30m",
-                options={"num_predict": 512},
+                options={"num_predict": 1024},
             )
 
     def test_custom_host(self):

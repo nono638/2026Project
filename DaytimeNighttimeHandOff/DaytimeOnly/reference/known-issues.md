@@ -55,5 +55,15 @@ After BSOD #2 + driver reinstall, Experiment 1 resumed at 08:46 AM. Completed ad
 
 **Resume state:** 15 configs done at 200/200 (all Qwen3.5 0.8b/2b/4b × all strategies). 15 configs remain: qwen3.5:9b × 5 strategies + gemma4:e2b × 5 + gemma4:e4b × 5.
 
+**Methodological caveat introduced by num_predict cap (write up in paper):**
+The 15 already-completed configs were generated with **no** `num_predict` cap; the 15 remaining configs are generated with `num_predict=1024` (initially 512 for `naive × qwen3.5:9b` only, which finished first). This is a methodological asymmetry — answers in the new configs may be clipped at ~4000 chars while the older configs allowed arbitrary length.
+
+Per-strategy clip impact estimate (from completed data >2048 char, equivalent to ~512 tokens; scale roughly halved for 1024 tokens):
+- naive, multi_query, corrective: <2% answers clipped — negligible
+- adaptive: 1-7% — small
+- self_rag: 2-12% — modest, **mainly clips runaway/repetitive outputs that were arguably noise**
+
+Some clipped outputs in the previously-completed data exceeded 100,000 chars (max observed: 1.2M chars for `qwen3.5:4b × self_rag`). These were degenerate runaway generations. The cap arguably *removes noise* from those cases, but the asymmetric application across model sizes weakens the strict "no controlled variable changed" claim. Three honest framings for the writeup: (a) report results as-is with this caveat, (b) re-run completed configs with the same cap for full consistency (3000 rows, ~3 hours), or (c) post-hoc truncate all completed answers to 4096 chars before scoring and re-score.
+
 ## Gemini 3.1 Pro Preview is paid-tier-only (2026-04-30)
 `google:gemini-3.1-pro-preview` is in `JUDGE_CONFIGS` but produces zero scored rows on every run. Confirmed via direct API smoke test: Google AI Studio free tier has `limit: 0` for this model — it requires paid billing. Other Gemini models (Flash-Lite, Flash, 2.5 Pro) are unaffected. Left in configs intentionally (option C) so it auto-activates if billing is enabled later; runner already skips it gracefully on 429. Reference: `gemini-api-billing-setup.md` for paid-tier setup notes if ever needed.

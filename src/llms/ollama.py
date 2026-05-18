@@ -27,11 +27,18 @@ class OllamaLLM:
 
     # Hard ceiling on tokens generated per call. Without this, qwen3.5:9b
     # was observed generating runaway responses of 8-17+ minutes on single
-    # queries (BSOD #3, 2026-05-18). RAG answers never need more than ~512
-    # tokens; the cap also limits VRAM bandwidth pressure during generation.
-    # Strategies that need longer chains (AdaptiveRAG multi-hop) stay well
-    # within 512 tokens for their final synthesis step.
-    DEFAULT_NUM_PREDICT = 512
+    # queries (BSOD #3, 2026-05-18).
+    #
+    # Sized from analysis of completed Exp 1 rows (qwen3.5 0.8b/2b/4b ×
+    # 5 strategies, n=200 each):
+    #   - naive/multi_query/corrective: 99th-pct answer length ≈ 350 tokens
+    #   - adaptive: 99th-pct ≈ 800 tokens (one strategy has multi-hop chain)
+    #   - self_rag: 99th-pct ≈ 2400 tokens (critique + answer; longest tail)
+    # 1024 covers >95% of non-degenerate answers across all 5 strategies
+    # while still ensuring worst-case generation completes well under the
+    # 180 s OllamaLLM timeout. Higher values (>2000) let the runaway-loop
+    # outputs that drove BSOD #3 back in.
+    DEFAULT_NUM_PREDICT = 1024
 
     # Per-call timeout (seconds) passed to the underlying httpx client.
     # Ollama's Python Client defaults to None (no timeout), which caused
