@@ -13,6 +13,8 @@ from __future__ import annotations
 import numpy as np
 from ollama import Client
 
+from src.monitoring import call_tracker
+
 
 class OllamaEmbedder:
     """Embedding via any Ollama-hosted embedding model.
@@ -101,11 +103,17 @@ class OllamaEmbedder:
             numpy array of shape (len(texts), dimension).
         """
         clipped = [t[: self._max_chars] for t in texts]
-        response = self._client.embed(
-            model=self._model,
-            input=clipped,
-            keep_alive=self._keep_alive,
-        )
+        # See OllamaLLM.generate — record the in-flight call so a BSOD post-mortem
+        # can identify whether it died inside an embed or a chat call.
+        call_tracker.record_start("embed", self._model)
+        try:
+            response = self._client.embed(
+                model=self._model,
+                input=clipped,
+                keep_alive=self._keep_alive,
+            )
+        finally:
+            call_tracker.record_end()
         result = np.array(response.embeddings, dtype=np.float32)
         if self._dimension is None:
             self._dimension = result.shape[1]

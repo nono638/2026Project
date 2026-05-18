@@ -14,7 +14,8 @@ Both fail open: if nvidia-smi is missing or the log file can't be opened,
 the experiment continues — telemetry must never abort a run.
 """
 
+from src.monitoring import call_tracker
 from src.monitoring.event_log import EventLog
 from src.monitoring.gpu_telemetry import snapshot
 
-__all__ = ["EventLog", "snapshot"]
+__all__ = ["EventLog", "snapshot", "call_tracker"]

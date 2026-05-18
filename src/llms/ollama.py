@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from ollama import Client
 
+from src.monitoring import call_tracker
+
 
 class OllamaLLM:
     """Ollama generation backend.
@@ -97,13 +99,20 @@ class OllamaLLM:
         options: dict = {}
         if self._num_predict and self._num_predict > 0:
             options["num_predict"] = self._num_predict
-        response = self._client.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            think=False,
-            keep_alive=self._keep_alive,
-            options=options or None,
-        )
+        # Mark this call as in-flight so the runner's per-row heartbeat can
+        # report what was happening if a BSOD strikes mid-call. record_end
+        # is in a finally so an exception still clears the in_flight flag.
+        call_tracker.record_start("chat", model)
+        try:
+            response = self._client.chat(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                think=False,
+                keep_alive=self._keep_alive,
+                options=options or None,
+            )
+        finally:
+            call_tracker.record_end()
         # Ollama can return None content when the model emits no visible tokens
         # (e.g., thinking-only output even with think=False, or refusal).
         # Strategies call .strip() on the result, so a None would crash them.

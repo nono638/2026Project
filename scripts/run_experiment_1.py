@@ -82,7 +82,7 @@ from experiment_utils import (
     write_experiment_metadata,
 )
 
-from src.monitoring import EventLog, snapshot as gpu_snapshot
+from src.monitoring import EventLog, call_tracker, snapshot as gpu_snapshot
 
 # How long the GPU/driver is given to settle between configs. The 5090
 # Laptop has been observed to BSOD with nvlddmkm DPC_WATCHDOG_VIOLATION
@@ -107,10 +107,12 @@ ROW_PACE_S_DEFAULT = 0.5
 ROW_REST_EVERY_N = 50
 ROW_REST_S = 10
 
-# Sample GPU stats every N completed rows during a config. Hourly would
-# miss too much; per-row would bloat the log. 50 lines up roughly with a
-# ~10-minute interval at observed throughput.
-GPU_SNAPSHOT_EVERY_N_ROWS = 50
+# Sample GPU stats every N completed rows during a config. After the
+# 2026-05-18 BSOD cluster (4 distinct bugchecks in 12h), 50-row spacing
+# left the post-mortem with a ~25-minute uncertainty window. Tightening
+# to 10 rows shrinks that to ~5 min at ~30s/query. Cost: roughly +1s/config
+# of nvidia-smi overhead — negligible against ~25 min config wallclock.
+GPU_SNAPSHOT_EVERY_N_ROWS = 10
 
 # Default judge panel for Experiments 1 and 2: cross-provider two-judge
 # panel chosen from Exp 0 v3 cost vs accuracy results. Documented in
@@ -732,6 +734,8 @@ def main() -> None:
                 if query.text in done_questions_this_config:
                     continue
 
+                row_start = time.perf_counter()
+
                 # Progress display with ETA
                 elapsed = time.perf_counter() - experiment_start
                 if configs_done > 0:
@@ -835,6 +839,23 @@ def main() -> None:
                 append_rows(raw_scores_path, [row])
                 completed_rows.add((strat_name, model_name, query.text))
                 config_rows_written += 1
+
+                # Per-row heartbeat — single fsynced line so the post-mortem
+                # of any BSOD can identify which row had just completed and
+                # what call (embed/chat) was most recently in flight. Cheap
+                # (no nvidia-smi shell-out here — that stays on the every-N
+                # snapshot below). Shrinks the BSOD blast radius from one
+                # config-snapshot-interval to one row.
+                events.write(
+                    "row_done",
+                    config_idx=config_idx,
+                    strategy=strat_name,
+                    model=model_name,
+                    row_idx_config=config_rows_written,
+                    q_idx=q_idx + 1,
+                    row_duration_s=round(time.perf_counter() - row_start, 3),
+                    call=call_tracker.snapshot(),
+                )
 
                 # Periodic GPU snapshot. Anchors the timeline inside long
                 # configs so a crash dump can be matched to the workload
