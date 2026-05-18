@@ -88,10 +88,24 @@ from src.monitoring import EventLog, snapshot as gpu_snapshot
 # Laptop has been observed to BSOD with nvlddmkm DPC_WATCHDOG_VIOLATION
 # (0x133) under sustained load — a known driver bug across multiple
 # versions, see https://forums.developer.nvidia.com/t/bug-rtx-5090-hibernate-resume-causes-nvlddmkm-sys-0x133-dpc-watchdog/364994
-# A short pause at each model-switch boundary doesn't fix the bug but
-# noticeably reduces the rate at which we trigger it, and gives the
-# event log a clean "boundary" marker for post-mortem.
-CONFIG_COOLDOWN_S = 5
+# 2026-05-18: bumped 5s → 30s after a second BSOD (0x3b SYSTEM_SERVICE_EXCEPTION)
+# during a resumed run. The clean driver re-install didn't prevent it, so we
+# lean harder on workload pacing.
+CONFIG_COOLDOWN_S = 30
+
+# Per-row pacing — inserted between every completed (generate + score) row
+# inside a config. The pre-fortification observed rate was ~1 query / 5-7 s
+# with embed/chat calls firing every ~1 s; that's the sustained-DPC regime
+# that correlates with the 5090 driver bug. A small fixed sleep stretches
+# the inter-call cadence enough to let the kernel drain its DPC queue
+# between calls without meaningfully slowing the overall run.
+ROW_PACE_S_DEFAULT = 0.5
+
+# Periodic longer rest mid-config to let GPU temperature drop. The
+# pre-fortification trail showed temp climbing 47 °C → 66 °C over ~30 min
+# right before BSOD #2. Every N rows we pause for a longer beat.
+ROW_REST_EVERY_N = 50
+ROW_REST_S = 10
 
 # Sample GPU stats every N completed rows during a config. Hourly would
 # miss too much; per-row would bloat the log. 50 lines up roughly with a
@@ -234,6 +248,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--no-gallery", action="store_true",
                         help="Skip automatic gallery regeneration after experiment completes")
+    parser.add_argument(
+        "--row-pace-s",
+        type=float,
+        default=ROW_PACE_S_DEFAULT,
+        help=(
+            "Seconds to sleep between completed rows inside a config. "
+            "5090-stability knob — increase if BSODs recur, set to 0 to "
+            f"disable. Default {ROW_PACE_S_DEFAULT}s."
+        ),
+    )
     args = parser.parse_args()
     # Reject duplicate scorers — a doubled judge would silently double-cost
     # and produce one column representing two runs averaged. See spec.
@@ -827,6 +851,23 @@ def main() -> None:
 
                 if cost_limit_hit:
                     break
+
+                # 5090-stability pacing: short sleep between rows, longer
+                # periodic rest. See ROW_PACE_S_DEFAULT / ROW_REST_EVERY_N
+                # constants for rationale.
+                if (
+                    ROW_REST_EVERY_N > 0
+                    and config_rows_written % ROW_REST_EVERY_N == 0
+                ):
+                    events.write(
+                        "row_rest",
+                        config_idx=config_idx,
+                        rows_written_this_config=config_rows_written,
+                        rest_s=ROW_REST_S,
+                    )
+                    time.sleep(ROW_REST_S)
+                elif args.row_pace_s > 0:
+                    time.sleep(args.row_pace_s)
 
             print()  # newline after progress display
             config_elapsed = time.perf_counter() - config_start

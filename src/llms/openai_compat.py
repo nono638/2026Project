@@ -52,4 +52,6 @@ class OpenAICompatibleLLM:
             model=model,
             messages=[{"role": "user", "content": prompt}],
         )
-        return response.choices[0].message.content
+        # OpenAI-compatible servers can return None content on length/refusal
+        # finish reasons. Downstream strategy code calls .strip(), so coerce.
+        return response.choices[0].message.content or ""

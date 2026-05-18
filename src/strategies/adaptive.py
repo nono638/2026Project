@@ -174,7 +174,11 @@ class AdaptiveRAG:
             f"Follow-up question:",
         ).strip()
 
-        retrieved2 = retriever.retrieve(followup)
+        # Empty/whitespace followup → retrieving "" returns degenerate results
+        # (BM25 scores all zero, dense search returns arbitrary nearest). Fall
+        # back to the original query so the second pass still adds signal.
+        retrieval_query = followup if followup else query
+        retrieved2 = retriever.retrieve(retrieval_query)
         context2 = "\n\n".join(r["text"] for r in retrieved2)
 
         # Final answer combining both contexts
@@ -187,7 +191,7 @@ class AdaptiveRAG:
                 [r["text"] for r in retrieved1] + [r["text"] for r in retrieved2]
             )
             diagnostics["context_sent_to_llm"] = combined_context
-            diagnostics["retrieval_queries"] = [query, followup]
+            diagnostics["retrieval_queries"] = [query, retrieval_query]
             diagnostics["skipped_retrieval"] = False
 
         return self._llm.generate(

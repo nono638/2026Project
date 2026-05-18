@@ -38,7 +38,7 @@ class TestOllamaEmbedderEmbed:
         embedder.embed(["test text"])
 
         mock_client.embed.assert_called_once_with(
-            model="mxbai-embed-large", input=["test text"]
+            model="mxbai-embed-large", input=["test text"], keep_alive="30m"
         )
 
     def test_embed_sets_dimension_lazily(self, mock_client_cls: MagicMock) -> None:
@@ -78,7 +78,7 @@ class TestOllamaEmbedderDimension:
 
         assert dim == 1024
         mock_client.embed.assert_called_once_with(
-            model="embeddinggemma:300m", input=["hello"]
+            model="embeddinggemma:300m", input=["hello"], keep_alive="30m"
         )
 
     def test_dimension_cached_after_first_call(self, mock_client_cls: MagicMock) -> None:

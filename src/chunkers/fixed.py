@@ -21,7 +21,20 @@ class FixedSizeChunker:
         Args:
             chunk_size: Number of words per chunk.
             overlap: Number of overlapping words between consecutive chunks.
+
+        Raises:
+            ValueError: If chunk_size <= 0 or overlap is not in [0, chunk_size).
+                Reject misconfiguration up-front; otherwise the step
+                ``chunk_size - overlap`` would be <= 0 and chunk() would
+                loop forever.
         """
+        if chunk_size <= 0:
+            raise ValueError(f"chunk_size must be > 0, got {chunk_size}")
+        if overlap < 0 or overlap >= chunk_size:
+            raise ValueError(
+                f"overlap must be in [0, chunk_size); got overlap={overlap}, "
+                f"chunk_size={chunk_size}"
+            )
         self._chunk_size = chunk_size
         self._overlap = overlap
 
