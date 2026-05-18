@@ -42,6 +42,11 @@ $env:OLLAMA_MAX_LOADED_MODELS = '1'
 $env:OLLAMA_NUM_PARALLEL      = '1'
 $env:OLLAMA_KEEP_ALIVE        = '24h'
 $env:OLLAMA_MAX_QUEUE         = '512'
+# Model store on D: — the Ollama Desktop tray app reads this from its own
+# config (not from User/Machine env vars), so when we replace the tray's
+# server we must pass the path explicitly or `ollama serve` falls back to
+# %USERPROFILE%\.ollama\models and reports every model as 404.
+$env:OLLAMA_MODELS            = 'D:\OllamaModels'
 # OLLAMA_FLASH_ATTENTION and OLLAMA_KV_CACHE_TYPE intentionally NOT set:
 # Ollama auto-disables FA when an embed model is loaded (mixed pipeline),
 # and q8_0 KV silently falls back to f16 on archs that don't support it.
@@ -74,7 +79,7 @@ $psi.UseShellExecute        = $false
 $psi.RedirectStandardOutput = $true
 $psi.RedirectStandardError  = $true
 $psi.CreateNoWindow         = $true
-foreach ($k in 'OLLAMA_MAX_LOADED_MODELS','OLLAMA_NUM_PARALLEL','OLLAMA_KEEP_ALIVE','OLLAMA_MAX_QUEUE') {
+foreach ($k in 'OLLAMA_MAX_LOADED_MODELS','OLLAMA_NUM_PARALLEL','OLLAMA_KEEP_ALIVE','OLLAMA_MAX_QUEUE','OLLAMA_MODELS') {
     $psi.EnvironmentVariables[$k] = [Environment]::GetEnvironmentVariable($k, 'Process')
 }
 
