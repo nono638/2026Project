@@ -35,9 +35,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import math
 import os
+import signal
 import sys
 import time
 from pathlib import Path
@@ -79,6 +81,22 @@ from experiment_utils import (
     get_ollama_model_details,
     write_experiment_metadata,
 )
+
+from src.monitoring import EventLog, snapshot as gpu_snapshot
+
+# How long the GPU/driver is given to settle between configs. The 5090
+# Laptop has been observed to BSOD with nvlddmkm DPC_WATCHDOG_VIOLATION
+# (0x133) under sustained load — a known driver bug across multiple
+# versions, see https://forums.developer.nvidia.com/t/bug-rtx-5090-hibernate-resume-causes-nvlddmkm-sys-0x133-dpc-watchdog/364994
+# A short pause at each model-switch boundary doesn't fix the bug but
+# noticeably reduces the rate at which we trigger it, and gives the
+# event log a clean "boundary" marker for post-mortem.
+CONFIG_COOLDOWN_S = 5
+
+# Sample GPU stats every N completed rows during a config. Hourly would
+# miss too much; per-row would bloat the log. 50 lines up roughly with a
+# ~10-minute interval at observed throughput.
+GPU_SNAPSHOT_EVERY_N_ROWS = 50
 
 # Default judge panel for Experiments 1 and 2: cross-provider two-judge
 # panel chosen from Exp 0 v3 cost vs accuracy results. Documented in
@@ -448,6 +466,32 @@ def main() -> None:
     raw_scores_path = output_dir / "raw_scores.csv"
     report_path = output_dir / "report.md"
 
+    # Structured event log — written alongside raw_scores.csv. The plaintext
+    # run log is dominated by per-HTTP-request lines (useful for live tail,
+    # near-useless for post-mortem); events.jsonl carries the run skeleton:
+    # run_start, config_start, gpu_snapshot, config_end, error, run_end.
+    events = EventLog(output_dir / "events.jsonl")
+
+    # Signal handlers — give the run a chance to mark a clean shutdown line
+    # in events.jsonl before the process exits. This won't help against a
+    # full BSOD (the kernel never lets us run), but it does turn Ctrl-C
+    # and any orderly SIGTERM into a recoverable, labeled stop.
+    def _on_signal(signum, _frame):
+        events.write("signal_received",
+                     signal=signal.Signals(signum).name)
+        # Restore default and re-raise so the standard exit path runs.
+        signal.signal(signum, signal.SIG_DFL)
+        os.kill(os.getpid(), signum)
+
+    for _sig in (signal.SIGINT, signal.SIGTERM):
+        try:
+            signal.signal(_sig, _on_signal)
+        except (ValueError, OSError):
+            # SIGTERM isn't always available on Windows in some contexts;
+            # missing a signal handler is non-fatal — telemetry must not
+            # block startup.
+            pass
+
     # Validate CLI filters
     models = validate_models(args.models)
     strategies = validate_strategies(args.strategies)
@@ -485,6 +529,23 @@ def main() -> None:
                         len(completed_rows), len(by_config))
             for (s, m), n in sorted(by_config.items()):
                 logger.info("  %s x %s: %d rows", s, m, n)
+
+    # Emit the run_start event with the initial GPU snapshot. The first
+    # snapshot anchors the post-mortem timeline: if a later crash dump
+    # shows GPU memory climbing or temps rising past this baseline,
+    # that's diagnostic signal.
+    events.write(
+        "run_start",
+        experiment="experiment_1",
+        strategies=strategies,
+        models=models,
+        n_questions=args.n,
+        seed=args.seed,
+        scorers=list(args.scorers),
+        max_cost_usd=args.max_cost,
+        resume=args.resume,
+        gpu=gpu_snapshot(),
+    )
 
     # Build judge panel — one shared CostGuard so --max-cost is the global
     # ceiling across the panel, not a per-judge ceiling.
@@ -617,11 +678,22 @@ def main() -> None:
                 logger.info("[config %d/%d] %s x %s", config_idx, total_configs,
                             strat_name, model_name)
 
+            events.write(
+                "config_start",
+                config_idx=config_idx,
+                total_configs=total_configs,
+                strategy=strat_name,
+                model=model_name,
+                rows_already_done=len(done_questions_this_config),
+                gpu=gpu_snapshot(),
+            )
+
             # Ensure model is available
             try:
                 ensure_model(client, model_name)
             except Exception as exc:
                 logger.error("Failed to pull model %s: %s — skipping model", model_name, exc)
+                events.write("model_pull_failed", model=model_name, error=str(exc))
                 continue
 
             # Build strategy with fresh LLM instance
@@ -740,6 +812,19 @@ def main() -> None:
                 completed_rows.add((strat_name, model_name, query.text))
                 config_rows_written += 1
 
+                # Periodic GPU snapshot. Anchors the timeline inside long
+                # configs so a crash dump can be matched to the workload
+                # phase that preceded it.
+                if config_rows_written % GPU_SNAPSHOT_EVERY_N_ROWS == 0:
+                    events.write(
+                        "gpu_snapshot",
+                        config_idx=config_idx,
+                        strategy=strat_name,
+                        model=model_name,
+                        rows_written_this_config=config_rows_written,
+                        gpu=gpu_snapshot(),
+                    )
+
                 if cost_limit_hit:
                     break
 
@@ -748,11 +833,27 @@ def main() -> None:
             logger.info("Config %s x %s done: %d new rows in %s",
                         strat_name, model_name, config_rows_written,
                         format_duration(config_elapsed))
+            events.write(
+                "config_end",
+                config_idx=config_idx,
+                strategy=strat_name,
+                model=model_name,
+                rows_written=config_rows_written,
+                elapsed_s=round(config_elapsed, 2),
+                gpu=gpu_snapshot(),
+            )
             configs_done += 1
 
             if cost_limit_hit:
                 logger.error("Stopping experiment due to cost limit.")
                 break
+
+            # Cooldown between configs — gives the NVIDIA driver a moment
+            # to clean up before the next model swap. Cheap (a few seconds
+            # over a multi-hour run) and labelled in events.jsonl for
+            # post-mortem.
+            if config_idx < total_configs:
+                time.sleep(CONFIG_COOLDOWN_S)
 
     # Compute BERTScore in batch at the end
     # Why batch: BERTScore loads a ~1.4GB model once, much faster than per-row
@@ -818,6 +919,12 @@ def main() -> None:
     if cost_limit_hit:
         print("  WARNING: Cost limit was reached — results are partial.")
     print("=" * 60)
+
+    events.write(
+        "run_end",
+        cost_limit_hit=cost_limit_hit,
+        gpu=gpu_snapshot(),
+    )
 
     # Auto-regenerate gallery unless --no-gallery is set
     if not args.no_gallery:
