@@ -7,242 +7,866 @@
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #fafafa;
-    color: #222;
-    line-height: 1.6;
+/* RAGBench gallery — editorial/academic theme.
+   Cream paper, serif display type, IBM-palette accents as data markers. */
+
+:root {
+    /* Paper + ink */
+    --paper:       #f6f3ea;
+    --paper-2:     #fdfbf4;
+    --paper-edge:  #e6dfcc;
+    --ink:         #18181b;
+    --ink-2:       #3a3a3f;
+    --ink-3:       #6a6a72;
+    --ink-muted:   #9d9d9d;
+    /* IBM colorblind-safe palette — chart-locked, do not change */
+    --c-blue:      #648FFF;
+    --c-purple:    #785EF0;
+    --c-magenta:   #DC267F;
+    --c-orange:    #FE6100;
+    --c-gold:      #FFB000;
+    --c-teal:      #22A884;
+    /* Type stacks — system fonts only (no CDN) */
+    --serif:  ui-serif, Charter, "Bitstream Charter", "Sitka Text", "Source Serif Pro", Cambria, Georgia, serif;
+    --sans:   -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono:   ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
-/* Navigation bar */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 17px;
+    /* subtle vignette at the top of the viewport — sets atmosphere without
+       competing with the Plotly charts further down the page */
+    background-image: radial-gradient(ellipse 70% 35% at 50% -8%,
+                                       rgba(100,143,255,0.06),
+                                       transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* === Navigation === */
 .nav {
-    background: #1a1a2e;
-    padding: 12px 24px;
+    background: rgba(246, 243, 234, 0.92);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 18px 32px;
     display: flex;
-    gap: 24px;
-    align-items: center;
+    gap: 4px;
+    align-items: baseline;
     position: sticky;
     top: 0;
     z-index: 100;
 }
-.nav a {
-    color: #aab;
-    text-decoration: none;
-    font-size: 0.95em;
-    padding: 6px 12px;
-    border-radius: 6px;
-    transition: background 0.2s, color 0.2s;
-}
-.nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.nav a.active { background: #648FFF; color: #fff; font-weight: 600; }
 .nav .brand {
-    font-weight: 700;
-    font-size: 1.1em;
-    color: #648FFF;
-    margin-right: 16px;
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.45em;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    margin-right: auto;
+    position: relative;
+}
+.nav .brand::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 26px;
+    height: 2px;
+    background: var(--c-blue);
+}
+.nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-family: var(--sans);
+    font-size: 0.74em;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 12px;
+    border-radius: 2px;
+    transition: color 0.15s, background 0.15s;
+    position: relative;
+}
+.nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.nav a.active { color: var(--ink); background: transparent; }
+.nav a.active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 2px;
+    height: 2px;
+    background: var(--c-blue);
 }
 
-/* Version sub-navigation (Experiment 0 versions) */
+/* === Version sub-nav === */
 .version-nav {
-    background: #2d2d44;
-    padding: 6px 24px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 10px 32px;
     display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 0.85em;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 0.82em;
 }
 .version-nav .version-label {
-    color: #888;
-    margin-right: 8px;
+    color: var(--ink-muted);
+    font-size: 0.85em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-right: 10px;
 }
 .version-nav a {
-    color: #aab;
+    color: var(--ink-3);
     text-decoration: none;
-    padding: 4px 12px;
-    border-radius: 4px;
-    transition: background 0.2s, color 0.2s;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.95em;
+    transition: color 0.15s, background 0.15s;
 }
-.version-nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.version-nav a.active { background: #785EF0; color: #fff; font-weight: 600; }
+.version-nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.version-nav a.active {
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    padding: 2px 9px;
+}
 
-/* Main content */
+/* === Main content === */
 .content {
-    max-width: 1200px;
+    max-width: 1180px;
     margin: 0 auto;
-    padding: 32px 24px;
+    padding: 56px 32px 80px;
+}
+
+/* === Typography === */
+h1, h2, h3, h4 {
+    font-family: var(--serif);
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    line-height: 1.22;
 }
 h1 {
-    color: #1a1a2e;
-    border-bottom: 3px solid #648FFF;
-    padding-bottom: 10px;
-    margin-bottom: 24px;
+    font-size: 2.4em;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    position: relative;
+}
+h1::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 56px;
+    height: 3px;
+    background: var(--c-blue);
 }
 h2 {
-    color: #1a1a2e;
-    margin-top: 32px;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 5px;
+    font-size: 1.55em;
+    margin-top: 52px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--paper-edge);
 }
-h3 { color: #333; margin-top: 24px; }
-p { margin: 12px 0; }
+h3 {
+    font-size: 1.18em;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    color: var(--ink);
+}
+h4 {
+    font-size: 1em;
+    margin-bottom: 6px;
+    color: var(--ink);
+}
+p {
+    margin: 14px 0;
+    color: var(--ink-2);
+    max-width: 72ch;
+}
+strong { color: var(--ink); font-weight: 600; }
+em { font-style: italic; color: var(--ink-2); }
 
-/* Cards */
+a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--c-blue);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.15s;
+}
+a:hover { text-decoration-color: var(--c-magenta); }
+
+/* === Cards === */
 .card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    margin: 20px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 34px 38px;
+    margin: 28px 0;
+    position: relative;
 }
+/* Editorial section-marker — short colored tick at the top of every card */
+.card::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 38px;
+    width: 44px;
+    height: 3px;
+    background: var(--c-blue);
+}
+.card h2:first-child { margin-top: 0; }
 
-/* Experiment list on index */
+/* === Experiment grid === */
 .experiment-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin: 24px 0;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 22px;
+    margin: 28px 0;
 }
 .experiment-card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 28px 30px;
+    transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
 }
+.experiment-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--c-blue);
+    transform: scaleX(0.18);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+}
+.experiment-card:nth-child(2)::before { background: var(--c-purple); }
+.experiment-card:nth-child(3)::before { background: var(--c-magenta); }
+.experiment-card:nth-child(4)::before { background: var(--c-orange); }
+.experiment-card:nth-child(5)::before { background: var(--c-teal); }
 .experiment-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    border-color: var(--ink-muted);
+    box-shadow: 0 10px 30px -16px rgba(24,24,27,0.22);
 }
+.experiment-card:hover::before { transform: scaleX(1); }
 .experiment-card a {
     text-decoration: none;
     color: inherit;
     display: block;
 }
-.experiment-card h3 { color: #648FFF; margin-top: 0; }
+.experiment-card h3 {
+    color: var(--ink);
+    margin-top: 14px;
+    margin-bottom: 8px;
+    font-size: 1.28em;
+}
+.experiment-card p {
+    color: var(--ink-3);
+    font-size: 0.94em;
+    margin: 0;
+    max-width: none;
+}
 .experiment-card .status {
     display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 0.8em;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 0.7em;
     font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--mono);
 }
-.status-ready { background: #e8f5e9; color: #2e7d32; }
-.status-placeholder { background: #fff3e0; color: #e65100; }
+.status-ready {
+    background: rgba(34,168,132,0.12);
+    color: #0d5a3c;
+    border: 1px solid rgba(34,168,132,0.32);
+}
+.status-placeholder {
+    background: rgba(254,97,0,0.10);
+    color: #82340a;
+    border: 1px solid rgba(254,97,0,0.32);
+}
 
-/* Chart container */
+/* === Chart container === */
 .chart-container {
-    background: white;
-    border-radius: 12px;
-    padding: 16px;
-    margin: 20px 0;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px;
+    margin: 24px 0;
 }
 
-/* Figure captions (task-051) */
-.caption {
-    font-size: 0.95em;
-    color: #4a4a4a;
+/* === Feature card (cards that want an extra-loud left accent) === */
+.feature-card {
+    border-left: 4px solid var(--c-blue);
+    padding-left: 34px;
+    margin-bottom: 32px;
+}
+.feature-card::before { display: none; }
+.feature-card .cta-btn { margin-top: 16px; }
+.feature-card--warn { border-left-color: var(--c-orange); }
+
+/* Italic kicker line under a section title */
+.kicker-italic {
+    color: var(--ink-3);
     font-style: italic;
-    max-width: 800px;
-    margin: 0.5em auto 2em auto;
-    line-height: 1.4;
-    padding: 0 1em;
+    margin-bottom: 14px;
+    font-family: var(--serif);
 }
 
-/* Placeholder page */
-.placeholder {
+/* Inline "Further reading" / footnote-style paragraph */
+.further-reading {
+    font-size: 0.9em;
+    color: var(--ink-3);
+    margin-top: 18px;
+    line-height: 1.55;
+}
+.further-reading strong { color: var(--ink-2); }
+
+/* === RAG explainer figure (Wikipedia CC-BY-SA diagram on the index) === */
+.rag-figure {
+    margin: 22px auto 6px;
+    max-width: 560px;
     text-align: center;
-    padding: 60px 24px;
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 22px 16px;
 }
-.placeholder h2 { border: none; color: #888; }
-.placeholder p { color: #666; max-width: 600px; margin: 16px auto; }
+.rag-figure__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 480px;
+    margin: 0 auto;
+}
+.rag-figure__caption {
+    font-family: var(--serif);
+    font-size: 0.92em;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin-top: 14px;
+    padding: 0 6px;
+    text-align: left;
+    font-style: italic;
+}
+.rag-figure__caption strong { font-style: normal; color: var(--ink); }
+.rag-figure__caption em { font-style: italic; color: var(--ink); }
+.rag-figure__credit {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 0.78em;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+}
 
-/* Data tables */
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 16px 0; }
-.data-table th, .data-table td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
-.data-table th { background: #f5f5f5; font-weight: 600; }
+/* === Catch-all muted note (footnotes, chart caveats, asides) === */
+.muted-note,
+p.muted-note,
+li.muted-note {
+    color: var(--ink-3);
+    font-size: 0.88em;
+    font-style: italic;
+    line-height: 1.5;
+}
+.section-intro {
+    color: var(--ink-2);
+    margin-bottom: 16px;
+}
 
-/* Footer */
+/* === Chart explanation prose (sits between chart heading and chart) === */
+.chart-explanation {
+    color: var(--ink-2);
+    font-size: 0.94em;
+    line-height: 1.55;
+    margin: 6px 0 18px;
+    padding: 0 4px;
+    max-width: 78ch;
+}
+.chart-explanation strong { color: var(--ink); }
+
+/* === Experiment design callout (axes varied vs held constant) === */
+.axis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: 14px;
+    margin: 22px 0 4px;
+}
+.axis-block {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 16px 18px;
+    position: relative;
+}
+.axis-block::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 28px;
+    height: 2px;
+}
+.axis-varies::before { background: var(--c-magenta); }
+.axis-held::before   { background: var(--ink-muted); }
+.axis-label {
+    font-family: var(--mono);
+    font-size: 0.7em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+}
+.axis-varies .axis-label { color: var(--c-magenta); }
+.axis-title {
+    font-family: var(--serif);
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+}
+.axis-detail {
+    font-size: 0.88em;
+    color: var(--ink-2);
+    line-height: 1.5;
+}
+
+/* === Strategy explainer table (index "RAG Strategies in this study") === */
+.strategy-list {
+    margin: 18px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.strategy-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--paper-edge);
+}
+.strategy-row:last-child { border-bottom: 1px solid var(--paper-edge); }
+.strategy-name {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.08em;
+    color: var(--ink);
+    position: relative;
+    padding-left: 14px;
+}
+.strategy-name::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.45em;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--c-blue);
+}
+.strategy-row:nth-child(2) .strategy-name::before { background: var(--c-purple); }
+.strategy-row:nth-child(3) .strategy-name::before { background: var(--c-magenta); }
+.strategy-row:nth-child(4) .strategy-name::before { background: var(--c-orange); }
+.strategy-row:nth-child(5) .strategy-name::before { background: var(--c-teal); }
+.strategy-desc { color: var(--ink-2); font-size: 0.96em; line-height: 1.55; }
+.strategy-desc strong { color: var(--ink); }
+.strategy-meta {
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 0.78em;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+}
+
+/* === Worked example callout (one annotated row from the data) === */
+.worked-example {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    margin-top: 26px;
+    position: relative;
+}
+.worked-example::before {
+    content: "EXAMPLE";
+    position: absolute;
+    top: -8px;
+    left: 22px;
+    background: var(--paper-2);
+    padding: 0 8px;
+    font-family: var(--mono);
+    font-size: 0.66em;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+}
+.worked-example h3 {
+    margin-top: 0;
+    color: var(--ink);
+    font-size: 1.18em;
+}
+.worked-example__lede {
+    font-size: 0.92em;
+    color: var(--ink-3);
+    margin: 6px 0 18px;
+}
+.worked-example__rows {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 18px;
+    font-size: 0.95em;
+    line-height: 1.6;
+    margin: 0;
+}
+.worked-example__rows dt { margin: 0; }
+.worked-example__rows dd { margin: 0; color: var(--ink-2); }
+.worked-example__label {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--ink);
+}
+.worked-example__label[data-accent="question"] { color: var(--c-purple); }
+.worked-example__label[data-accent="gold"]     { color: var(--c-gold); }
+.worked-example__label[data-accent="rag"]      { color: var(--c-orange); }
+.worked-example__rag { font-style: italic; }
+.worked-example code {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.92em;
+}
+
+.worked-example__section {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--paper-edge);
+}
+.worked-example__section-label {
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 12px;
+}
+.worked-example__section-label[data-accent="metrics"] { color: var(--c-teal); }
+.worked-example__section-label[data-accent="judges"]  { color: var(--c-purple); }
+
+.worked-example__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.worked-example__metric {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 12px 14px;
+}
+.worked-example__metric-label {
+    font-size: 0.78em;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.worked-example__metric-value {
+    font-family: var(--serif);
+    font-size: 1.55em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 4px 0;
+    font-variant-numeric: tabular-nums;
+}
+.worked-example__metric-value--good { color: var(--c-teal); }
+.worked-example__metric-value--warn { color: var(--c-orange); }
+.worked-example__metric-note {
+    font-size: 0.82em;
+    color: var(--ink-3);
+    line-height: 1.4;
+}
+
+.worked-example__judges {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px 14px;
+    font-size: 0.91em;
+    color: var(--ink-2);
+}
+.worked-example__judges strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.worked-example__note {
+    font-size: 0.88em;
+    color: var(--ink-3);
+    margin-top: 12px;
+    line-height: 1.55;
+}
+
+/* === Captions === */
+.caption {
+    font-family: var(--serif);
+    font-size: 0.94em;
+    color: var(--ink-3);
+    font-style: italic;
+    max-width: 72ch;
+    margin: 8px auto 30px;
+    line-height: 1.5;
+    padding: 0 12px;
+    text-align: center;
+}
+
+/* === Placeholder === */
+.placeholder { text-align: center; padding: 80px 24px; }
+.placeholder h2 {
+    border: none;
+    color: var(--ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.placeholder p {
+    color: var(--ink-3);
+    max-width: 600px;
+    margin: 16px auto;
+}
+
+/* === Data tables — Tufte-style rules === */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92em;
+    margin: 20px 0;
+    font-variant-numeric: tabular-nums;
+}
+.data-table th, .data-table td {
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    border: none;
+    border-bottom: 1px solid var(--paper-edge);
+}
+.data-table thead th {
+    background: transparent;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    font-weight: 600;
+    font-size: 0.76em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-family: var(--sans);
+}
+.data-table tbody tr:last-child td { border-bottom: 2px solid var(--ink); }
+.data-table tbody tr:hover { background: rgba(100,143,255,0.05); }
+
+/* === Footer === */
 .footer {
     text-align: center;
-    padding: 24px;
-    color: #888;
-    font-size: 0.85em;
-    border-top: 1px solid #eee;
-    margin-top: 40px;
+    padding: 40px 24px 32px;
+    color: var(--ink-3);
+    font-size: 0.88em;
+    border-top: 1px solid var(--paper-edge);
+    margin-top: 60px;
+    font-family: var(--serif);
+    font-style: italic;
 }
-.footer a { color: #648FFF; text-decoration: none; }
-.footer a:hover { text-decoration: underline; }
+.footer a {
+    color: var(--ink);
+    text-decoration-color: var(--c-blue);
+}
+.footer a:hover { text-decoration-color: var(--c-magenta); }
 
-/* Hero section — gradient background for visual impact on landing page */
+/* === Hero (index landing) — oversized serif, editorial kicker === */
 .hero {
-    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
-    color: #fff;
-    text-align: center;
-    padding: 64px 24px 48px;
-    margin: -32px -24px 32px -24px;
-    border-radius: 0 0 12px 12px;
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    padding: 16px 0 56px;
+    margin: -16px 0 48px;
+    border-bottom: 1px solid var(--paper-edge);
+    position: relative;
 }
-.hero h1 { color: #fff; border-bottom: none; padding-bottom: 0; margin-bottom: 12px; font-size: 2.5em; }
-.hero .tagline { font-size: 1.2em; color: #aab; margin-bottom: 20px; }
-.hero .description { max-width: 700px; margin: 0 auto 28px; color: #ccc; line-height: 1.7; }
+.hero::before {
+    content: "Findings Gallery · 2026";
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 22px;
+}
+.hero h1 {
+    color: var(--ink);
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 18px;
+    font-size: 4.6em;
+    font-weight: 600;
+    letter-spacing: -0.038em;
+    line-height: 0.96;
+    font-family: var(--serif);
+}
+.hero h1::after { display: none; }
+.hero .tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.4em;
+    color: var(--ink-2);
+    margin: 0 0 24px 0;
+    max-width: 36ch;
+    line-height: 1.32;
+}
+.hero .description {
+    max-width: 64ch;
+    margin: 0 0 30px 0;
+    color: var(--ink-2);
+    line-height: 1.7;
+    font-size: 1.02em;
+}
 .hero .cta-btn {
     display: inline-block;
-    background: #648FFF;
-    color: #fff;
-    padding: 12px 28px;
-    border-radius: 8px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 26px;
+    border-radius: 2px;
     text-decoration: none;
-    font-weight: 600;
-    font-size: 1em;
-    transition: background 0.2s;
+    font-weight: 500;
+    font-size: 0.82em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--sans);
+    transition: background 0.18s, transform 0.18s;
+    border: 1px solid var(--ink);
 }
-.hero .cta-btn:hover { background: #4a7aee; }
+.hero .cta-btn:hover {
+    background: var(--c-blue);
+    border-color: var(--c-blue);
+    color: var(--paper-2);
+    transform: translateY(-1px);
+}
 
-/* Key findings cards — visual distinction with left border accent */
+/* === Key findings cards === */
 .findings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
-    margin: 24px 0;
+    margin: 28px 0;
 }
 .finding-card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-left: 4px solid #648FFF;
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    border-left: 3px solid var(--c-blue);
+    transition: transform 0.18s, border-left-color 0.18s, box-shadow 0.18s;
 }
-.finding-card:nth-child(2) { border-left-color: #785EF0; }
-.finding-card:nth-child(3) { border-left-color: #DC267F; }
-.finding-card:nth-child(4) { border-left-color: #FE6100; }
-.finding-card h4 { color: #1a1a2e; margin-bottom: 8px; font-size: 1em; }
-.finding-card p { color: #555; font-size: 0.9em; margin: 0; }
+.finding-card:nth-child(2) { border-left-color: var(--c-purple); }
+.finding-card:nth-child(3) { border-left-color: var(--c-magenta); }
+.finding-card:nth-child(4) { border-left-color: var(--c-orange); }
+.finding-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -14px rgba(24,24,27,0.18);
+}
+.finding-card h4 {
+    color: var(--ink);
+    margin-bottom: 8px;
+    font-size: 1.02em;
+    font-family: var(--serif);
+    line-height: 1.3;
+}
+.finding-card p {
+    color: var(--ink-3);
+    font-size: 0.91em;
+    margin: 0;
+    max-width: none;
+}
 
-/* Methodology page — readable prose width */
-.methodology-content { max-width: 800px; margin: 0 auto; }
-.methodology-content h2 { margin-top: 40px; }
-.methodology-content p { margin: 12px 0; color: #333; }
+/* === Methodology page — readable prose column === */
+.methodology-content {
+    max-width: 72ch;
+    margin: 0 auto;
+}
+.methodology-content h2 { margin-top: 56px; }
+.methodology-content p {
+    margin: 16px 0;
+    color: var(--ink-2);
+    max-width: none;
+}
 .methodology-content pre {
-    background: #1a1a2e;
-    color: #aab;
-    padding: 20px;
-    border-radius: 8px;
+    background: var(--ink);
+    color: #e8e4d6;
+    padding: 22px 24px;
+    border-radius: 3px;
     overflow-x: auto;
-    font-size: 0.85em;
-    line-height: 1.8;
+    font-size: 0.86em;
+    line-height: 1.7;
+    font-family: var(--mono);
+    margin: 22px 0;
+}
+.methodology-content code {
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+    border: 1px solid var(--paper-edge);
+    color: var(--ink);
+}
+.methodology-content pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
 }
 
-/* Responsive — stack cards and scale hero on narrow screens */
+/* === Responsive === */
 @media (max-width: 768px) {
-    .hero h1 { font-size: 1.8em; }
-    .hero .tagline { font-size: 1em; }
-    .hero { padding: 40px 16px 32px; }
+    body { font-size: 16px; }
+    .content { padding: 36px 20px 56px; }
+    .hero { padding: 12px 0 36px; margin: -12px 0 32px; }
+    .hero h1 { font-size: 2.5em; }
+    .hero .tagline { font-size: 1.12em; }
+    .hero::before { font-size: 0.68em; margin-bottom: 16px; }
     .experiment-grid { grid-template-columns: 1fr; }
     .findings-grid { grid-template-columns: 1fr; }
-    .nav { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
-    .nav a { font-size: 0.85em; padding: 4px 8px; }
+    .nav { flex-wrap: wrap; gap: 4px; padding: 14px 18px; }
+    .nav a { font-size: 0.7em; padding: 6px 8px; }
+    .nav .brand { font-size: 1.25em; width: 100%; margin-right: 0; margin-bottom: 8px; }
+    .version-nav { padding: 8px 18px; flex-wrap: wrap; }
+    .card { padding: 24px 22px; }
+    .card::before { left: 22px; }
+    h1 { font-size: 1.9em; }
+    h2 { font-size: 1.32em; }
+    .axis-grid { grid-template-columns: 1fr; }
+    .strategy-row { grid-template-columns: 1fr; gap: 6px; }
+    .strategy-name { padding-left: 14px; }
+    .worked-example__rows { grid-template-columns: 1fr; gap: 4px 0; }
+    .worked-example__rows dd { margin-bottom: 8px; }
+    .worked-example__metrics { grid-template-columns: 1fr; }
+    .worked-example__judges  { grid-template-columns: repeat(2, 1fr); }
+    .feature-card { padding-left: 22px; }
 }
 
     </style>
@@ -270,7 +894,7 @@ p { margin: 12px 0; }
             query traverses the bottom row. Magenta boxes are the test axes that vary
             across experiments; gray boxes are passive infrastructure or held constant.
         </p>
-        <div>                            <div id="f4a3e0c5-4a96-45e6-a743-bbd8eed9ee89" class="plotly-graph-div" style="height:320px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("f4a3e0c5-4a96-45e6-a743-bbd8eed9ee89")) {                    Plotly.newPlot(                        "f4a3e0c5-4a96-45e6-a743-bbd8eed9ee89",                        [{"mode":"markers","showlegend":false,"x":[null],"y":[null],"type":"scatter"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"xaxis":{"range":[0,31],"showgrid":false,"zeroline":false,"showticklabels":false,"fixedrange":true},"yaxis":{"range":[-1,3.4],"showgrid":false,"zeroline":false,"showticklabels":false,"fixedrange":true},"margin":{"l":10,"r":10,"t":10,"b":10},"shapes":[{"fillcolor":"#648FFF","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":1.2,"x1":3.8,"y0":1.5,"y1":2.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":5.2,"x1":7.8,"y0":1.5,"y1":2.5},{"fillcolor":"#6B7280","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":9.1,"x1":11.9,"y0":1.5,"y1":2.5},{"fillcolor":"#6B7280","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":13.1,"x1":15.9,"y0":1.5,"y1":2.5},{"fillcolor":"#648FFF","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":9.2,"x1":11.8,"y0":-0.5,"y1":0.5},{"fillcolor":"#6B7280","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":13.2,"x1":15.8,"y0":-0.5,"y1":0.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":17.2,"x1":19.8,"y0":-0.5,"y1":0.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":21.1,"x1":23.9,"y0":-0.5,"y1":0.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":25.0,"x1":27.0,"y0":-0.5,"y1":0.5},{"fillcolor":"#FE6100","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":27.8,"x1":30.2,"y0":-0.5,"y1":0.5}],"annotations":[{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eDocuments\u003c\u002fb\u003e","x":2.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003ecorpus\u003c\u002fspan\u003e","x":2.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eChunker\u003c\u002fb\u003e","x":6.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 4 strategies\u003c\u002fspan\u003e","x":6.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eEmbedder\u003c\u002fb\u003e","x":10.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eheld constant\u003c\u002fspan\u003e","x":10.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eVector Index\u003c\u002fb\u003e","x":14.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eFAISS\u003c\u002fspan\u003e","x":14.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eQuestion\u003c\u002fb\u003e","x":10.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003euser query\u003c\u002fspan\u003e","x":10.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eRetriever\u003c\u002fb\u003e","x":14.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003etop-K hybrid\u003c\u002fspan\u003e","x":14.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eReranker\u003c\u002fb\u003e","x":18.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 3 options\u003c\u002fspan\u003e","x":18.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eRAG Strategy\u003c\u002fb\u003e","x":22.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 5 strategies\u003c\u002fspan\u003e","x":22.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eLLM\u003c\u002fb\u003e","x":26.0,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 6 models\u003c\u002fspan\u003e","x":26.0,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eAnswer\u003c\u002fb\u003e","x":29.0,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eto scorer\u003c\u002fspan\u003e","x":29.0,"y":-0.22},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":3.8,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":5.2,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":7.8,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":9.1,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":11.9,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":13.1,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":14.5,"axref":"x","ay":1.5,"ayref":"y","showarrow":true,"text":"","x":14.5,"xref":"x","y":0.5,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":11.8,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":13.2,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":15.8,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":17.2,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":19.8,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":21.1,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":23.9,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":25.0,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":27.0,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":27.8,"xref":"x","y":0,"yref":"y"},{"showarrow":false,"text":"\u003cspan style='font-size:11px;color:#888'\u003e\u003cb\u003eOFFLINE INDEXING\u003c\u002fb\u003e (per corpus, once)\u003c\u002fspan\u003e","x":2.5,"xanchor":"left","y":2.85},{"showarrow":false,"text":"\u003cspan style='font-size:11px;color:#888'\u003e\u003cb\u003eONLINE QUERY\u003c\u002fb\u003e (per question)\u003c\u002fspan\u003e","x":10.5,"xanchor":"left","y":0.85}],"plot_bgcolor":"white","paper_bgcolor":"white","height":320},                        {"responsive": true}                    )                };            </script>        </div>
+        <div>                            <div id="2bcdbc40-84c4-4ea6-aa3c-dcb02f0d9ec8" class="plotly-graph-div" style="height:320px; width:100%;"></div>            <script>                window.PLOTLYENV=window.PLOTLYENV || {};                                if (document.getElementById("2bcdbc40-84c4-4ea6-aa3c-dcb02f0d9ec8")) {                    Plotly.newPlot(                        "2bcdbc40-84c4-4ea6-aa3c-dcb02f0d9ec8",                        [{"mode":"markers","showlegend":false,"x":[null],"y":[null],"type":"scatter"}],                        {"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermap":[{"type":"scattermap","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"xaxis":{"range":[0,31],"showgrid":false,"zeroline":false,"showticklabels":false,"fixedrange":true},"yaxis":{"range":[-1,3.4],"showgrid":false,"zeroline":false,"showticklabels":false,"fixedrange":true},"margin":{"l":10,"r":10,"t":10,"b":10},"shapes":[{"fillcolor":"#648FFF","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":1.2,"x1":3.8,"y0":1.5,"y1":2.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":5.2,"x1":7.8,"y0":1.5,"y1":2.5},{"fillcolor":"#6B7280","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":9.1,"x1":11.9,"y0":1.5,"y1":2.5},{"fillcolor":"#6B7280","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":13.1,"x1":15.9,"y0":1.5,"y1":2.5},{"fillcolor":"#648FFF","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":9.2,"x1":11.8,"y0":-0.5,"y1":0.5},{"fillcolor":"#6B7280","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":13.2,"x1":15.8,"y0":-0.5,"y1":0.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":17.2,"x1":19.8,"y0":-0.5,"y1":0.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":21.1,"x1":23.9,"y0":-0.5,"y1":0.5},{"fillcolor":"#DC267F","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":25.0,"x1":27.0,"y0":-0.5,"y1":0.5},{"fillcolor":"#FE6100","layer":"above","line":{"color":"white","width":2},"opacity":0.92,"type":"rect","x0":27.8,"x1":30.2,"y0":-0.5,"y1":0.5}],"annotations":[{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eDocuments\u003c\u002fb\u003e","x":2.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003ecorpus\u003c\u002fspan\u003e","x":2.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eChunker\u003c\u002fb\u003e","x":6.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 4 strategies\u003c\u002fspan\u003e","x":6.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eEmbedder\u003c\u002fb\u003e","x":10.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eheld constant\u003c\u002fspan\u003e","x":10.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eVector Index\u003c\u002fb\u003e","x":14.5,"y":2.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eFAISS\u003c\u002fspan\u003e","x":14.5,"y":1.78},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eQuestion\u003c\u002fb\u003e","x":10.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003euser query\u003c\u002fspan\u003e","x":10.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eRetriever\u003c\u002fb\u003e","x":14.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003etop-K hybrid\u003c\u002fspan\u003e","x":14.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eReranker\u003c\u002fb\u003e","x":18.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 3 options\u003c\u002fspan\u003e","x":18.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eRAG Strategy\u003c\u002fb\u003e","x":22.5,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 5 strategies\u003c\u002fspan\u003e","x":22.5,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eLLM\u003c\u002fb\u003e","x":26.0,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eaxis · 6 models\u003c\u002fspan\u003e","x":26.0,"y":-0.22},{"align":"center","font":{"color":"white","size":12},"showarrow":false,"text":"\u003cb\u003eAnswer\u003c\u002fb\u003e","x":29.0,"y":0.08},{"align":"center","font":{"color":"white","size":10},"showarrow":false,"text":"\u003cspan style='font-size:10px;opacity:0.92'\u003eto scorer\u003c\u002fspan\u003e","x":29.0,"y":-0.22},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":3.8,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":5.2,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":7.8,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":9.1,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":11.9,"axref":"x","ay":2,"ayref":"y","showarrow":true,"text":"","x":13.1,"xref":"x","y":2,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":14.5,"axref":"x","ay":1.5,"ayref":"y","showarrow":true,"text":"","x":14.5,"xref":"x","y":0.5,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":11.8,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":13.2,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":15.8,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":17.2,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":19.8,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":21.1,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":23.9,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":25.0,"xref":"x","y":0,"yref":"y"},{"arrowcolor":"#555","arrowhead":2,"arrowsize":1.5,"arrowwidth":2,"ax":27.0,"axref":"x","ay":0,"ayref":"y","showarrow":true,"text":"","x":27.8,"xref":"x","y":0,"yref":"y"},{"showarrow":false,"text":"\u003cspan style='font-size:11px;color:#888'\u003e\u003cb\u003eOFFLINE INDEXING\u003c\u002fb\u003e (per corpus, once)\u003c\u002fspan\u003e","x":2.5,"xanchor":"left","y":2.85},{"showarrow":false,"text":"\u003cspan style='font-size:11px;color:#888'\u003e\u003cb\u003eONLINE QUERY\u003c\u002fb\u003e (per question)\u003c\u002fspan\u003e","x":10.5,"xanchor":"left","y":0.85}],"plot_bgcolor":"white","paper_bgcolor":"white","height":320},                        {"responsive": true}                    )                };            </script>        </div>
 
         <h2>The Five Axes</h2>
         <p>Each experiment varies one or two axes while holding the others constant,
@@ -282,46 +906,36 @@ p { margin: 12px 0; }
 
         <h3>Embedder</h3>
         <p>How text chunks become vector representations for similarity search.
-           Held constant across experiments: <strong>qwen3-embedding:4b</strong> via Ollama
-           (Apache 2.0, ~2.5 GB on disk, 40K-token context window).</p>
-        <p>The original choice was <code>mxbai-embed-large</code>, which has a 512-token
-           context — adequate for short chunks but a methodological liability for an
-           experiment whose whole purpose is to compare chunking strategies. During the
-           first Experiment 2 run, the <code>FixedSizeChunker(500&nbsp;words)</code> and
-           <code>SemanticChunker</code> configurations triggered hundreds of HTTP&nbsp;400s
-           because their chunks (~700 tokens and up) overflowed the embedder's window;
-           setting Ollama's server-side <code>truncate=true</code> didn't help on the
-           current Ollama version, leaving client-side truncation as the only fix.
-           Truncating chunks to fit a small embedder isn't a fair test of chunkers — it
-           penalizes any strategy that prefers larger units (semantic, large-window
-           fixed) by silently discarding the tail of every oversized chunk before
-           similarity is computed.</p>
-        <p>Switching to <code>qwen3-embedding:4b</code> removes the constraint entirely.
-           Some of what tipped the choice:</p>
+           Embedder choice is <em>held constant within each experiment</em> but
+           changed once across the project timeline, so different experiments use
+           different embedders.</p>
         <ul>
-          <li><strong>Context window: 40K tokens</strong> — about 80&times; mxbai's 512.
-              No chunker our experiments produce comes close to filling it, so
-              chunker-vs-chunker comparisons run on the embedder's terms instead of
-              the other way round.</li>
-          <li><strong>Top-tier retrieval quality.</strong> The Qwen3-Embedding family
-              (released by Alibaba in 2025) leads MTEB multilingual at the 8B size and
-              the 4B variant is within a couple of points; competitive with
-              closed-API offerings.</li>
-          <li><strong>Apache 2.0, fully local.</strong> No API spend on the
-              retrieval path, no provider lock-in, reproducible by anyone with the
-              same Ollama tag.</li>
-          <li><strong>Same family as our generation models.</strong> Experiments 1
-              and 2 already exercise the Qwen 3.5 / 3.6 line for generation; using a
-              Qwen embedder keeps the stack coherent rather than mixing tokenizer
-              philosophies on either side of the retrieve / generate seam.</li>
-          <li><strong>Fits the hardware.</strong> 4B parameters &asymp; 2.5 GB on
-              disk, which leaves headroom alongside our largest generation models
-              on a 24 GB GPU. The 8B variant would be tighter; the 0.6B variant
-              would underperform on retrieval.</li>
+          <li><strong>Experiment 2</strong> (run before the 2026-05-13 switch):
+              <code>mxbai-embed-large</code> via Ollama — 512-token context.</li>
+          <li><strong>Experiment 1 &amp; Experiment 0 v3</strong> (post-switch):
+              <code>embeddinggemma:300m</code> via Ollama — 2048-token context,
+              768-dim output, Apache 2.0, ~300 MB on disk.</li>
         </ul>
-        <p>The earlier <code>mxbai-embed-large</code> data is preserved in the experiment backups
-           but no longer drives the live gallery. See the changelog at the bottom of
-           Experiment 2 for the date this switch took effect.</p>
+        <p>The switch was a methodological response to a chunking-vs-embedder
+           conflict surfaced during the first Experiment 2 run: the
+           <code>FixedSizeChunker(500&nbsp;words)</code> and
+           <code>SemanticChunker</code> configurations triggered hundreds of
+           HTTP&nbsp;400s because their chunks (~700 tokens and up) overflowed
+           mxbai&rsquo;s 512-token window. Setting Ollama&rsquo;s server-side
+           <code>truncate=true</code> didn&rsquo;t help on the current Ollama
+           version, leaving client-side truncation as the only fix. Truncating
+           chunks to fit a small embedder isn&rsquo;t a fair test of chunkers
+           &mdash; it silently discards the tail of every oversized chunk before
+           similarity is computed, penalising any strategy that prefers larger
+           units. The replacement is <strong>EmbeddingGemma 300M</strong>: a
+           text-only encoder distilled from Gemma 3 with a 2K-token context,
+           released under Apache 2.0 by Google, well-rated on MTEB at the
+           sub-1B size class, and small enough that it co-resides comfortably
+           with the 9B generation models on a 24&nbsp;GB GPU.</p>
+        <p>The earlier <code>mxbai-embed-large</code> data is preserved in
+           Experiment 2&rsquo;s archive but no longer drives new generation runs.
+           Comparisons that span both experiments should treat the embedder as
+           a known difference, not a held-constant variable.</p>
 
         <h3>Reranker</h3>
         <p>An optional second-pass ranker that re-scores retrieved chunks before they reach
@@ -336,8 +950,12 @@ p { margin: 12px 0; }
            (query expansion).</p>
 
         <h3>Model</h3>
-        <p>Which language model generates the final answer. Tested: Qwen3 (0.6B, 1.7B,
-           4B, 8B) and Gemma 3 (1B, 4B) — all running locally via Ollama.</p>
+        <p>Which language model generates the final answer. Tested in Experiments
+           1 and 2: <strong>Qwen 3.5</strong> small tier (0.8B, 2B, 4B, 9B) plus
+           <strong>Gemma 4</strong> e-tier (e2b &asymp; 2.3B effective, e4b
+           &asymp; 4.5B effective) for the cross-family comparison in
+           Experiment 1. All run locally via Ollama, GGUF
+           Q4_K_M / Q8_0 quantisations as Ollama&rsquo;s default tags ship them.</p>
 
         <h2>Evaluation Approach</h2>
         <p>RAGBench uses dual evaluation to assess answer quality from two perspectives:</p>
@@ -399,16 +1017,17 @@ p { margin: 12px 0; }
                     <td>Qwen3-4B, NaiveRAG + BGE reranker</td>
                 </tr>
                 <tr>
-                    <td>1 (Strategy x Model)</td>
+                    <td>1 (Strategy &times; Model)</td>
                     <td>Does strategy compensate for model size?</td>
-                    <td>5 strategies x 6 models</td>
-                    <td>Recursive chunker, qwen3-embedding:4b</td>
+                    <td>5 strategies &times; 6 models = 30 configs &times; 200 questions</td>
+                    <td>Recursive chunker (500&thinsp;/&thinsp;100),
+                        embeddinggemma:300m, hybrid retrieval, no reranker</td>
                 </tr>
                 <tr>
-                    <td>2 (Chunking x Model)</td>
+                    <td>2 (Chunking &times; Model)</td>
                     <td>Does chunking strategy interact with model capability?</td>
-                    <td>4 chunkers x 4 models</td>
-                    <td>NaiveRAG, qwen3-embedding:4b</td>
+                    <td>4 chunkers &times; 4 models = 16 configs &times; 200 questions</td>
+                    <td>NaiveRAG, mxbai-embed-large, hybrid retrieval, no reranker</td>
                 </tr>
             </tbody>
         </table>

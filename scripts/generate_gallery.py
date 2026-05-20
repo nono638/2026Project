@@ -48,20 +48,25 @@ _COLORS = [
     "#22A884",  # teal
 ]
 
-# Experiment descriptions for placeholder pages
+# Experiment descriptions for placeholder pages and the index cards.
+# Kept in sync with the live metadata.json files in results/experiment_*/ —
+# update both this dict and the corresponding "What This Experiment Tests"
+# card when either matrix changes.
 _EXPERIMENT_DESCRIPTIONS = {
     1: (
         "Strategy × Model Size — 5 RAG strategies (NaiveRAG, SelfRAG, "
-        "CorrectiveRAG, AdaptiveRAG, MultiQueryRAG) × 6 models "
-        "(Qwen3 0.6B/1.7B/4B/8B, Gemma 3 1B/4B) = 30 configurations. "
-        "Held constant: Recursive chunker (500/100), qwen3-embedding:4b, "
-        "hybrid retrieval."
+        "MultiQueryRAG, CorrectiveRAG, AdaptiveRAG) × 6 models "
+        "(Qwen 3.5: 0.8B / 2B / 4B / 9B; Gemma 4 e-tier: e2b / e4b) "
+        "= 30 configurations. Held constant: Recursive chunker (500 / 100), "
+        "embeddinggemma:300m embedder, hybrid retrieval (top-k 5), no reranker. "
+        "Scored by a 2-judge panel: Claude Haiku 4.5 + GPT-5.4 mini."
     ),
     2: (
         "Chunking × Model Size — 4 chunking strategies "
-        "(Fixed 512, Recursive 500/100, Sentence, Semantic) × 4 Qwen3 models "
-        "(0.6B/1.7B/4B/8B) = 16 configurations. Held constant: NaiveRAG "
-        "strategy, qwen3-embedding:4b, hybrid retrieval."
+        "(Fixed 512, Recursive 500 / 100, Sentence, Semantic) × 4 Qwen 3.5 models "
+        "(0.8B / 2B / 4B / 9B) = 16 configurations. Held constant: NaiveRAG "
+        "strategy, mxbai-embed-large embedder, hybrid retrieval (top-k 5). "
+        "Scored by a 2-judge panel: Claude Haiku 4.5 + GPT-5.4 mini."
     ),
 }
 
@@ -71,242 +76,866 @@ _EXPERIMENT_DESCRIPTIONS = {
 # ---------------------------------------------------------------------------
 
 _GALLERY_CSS = """
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #fafafa;
-    color: #222;
-    line-height: 1.6;
+/* RAGBench gallery — editorial/academic theme.
+   Cream paper, serif display type, IBM-palette accents as data markers. */
+
+:root {
+    /* Paper + ink */
+    --paper:       #f6f3ea;
+    --paper-2:     #fdfbf4;
+    --paper-edge:  #e6dfcc;
+    --ink:         #18181b;
+    --ink-2:       #3a3a3f;
+    --ink-3:       #6a6a72;
+    --ink-muted:   #9d9d9d;
+    /* IBM colorblind-safe palette — chart-locked, do not change */
+    --c-blue:      #648FFF;
+    --c-purple:    #785EF0;
+    --c-magenta:   #DC267F;
+    --c-orange:    #FE6100;
+    --c-gold:      #FFB000;
+    --c-teal:      #22A884;
+    /* Type stacks — system fonts only (no CDN) */
+    --serif:  ui-serif, Charter, "Bitstream Charter", "Sitka Text", "Source Serif Pro", Cambria, Georgia, serif;
+    --sans:   -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono:   ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
-/* Navigation bar */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 17px;
+    /* subtle vignette at the top of the viewport — sets atmosphere without
+       competing with the Plotly charts further down the page */
+    background-image: radial-gradient(ellipse 70% 35% at 50% -8%,
+                                       rgba(100,143,255,0.06),
+                                       transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* === Navigation === */
 .nav {
-    background: #1a1a2e;
-    padding: 12px 24px;
+    background: rgba(246, 243, 234, 0.92);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 18px 32px;
     display: flex;
-    gap: 24px;
-    align-items: center;
+    gap: 4px;
+    align-items: baseline;
     position: sticky;
     top: 0;
     z-index: 100;
 }
-.nav a {
-    color: #aab;
-    text-decoration: none;
-    font-size: 0.95em;
-    padding: 6px 12px;
-    border-radius: 6px;
-    transition: background 0.2s, color 0.2s;
-}
-.nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.nav a.active { background: #648FFF; color: #fff; font-weight: 600; }
 .nav .brand {
-    font-weight: 700;
-    font-size: 1.1em;
-    color: #648FFF;
-    margin-right: 16px;
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.45em;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    margin-right: auto;
+    position: relative;
+}
+.nav .brand::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 26px;
+    height: 2px;
+    background: var(--c-blue);
+}
+.nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-family: var(--sans);
+    font-size: 0.74em;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 12px;
+    border-radius: 2px;
+    transition: color 0.15s, background 0.15s;
+    position: relative;
+}
+.nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.nav a.active { color: var(--ink); background: transparent; }
+.nav a.active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 2px;
+    height: 2px;
+    background: var(--c-blue);
 }
 
-/* Version sub-navigation (Experiment 0 versions) */
+/* === Version sub-nav === */
 .version-nav {
-    background: #2d2d44;
-    padding: 6px 24px;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 10px 32px;
     display: flex;
-    gap: 8px;
-    align-items: center;
-    font-size: 0.85em;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 0.82em;
 }
 .version-nav .version-label {
-    color: #888;
-    margin-right: 8px;
+    color: var(--ink-muted);
+    font-size: 0.85em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-right: 10px;
 }
 .version-nav a {
-    color: #aab;
+    color: var(--ink-3);
     text-decoration: none;
-    padding: 4px 12px;
-    border-radius: 4px;
-    transition: background 0.2s, color 0.2s;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.95em;
+    transition: color 0.15s, background 0.15s;
 }
-.version-nav a:hover { background: rgba(255,255,255,0.1); color: #fff; }
-.version-nav a.active { background: #785EF0; color: #fff; font-weight: 600; }
+.version-nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.version-nav a.active {
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    padding: 2px 9px;
+}
 
-/* Main content */
+/* === Main content === */
 .content {
-    max-width: 1200px;
+    max-width: 1180px;
     margin: 0 auto;
-    padding: 32px 24px;
+    padding: 56px 32px 80px;
+}
+
+/* === Typography === */
+h1, h2, h3, h4 {
+    font-family: var(--serif);
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    line-height: 1.22;
 }
 h1 {
-    color: #1a1a2e;
-    border-bottom: 3px solid #648FFF;
-    padding-bottom: 10px;
-    margin-bottom: 24px;
+    font-size: 2.4em;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    position: relative;
+}
+h1::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 56px;
+    height: 3px;
+    background: var(--c-blue);
 }
 h2 {
-    color: #1a1a2e;
-    margin-top: 32px;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 5px;
+    font-size: 1.55em;
+    margin-top: 52px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--paper-edge);
 }
-h3 { color: #333; margin-top: 24px; }
-p { margin: 12px 0; }
+h3 {
+    font-size: 1.18em;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    color: var(--ink);
+}
+h4 {
+    font-size: 1em;
+    margin-bottom: 6px;
+    color: var(--ink);
+}
+p {
+    margin: 14px 0;
+    color: var(--ink-2);
+    max-width: 72ch;
+}
+strong { color: var(--ink); font-weight: 600; }
+em { font-style: italic; color: var(--ink-2); }
 
-/* Cards */
+a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--c-blue);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.15s;
+}
+a:hover { text-decoration-color: var(--c-magenta); }
+
+/* === Cards === */
 .card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    margin: 20px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 34px 38px;
+    margin: 28px 0;
+    position: relative;
 }
+/* Editorial section-marker — short colored tick at the top of every card */
+.card::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 38px;
+    width: 44px;
+    height: 3px;
+    background: var(--c-blue);
+}
+.card h2:first-child { margin-top: 0; }
 
-/* Experiment list on index */
+/* === Experiment grid === */
 .experiment-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin: 24px 0;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 22px;
+    margin: 28px 0;
 }
 .experiment-card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: transform 0.2s, box-shadow 0.2s;
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 28px 30px;
+    transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
 }
+.experiment-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--c-blue);
+    transform: scaleX(0.18);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+}
+.experiment-card:nth-child(2)::before { background: var(--c-purple); }
+.experiment-card:nth-child(3)::before { background: var(--c-magenta); }
+.experiment-card:nth-child(4)::before { background: var(--c-orange); }
+.experiment-card:nth-child(5)::before { background: var(--c-teal); }
 .experiment-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    border-color: var(--ink-muted);
+    box-shadow: 0 10px 30px -16px rgba(24,24,27,0.22);
 }
+.experiment-card:hover::before { transform: scaleX(1); }
 .experiment-card a {
     text-decoration: none;
     color: inherit;
     display: block;
 }
-.experiment-card h3 { color: #648FFF; margin-top: 0; }
+.experiment-card h3 {
+    color: var(--ink);
+    margin-top: 14px;
+    margin-bottom: 8px;
+    font-size: 1.28em;
+}
+.experiment-card p {
+    color: var(--ink-3);
+    font-size: 0.94em;
+    margin: 0;
+    max-width: none;
+}
 .experiment-card .status {
     display: inline-block;
-    padding: 2px 10px;
-    border-radius: 12px;
-    font-size: 0.8em;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 0.7em;
     font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--mono);
 }
-.status-ready { background: #e8f5e9; color: #2e7d32; }
-.status-placeholder { background: #fff3e0; color: #e65100; }
+.status-ready {
+    background: rgba(34,168,132,0.12);
+    color: #0d5a3c;
+    border: 1px solid rgba(34,168,132,0.32);
+}
+.status-placeholder {
+    background: rgba(254,97,0,0.10);
+    color: #82340a;
+    border: 1px solid rgba(254,97,0,0.32);
+}
 
-/* Chart container */
+/* === Chart container === */
 .chart-container {
-    background: white;
-    border-radius: 12px;
-    padding: 16px;
-    margin: 20px 0;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px;
+    margin: 24px 0;
 }
 
-/* Figure captions (task-051) */
-.caption {
-    font-size: 0.95em;
-    color: #4a4a4a;
+/* === Feature card (cards that want an extra-loud left accent) === */
+.feature-card {
+    border-left: 4px solid var(--c-blue);
+    padding-left: 34px;
+    margin-bottom: 32px;
+}
+.feature-card::before { display: none; }
+.feature-card .cta-btn { margin-top: 16px; }
+.feature-card--warn { border-left-color: var(--c-orange); }
+
+/* Italic kicker line under a section title */
+.kicker-italic {
+    color: var(--ink-3);
     font-style: italic;
-    max-width: 800px;
-    margin: 0.5em auto 2em auto;
-    line-height: 1.4;
-    padding: 0 1em;
+    margin-bottom: 14px;
+    font-family: var(--serif);
 }
 
-/* Placeholder page */
-.placeholder {
+/* Inline "Further reading" / footnote-style paragraph */
+.further-reading {
+    font-size: 0.9em;
+    color: var(--ink-3);
+    margin-top: 18px;
+    line-height: 1.55;
+}
+.further-reading strong { color: var(--ink-2); }
+
+/* === RAG explainer figure (Wikipedia CC-BY-SA diagram on the index) === */
+.rag-figure {
+    margin: 22px auto 6px;
+    max-width: 560px;
     text-align: center;
-    padding: 60px 24px;
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 22px 16px;
 }
-.placeholder h2 { border: none; color: #888; }
-.placeholder p { color: #666; max-width: 600px; margin: 16px auto; }
+.rag-figure__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 480px;
+    margin: 0 auto;
+}
+.rag-figure__caption {
+    font-family: var(--serif);
+    font-size: 0.92em;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin-top: 14px;
+    padding: 0 6px;
+    text-align: left;
+    font-style: italic;
+}
+.rag-figure__caption strong { font-style: normal; color: var(--ink); }
+.rag-figure__caption em { font-style: italic; color: var(--ink); }
+.rag-figure__credit {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 0.78em;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+}
 
-/* Data tables */
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.9em; margin: 16px 0; }
-.data-table th, .data-table td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; vertical-align: top; }
-.data-table th { background: #f5f5f5; font-weight: 600; }
+/* === Catch-all muted note (footnotes, chart caveats, asides) === */
+.muted-note,
+p.muted-note,
+li.muted-note {
+    color: var(--ink-3);
+    font-size: 0.88em;
+    font-style: italic;
+    line-height: 1.5;
+}
+.section-intro {
+    color: var(--ink-2);
+    margin-bottom: 16px;
+}
 
-/* Footer */
+/* === Chart explanation prose (sits between chart heading and chart) === */
+.chart-explanation {
+    color: var(--ink-2);
+    font-size: 0.94em;
+    line-height: 1.55;
+    margin: 6px 0 18px;
+    padding: 0 4px;
+    max-width: 78ch;
+}
+.chart-explanation strong { color: var(--ink); }
+
+/* === Experiment design callout (axes varied vs held constant) === */
+.axis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: 14px;
+    margin: 22px 0 4px;
+}
+.axis-block {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 16px 18px;
+    position: relative;
+}
+.axis-block::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 28px;
+    height: 2px;
+}
+.axis-varies::before { background: var(--c-magenta); }
+.axis-held::before   { background: var(--ink-muted); }
+.axis-label {
+    font-family: var(--mono);
+    font-size: 0.7em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+}
+.axis-varies .axis-label { color: var(--c-magenta); }
+.axis-title {
+    font-family: var(--serif);
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+}
+.axis-detail {
+    font-size: 0.88em;
+    color: var(--ink-2);
+    line-height: 1.5;
+}
+
+/* === Strategy explainer table (index "RAG Strategies in this study") === */
+.strategy-list {
+    margin: 18px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.strategy-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--paper-edge);
+}
+.strategy-row:last-child { border-bottom: 1px solid var(--paper-edge); }
+.strategy-name {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.08em;
+    color: var(--ink);
+    position: relative;
+    padding-left: 14px;
+}
+.strategy-name::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.45em;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--c-blue);
+}
+.strategy-row:nth-child(2) .strategy-name::before { background: var(--c-purple); }
+.strategy-row:nth-child(3) .strategy-name::before { background: var(--c-magenta); }
+.strategy-row:nth-child(4) .strategy-name::before { background: var(--c-orange); }
+.strategy-row:nth-child(5) .strategy-name::before { background: var(--c-teal); }
+.strategy-desc { color: var(--ink-2); font-size: 0.96em; line-height: 1.55; }
+.strategy-desc strong { color: var(--ink); }
+.strategy-meta {
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 0.78em;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+}
+
+/* === Worked example callout (one annotated row from the data) === */
+.worked-example {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    margin-top: 26px;
+    position: relative;
+}
+.worked-example::before {
+    content: "EXAMPLE";
+    position: absolute;
+    top: -8px;
+    left: 22px;
+    background: var(--paper-2);
+    padding: 0 8px;
+    font-family: var(--mono);
+    font-size: 0.66em;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+}
+.worked-example h3 {
+    margin-top: 0;
+    color: var(--ink);
+    font-size: 1.18em;
+}
+.worked-example__lede {
+    font-size: 0.92em;
+    color: var(--ink-3);
+    margin: 6px 0 18px;
+}
+.worked-example__rows {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 18px;
+    font-size: 0.95em;
+    line-height: 1.6;
+    margin: 0;
+}
+.worked-example__rows dt { margin: 0; }
+.worked-example__rows dd { margin: 0; color: var(--ink-2); }
+.worked-example__label {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--ink);
+}
+.worked-example__label[data-accent="question"] { color: var(--c-purple); }
+.worked-example__label[data-accent="gold"]     { color: var(--c-gold); }
+.worked-example__label[data-accent="rag"]      { color: var(--c-orange); }
+.worked-example__rag { font-style: italic; }
+.worked-example code {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.92em;
+}
+
+.worked-example__section {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--paper-edge);
+}
+.worked-example__section-label {
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 12px;
+}
+.worked-example__section-label[data-accent="metrics"] { color: var(--c-teal); }
+.worked-example__section-label[data-accent="judges"]  { color: var(--c-purple); }
+
+.worked-example__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.worked-example__metric {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 12px 14px;
+}
+.worked-example__metric-label {
+    font-size: 0.78em;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.worked-example__metric-value {
+    font-family: var(--serif);
+    font-size: 1.55em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 4px 0;
+    font-variant-numeric: tabular-nums;
+}
+.worked-example__metric-value--good { color: var(--c-teal); }
+.worked-example__metric-value--warn { color: var(--c-orange); }
+.worked-example__metric-note {
+    font-size: 0.82em;
+    color: var(--ink-3);
+    line-height: 1.4;
+}
+
+.worked-example__judges {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px 14px;
+    font-size: 0.91em;
+    color: var(--ink-2);
+}
+.worked-example__judges strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.worked-example__note {
+    font-size: 0.88em;
+    color: var(--ink-3);
+    margin-top: 12px;
+    line-height: 1.55;
+}
+
+/* === Captions === */
+.caption {
+    font-family: var(--serif);
+    font-size: 0.94em;
+    color: var(--ink-3);
+    font-style: italic;
+    max-width: 72ch;
+    margin: 8px auto 30px;
+    line-height: 1.5;
+    padding: 0 12px;
+    text-align: center;
+}
+
+/* === Placeholder === */
+.placeholder { text-align: center; padding: 80px 24px; }
+.placeholder h2 {
+    border: none;
+    color: var(--ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.placeholder p {
+    color: var(--ink-3);
+    max-width: 600px;
+    margin: 16px auto;
+}
+
+/* === Data tables — Tufte-style rules === */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92em;
+    margin: 20px 0;
+    font-variant-numeric: tabular-nums;
+}
+.data-table th, .data-table td {
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    border: none;
+    border-bottom: 1px solid var(--paper-edge);
+}
+.data-table thead th {
+    background: transparent;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    font-weight: 600;
+    font-size: 0.76em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-family: var(--sans);
+}
+.data-table tbody tr:last-child td { border-bottom: 2px solid var(--ink); }
+.data-table tbody tr:hover { background: rgba(100,143,255,0.05); }
+
+/* === Footer === */
 .footer {
     text-align: center;
-    padding: 24px;
-    color: #888;
-    font-size: 0.85em;
-    border-top: 1px solid #eee;
-    margin-top: 40px;
+    padding: 40px 24px 32px;
+    color: var(--ink-3);
+    font-size: 0.88em;
+    border-top: 1px solid var(--paper-edge);
+    margin-top: 60px;
+    font-family: var(--serif);
+    font-style: italic;
 }
-.footer a { color: #648FFF; text-decoration: none; }
-.footer a:hover { text-decoration: underline; }
+.footer a {
+    color: var(--ink);
+    text-decoration-color: var(--c-blue);
+}
+.footer a:hover { text-decoration-color: var(--c-magenta); }
 
-/* Hero section — gradient background for visual impact on landing page */
+/* === Hero (index landing) — oversized serif, editorial kicker === */
 .hero {
-    background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
-    color: #fff;
-    text-align: center;
-    padding: 64px 24px 48px;
-    margin: -32px -24px 32px -24px;
-    border-radius: 0 0 12px 12px;
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    padding: 16px 0 56px;
+    margin: -16px 0 48px;
+    border-bottom: 1px solid var(--paper-edge);
+    position: relative;
 }
-.hero h1 { color: #fff; border-bottom: none; padding-bottom: 0; margin-bottom: 12px; font-size: 2.5em; }
-.hero .tagline { font-size: 1.2em; color: #aab; margin-bottom: 20px; }
-.hero .description { max-width: 700px; margin: 0 auto 28px; color: #ccc; line-height: 1.7; }
+.hero::before {
+    content: "Findings Gallery · 2026";
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 22px;
+}
+.hero h1 {
+    color: var(--ink);
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 18px;
+    font-size: 4.6em;
+    font-weight: 600;
+    letter-spacing: -0.038em;
+    line-height: 0.96;
+    font-family: var(--serif);
+}
+.hero h1::after { display: none; }
+.hero .tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.4em;
+    color: var(--ink-2);
+    margin: 0 0 24px 0;
+    max-width: 36ch;
+    line-height: 1.32;
+}
+.hero .description {
+    max-width: 64ch;
+    margin: 0 0 30px 0;
+    color: var(--ink-2);
+    line-height: 1.7;
+    font-size: 1.02em;
+}
 .hero .cta-btn {
     display: inline-block;
-    background: #648FFF;
-    color: #fff;
-    padding: 12px 28px;
-    border-radius: 8px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 26px;
+    border-radius: 2px;
     text-decoration: none;
-    font-weight: 600;
-    font-size: 1em;
-    transition: background 0.2s;
+    font-weight: 500;
+    font-size: 0.82em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--sans);
+    transition: background 0.18s, transform 0.18s;
+    border: 1px solid var(--ink);
 }
-.hero .cta-btn:hover { background: #4a7aee; }
+.hero .cta-btn:hover {
+    background: var(--c-blue);
+    border-color: var(--c-blue);
+    color: var(--paper-2);
+    transform: translateY(-1px);
+}
 
-/* Key findings cards — visual distinction with left border accent */
+/* === Key findings cards === */
 .findings-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
-    margin: 24px 0;
+    margin: 28px 0;
 }
 .finding-card {
-    background: #fff;
-    border-radius: 8px;
-    padding: 20px 24px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border-left: 4px solid #648FFF;
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    border-left: 3px solid var(--c-blue);
+    transition: transform 0.18s, border-left-color 0.18s, box-shadow 0.18s;
 }
-.finding-card:nth-child(2) { border-left-color: #785EF0; }
-.finding-card:nth-child(3) { border-left-color: #DC267F; }
-.finding-card:nth-child(4) { border-left-color: #FE6100; }
-.finding-card h4 { color: #1a1a2e; margin-bottom: 8px; font-size: 1em; }
-.finding-card p { color: #555; font-size: 0.9em; margin: 0; }
+.finding-card:nth-child(2) { border-left-color: var(--c-purple); }
+.finding-card:nth-child(3) { border-left-color: var(--c-magenta); }
+.finding-card:nth-child(4) { border-left-color: var(--c-orange); }
+.finding-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -14px rgba(24,24,27,0.18);
+}
+.finding-card h4 {
+    color: var(--ink);
+    margin-bottom: 8px;
+    font-size: 1.02em;
+    font-family: var(--serif);
+    line-height: 1.3;
+}
+.finding-card p {
+    color: var(--ink-3);
+    font-size: 0.91em;
+    margin: 0;
+    max-width: none;
+}
 
-/* Methodology page — readable prose width */
-.methodology-content { max-width: 800px; margin: 0 auto; }
-.methodology-content h2 { margin-top: 40px; }
-.methodology-content p { margin: 12px 0; color: #333; }
+/* === Methodology page — readable prose column === */
+.methodology-content {
+    max-width: 72ch;
+    margin: 0 auto;
+}
+.methodology-content h2 { margin-top: 56px; }
+.methodology-content p {
+    margin: 16px 0;
+    color: var(--ink-2);
+    max-width: none;
+}
 .methodology-content pre {
-    background: #1a1a2e;
-    color: #aab;
-    padding: 20px;
-    border-radius: 8px;
+    background: var(--ink);
+    color: #e8e4d6;
+    padding: 22px 24px;
+    border-radius: 3px;
     overflow-x: auto;
-    font-size: 0.85em;
-    line-height: 1.8;
+    font-size: 0.86em;
+    line-height: 1.7;
+    font-family: var(--mono);
+    margin: 22px 0;
+}
+.methodology-content code {
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+    border: 1px solid var(--paper-edge);
+    color: var(--ink);
+}
+.methodology-content pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
 }
 
-/* Responsive — stack cards and scale hero on narrow screens */
+/* === Responsive === */
 @media (max-width: 768px) {
-    .hero h1 { font-size: 1.8em; }
-    .hero .tagline { font-size: 1em; }
-    .hero { padding: 40px 16px 32px; }
+    body { font-size: 16px; }
+    .content { padding: 36px 20px 56px; }
+    .hero { padding: 12px 0 36px; margin: -12px 0 32px; }
+    .hero h1 { font-size: 2.5em; }
+    .hero .tagline { font-size: 1.12em; }
+    .hero::before { font-size: 0.68em; margin-bottom: 16px; }
     .experiment-grid { grid-template-columns: 1fr; }
     .findings-grid { grid-template-columns: 1fr; }
-    .nav { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
-    .nav a { font-size: 0.85em; padding: 4px 8px; }
+    .nav { flex-wrap: wrap; gap: 4px; padding: 14px 18px; }
+    .nav a { font-size: 0.7em; padding: 6px 8px; }
+    .nav .brand { font-size: 1.25em; width: 100%; margin-right: 0; margin-bottom: 8px; }
+    .version-nav { padding: 8px 18px; flex-wrap: wrap; }
+    .card { padding: 24px 22px; }
+    .card::before { left: 22px; }
+    h1 { font-size: 1.9em; }
+    h2 { font-size: 1.32em; }
+    .axis-grid { grid-template-columns: 1fr; }
+    .strategy-row { grid-template-columns: 1fr; gap: 6px; }
+    .strategy-name { padding-left: 14px; }
+    .worked-example__rows { grid-template-columns: 1fr; gap: 4px 0; }
+    .worked-example__rows dd { margin-bottom: 8px; }
+    .worked-example__metrics { grid-template-columns: 1fr; }
+    .worked-example__judges  { grid-template-columns: repeat(2, 1fr); }
+    .feature-card { padding-left: 22px; }
 }
 """
 
@@ -482,15 +1111,43 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             language model produces the final answer. Small changes in any one component
             can swing accuracy by double-digit percentages.
         </p>
-        <p style="font-size: 0.9em; color: #666; margin-top: 16px;">
-            <strong>Further reading:</strong>
-            <a href="https://arxiv.org/abs/2005.11401" target="_blank" style="color: #648FFF;">
+        <figure class="rag-figure">
+            <img class="rag-figure__img"
+                 src="https://upload.wikimedia.org/wikipedia/commons/1/14/RAG_diagram.svg"
+                 alt="Block diagram of a Retrieval-Augmented Generation system: a user query and retrieved external documents are combined into a prompt and passed to a large language model, which produces a tailored response."
+                 loading="lazy"
+                 width="652" height="576">
+            <figcaption class="rag-figure__caption">
+                <strong>The general picture.</strong> A user&rsquo;s query is sent both
+                to a language model <em>and</em> to a retriever that pulls relevant
+                passages from an external corpus; the retrieved passages are merged
+                with the query into an augmented prompt; the model answers using
+                that grounded context.
+                <span class="rag-figure__credit">
+                    Diagram by <a href="https://commons.wikimedia.org/wiki/User:Turtlecrown" target="_blank" rel="noopener">Turtlecrown</a>,
+                    Wikimedia Commons (<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC&nbsp;BY-SA&nbsp;4.0</a>).
+                </span>
+            </figcaption>
+        </figure>
+        <p class="further-reading">
+            <strong>For a deeper look:</strong>
+            <a href="https://developer.nvidia.com/blog/what-is-retrieval-augmented-generation/" target="_blank" rel="noopener">
+                NVIDIA: What is RAG? (illustrated overview with multi-stage architecture diagram)
+            </a> &middot;
+            <a href="https://github.com/langchain-ai/rag-from-scratch" target="_blank" rel="noopener">
+                LangChain &mdash; RAG from Scratch (in-depth notebooks &amp; diagrams covering query
+                translation, routing, indexing, retrieval, and generation)
+            </a>
+        </p>
+        <p class="further-reading">
+            <strong>Foundational reading:</strong>
+            <a href="https://arxiv.org/abs/2005.11401" target="_blank" rel="noopener">
                 Lewis et al. 2020 (the original RAG paper)
             </a> &middot;
-            <a href="https://en.wikipedia.org/wiki/Retrieval-augmented_generation" target="_blank" style="color: #648FFF;">
+            <a href="https://en.wikipedia.org/wiki/Retrieval-augmented_generation" target="_blank" rel="noopener">
                 Wikipedia overview
             </a> &middot;
-            <a href="https://huggingface.co/docs/transformers/model_doc/rag" target="_blank" style="color: #648FFF;">
+            <a href="https://huggingface.co/docs/transformers/model_doc/rag" target="_blank" rel="noopener">
                 Hugging Face RAG docs
             </a>
         </p>
@@ -515,26 +1172,109 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             score the result.
         </p>
         {workflow_html}
-        <p style="margin-top: 20px;">
-            Inside that pink <strong>RAG Pipeline</strong> box are five components, four
-            of which RAGBench varies as test axes (chunker, reranker, RAG strategy, LLM)
-            while the embedder is held constant. Indexing happens once per corpus on top;
-            every query traverses the bottom row.
+        <p>
+            Inside that pink <strong>RAG Pipeline</strong> box are five components.
+            Any of them can be a test axis depending on the experiment &mdash;
+            Experiment&nbsp;1 varies the RAG strategy, Experiment&nbsp;2 varies the
+            chunker, and so on &mdash; while the others are held constant within
+            each experiment so the effect being measured is not confounded.
+            Indexing happens once per corpus on top; every query traverses the
+            bottom row.
         </p>
         {rag_pipeline_html}
         {worked_example_html}
     </div>
 
-    <div class="card" style="border-left: 4px solid #648FFF; margin-bottom: 32px;">
-        <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
-        <p style="color: #888; font-style: italic; margin-bottom: 12px;">Frontier-class judges converge — version matters more than provider.</p>
+    <div class="card feature-card">
+        <h2>RAG Strategies in This Study</h2>
         <p>
-            500 HotpotQA questions. 9 LLM judges. <strong>GPT-5.4</strong> leads at r=0.605,
-            with <strong>Claude Sonnet 4.6</strong> (0.575) and <strong>GPT-5.4 Mini</strong>
-            (0.553) close behind. Older Claude versions (Sonnet 4, Opus 4) score ~30% lower
-            than current Sonnet 4.6 — model version drift outweighs provider differences.
+            Five strategies, each adding a different layer of intelligence between the
+            user&rsquo;s question and the language model&rsquo;s answer. The first is the
+            baseline; the rest each spend extra LLM calls to compensate for retrieval or
+            reasoning gaps.
         </p>
-        <a href="experiment_0_v3.html" class="cta-btn" style="margin-top: 16px; display: inline-block;">
+        <div class="strategy-list">
+            <div class="strategy-row">
+                <div class="strategy-name">NaiveRAG</div>
+                <div class="strategy-desc">
+                    <strong>Retrieve, then answer.</strong> One round of hybrid retrieval;
+                    the top-5 chunks are concatenated into the prompt; one LLM call produces
+                    the answer. The control condition every other strategy is measured against.
+                    <div class="strategy-meta">LLM calls per question: 1 &middot;
+                    Tradeoff: cheap and predictable, no recovery from bad retrieval.</div>
+                </div>
+            </div>
+            <div class="strategy-row">
+                <div class="strategy-name">SelfRAG</div>
+                <div class="strategy-desc">
+                    <strong>Retrieve, critique, answer.</strong> After retrieval, the model
+                    is prompted to judge whether the retrieved context is sufficient. If not,
+                    it answers from parametric knowledge instead. Trades 1 extra LLM call for
+                    awareness of its own retrieval failures.
+                    <div class="strategy-meta">LLM calls per question: 2 &middot;
+                    Tradeoff: handles retrieval misses, but adds latency on every query.</div>
+                </div>
+            </div>
+            <div class="strategy-row">
+                <div class="strategy-name">MultiQueryRAG</div>
+                <div class="strategy-desc">
+                    <strong>Reformulate, then retrieve N times.</strong> The original question
+                    is rewritten into 3 paraphrases; each runs a retrieval pass; the union of
+                    chunks is deduplicated and answered against. Helps when the question&rsquo;s
+                    wording happens to mismatch the corpus vocabulary.
+                    <div class="strategy-meta">LLM calls per question: ~5
+                    (1 reformulation + ~3 retrievals + 1 answer) &middot;
+                    Tradeoff: better recall, more chunks to sort through.</div>
+                </div>
+            </div>
+            <div class="strategy-row">
+                <div class="strategy-name">CorrectiveRAG</div>
+                <div class="strategy-desc">
+                    <strong>Retrieve, filter chunk-by-chunk, optionally retry.</strong>
+                    Every retrieved chunk gets a per-chunk relevance rating from the LLM.
+                    If fewer than 2 chunks survive the filter, the query is reformulated and
+                    a second retrieval round runs. Based on
+                    <a href="https://arxiv.org/abs/2401.15884" target="_blank" rel="noopener">Shi
+                    et al. 2024</a>. Branchy &mdash; one of the strategies where logging
+                    matters most.
+                    <div class="strategy-meta">LLM calls per question: ~6&ndash;13
+                    (1 per retrieved chunk + optional reformulation + final answer) &middot;
+                    Tradeoff: precise context, high cost on long retrieval lists.</div>
+                </div>
+            </div>
+            <div class="strategy-row">
+                <div class="strategy-name">AdaptiveRAG</div>
+                <div class="strategy-desc">
+                    <strong>Classify the question, then pick a strategy.</strong> The model
+                    first labels the question (factoid vs reasoning vs multi-hop), then
+                    routes to a strategy matched to that type. Tries to give each question
+                    the right amount of pipeline, instead of paying the heaviest cost on
+                    every query.
+                    <div class="strategy-meta">LLM calls per question: variable
+                    (1 classifier + however many calls the chosen sub-strategy uses) &middot;
+                    Tradeoff: best amortized cost; harder to reason about per-row behaviour.</div>
+                </div>
+            </div>
+        </div>
+        <p class="further-reading">
+            Per-row prompt text and exact LLM-call counts are not yet recorded in the
+            CSV for the strategies above &mdash; a logging gap being addressed in a
+            follow-up. The figures shown are derived from each strategy&rsquo;s control
+            flow, not measured per row.
+        </p>
+    </div>
+
+    <div class="card feature-card">
+        <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
+        <p class="kicker-italic">Frontier-class judges converge &mdash; version matters more than provider.</p>
+        <p>
+            500 HotpotQA questions. 9 LLM judges. <strong>GPT-5.4</strong> leads at
+            r&nbsp;=&nbsp;0.605, with <strong>Claude Sonnet 4.6</strong> (0.575) and
+            <strong>GPT-5.4 Mini</strong> (0.553) close behind. Older Claude versions
+            (Sonnet 4, Opus 4) score ~30% lower than current Sonnet 4.6 &mdash; model
+            version drift outweighs provider differences.
+        </p>
+        <a href="experiment_0_v3.html" class="cta-btn">
             View Experiment 0 Results &rarr;
         </a>
     </div>
@@ -580,60 +1320,55 @@ def _generate_worked_example() -> str:
         HTML string of the worked-example callout.
     """
     return """
-    <div style="background: #f7f9fc; border: 1px solid #d8dfe8; border-radius: 8px;
-                padding: 20px 24px; margin-top: 24px;">
-        <h3 style="margin-top: 0; color: #333;">Worked example</h3>
-        <p style="font-size: 0.92em; color: #666; margin-bottom: 18px;">
+    <div class="worked-example">
+        <h3>Worked example</h3>
+        <p class="worked-example__lede">
             One real row from Experiment 0 v3, tracing through the diagram above.
         </p>
 
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px;
-                    font-size: 0.95em; line-height: 1.6;">
+        <dl class="worked-example__rows">
+            <dt class="worked-example__label" data-accent="question">Question</dt>
+            <dd>Who is the older mixed martial artist, Yushin Okami or Nate Marquardt?</dd>
 
-            <div style="font-weight: 700; color: #785EF0;">Question</div>
-            <div>Who is the older mixed martial artist, Yushin Okami or Nate Marquardt?</div>
+            <dt class="worked-example__label" data-accent="gold">Gold answer</dt>
+            <dd><code>Nate Marquardt</code></dd>
 
-            <div style="font-weight: 700; color: #C68A00;">Gold answer</div>
-            <div><code>Nate Marquardt</code></div>
-
-            <div style="font-weight: 700; color: #FE6100;">RAG answer</div>
-            <div style="font-style: italic;">
-                "Nate Marquardt is the older mixed martial artist. Yushin Okami was born on
+            <dt class="worked-example__label" data-accent="rag">RAG answer</dt>
+            <dd class="worked-example__rag">
+                &ldquo;Nate Marquardt is the older mixed martial artist. Yushin Okami was born on
                 July 21, 1981, while Nate Marquardt was born on April 20, 1979. Marquardt is
-                therefore older by two years and three months."
+                therefore older by two years and three months.&rdquo;
+            </dd>
+        </dl>
+
+        <div class="worked-example__section">
+            <div class="worked-example__section-label" data-accent="metrics">
+                Bottom row &mdash; automated metrics (RAG vs gold)
+            </div>
+            <div class="worked-example__metrics">
+                <div class="worked-example__metric">
+                    <div class="worked-example__metric-label">BERTScore (semantic)</div>
+                    <div class="worked-example__metric-value worked-example__metric-value--good">0.862</div>
+                    <div class="worked-example__metric-note">strong semantic match</div>
+                </div>
+                <div class="worked-example__metric">
+                    <div class="worked-example__metric-label">Word-overlap F1</div>
+                    <div class="worked-example__metric-value worked-example__metric-value--warn">0.138</div>
+                    <div class="worked-example__metric-note">low &mdash; verbose RAG answer adds many extra tokens</div>
+                </div>
+                <div class="worked-example__metric">
+                    <div class="worked-example__metric-label">Exact match (gold &sub; answer)</div>
+                    <div class="worked-example__metric-value worked-example__metric-value--good">true</div>
+                    <div class="worked-example__metric-note">&ldquo;Nate Marquardt&rdquo; appears verbatim</div>
+                </div>
             </div>
         </div>
 
-        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
-            <div style="font-weight: 700; color: #22A884; margin-bottom: 8px;">
-                Bottom row — automated metrics (RAG vs gold)
+        <div class="worked-example__section">
+            <div class="worked-example__section-label" data-accent="judges">
+                Top row &mdash; LLM judges (rate quality 1&ndash;5, never see the gold answer)
             </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-                        font-size: 0.92em;">
-                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
-                    <div style="font-size: 0.85em; color: #888;">BERTScore (semantic)</div>
-                    <div style="font-size: 1.4em; font-weight: 600; color: #22A884;">0.862</div>
-                    <div style="font-size: 0.8em; color: #666;">strong semantic match</div>
-                </div>
-                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
-                    <div style="font-size: 0.85em; color: #888;">Word-overlap F1</div>
-                    <div style="font-size: 1.4em; font-weight: 600; color: #FE6100;">0.138</div>
-                    <div style="font-size: 0.8em; color: #666;">low — verbose RAG answer adds many extra tokens</div>
-                </div>
-                <div style="background: white; border-radius: 6px; padding: 10px 12px;">
-                    <div style="font-size: 0.85em; color: #888;">Exact match (gold &sub; answer)</div>
-                    <div style="font-size: 1.4em; font-weight: 600; color: #22A884;">true</div>
-                    <div style="font-size: 0.8em; color: #666;">"Nate Marquardt" appears verbatim</div>
-                </div>
-            </div>
-        </div>
-
-        <div style="margin-top: 18px; padding-top: 16px; border-top: 1px dashed #d8dfe8;">
-            <div style="font-weight: 700; color: #6B5B95; margin-bottom: 8px;">
-                Top row — LLM judges (rate quality 1–5, never see the gold answer)
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px;
-                        font-size: 0.9em;">
+            <div class="worked-example__judges">
                 <div>Gemini 2.5 Pro: <strong>5.00</strong></div>
                 <div>Claude Haiku 4.5: <strong>4.67</strong></div>
                 <div>GPT-5.4 Mini: <strong>5.00</strong></div>
@@ -641,11 +1376,11 @@ def _generate_worked_example() -> str:
                 <div>GPT-5.4: <strong>4.67</strong></div>
                 <div>Claude Opus 4: <strong>5.00</strong></div>
             </div>
-            <div style="font-size: 0.88em; color: #666; margin-top: 10px;">
-                All nine judges that scored this row rated it ≥4.67 / 5 — they agree the
+            <div class="worked-example__note">
+                All nine judges that scored this row rated it &ge;4.67 / 5 &mdash; they agree the
                 answer is good, even though F1 alone would call it a poor match. This kind of
                 disagreement between automated metrics is exactly why Experiment 0 exists:
-                to find which judges' ratings actually track the objective metrics.
+                to find which judges&rsquo; ratings actually track the objective metrics.
             </div>
         </div>
     </div>
@@ -961,7 +1696,7 @@ def _build_row_examiner(scores_df: pd.DataFrame, answers_df: pd.DataFrame) -> st
                 <p style="font-size:1.05em;">{q_escaped}</p>
             </div>
             <div class="rex-step">
-                <h4>Source Document <span style="font-weight:normal;color:#888;font-size:0.85em;">
+                <h4>Source Document <span class="muted-note" style="font-weight:normal;">
                     (gold answer highlighted if found)</span></h4>
                 <div class="rex-doc">{doc_text_highlighted}</div>
             </div>
@@ -1171,7 +1906,7 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
     partial_note_html = ""
     if partial_notes:
         partial_note_html = (
-            '<p style="color: #888; font-size: 0.85em; font-style: italic; margin-top: 8px;">'
+            '<p class="muted-note">'
             "Note: " + "; ".join(partial_notes) + ".</p>"
         )
 
@@ -1265,7 +2000,7 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
         )
         footnote = ""
         if partial_judges:
-            footnote = '<p style="color: #888; font-size: 0.85em; margin-top: 4px;">* partial data (gray bars) — excluded from correlation analysis</p>'
+            footnote = '<p class="muted-note">* partial data (gray bars) — excluded from correlation analysis</p>'
         v2_charts.append(f"""
         <div class="chart-container">
             <h3>Mean Quality Score per Judge</h3>
@@ -1286,9 +2021,9 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
 
     # --- Findings summary at top of page ---
     findings_html = """
-    <div class="card" style="border-left: 4px solid #648FFF;">
+    <div class="card feature-card">
         <h2>Key Findings</h2>
-        <p style="color: #555; margin-bottom: 12px;">
+        <p class="section-intro">
             v2 — 150 medium+hard HotpotQA questions, 7 LLM judges
         </p>
         <ul style="list-style: none; padding: 0; margin: 0;">
@@ -1297,7 +2032,7 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
             <li style="margin: 8px 0;"><strong>Pipeline accuracy:</strong> 74% exact match, 0.917 mean BERTScore</li>
             <li style="margin: 8px 0;"><strong>Answer quality:</strong> 49% good, 47% poor, 5% questionable</li>
             <li style="margin: 8px 0;"><strong>Failure stages:</strong> 74% none, 13% retrieval, 13% generation</li>
-            <li style="margin: 8px 0; color: #888; font-style: italic;">Note: gemini-3.1-pro-preview scored only 11/150 (API rate limit) — excluded from correlations</li>
+            <li class="muted-note" style="margin: 8px 0;">Note: gemini-3.1-pro-preview scored only 11/150 (API rate limit) — excluded from correlations</li>
         </ul>
     </div>
     """
@@ -1313,7 +2048,7 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
             (150 total) to avoid ceiling effects, (5) adds composite answer_quality column.
         </p>
         <p style="margin-top: 8px; font-size: 0.9em;">
-            <a href="raw_scores_v2.csv" style="color: #648FFF;">Download the v2 raw data (CSV)</a>
+            <a href="raw_scores_v2.csv">Download the v2 raw data (CSV)</a>
         </p>
     </div>
 
@@ -1406,7 +2141,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
     partial_note_html = ""
     if partial_notes:
         partial_note_html = (
-            '<p style="color: #888; font-size: 0.85em; font-style: italic; margin-top: 8px;">'
+            '<p class="muted-note">'
             "Note: " + "; ".join(partial_notes) + ".</p>"
         )
 
@@ -1498,7 +2233,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
         )
         footnote = ""
         if partial_judges:
-            footnote = '<p style="color: #888; font-size: 0.85em; margin-top: 4px;">* partial data (gray bars) — excluded from correlation analysis</p>'
+            footnote = '<p class="muted-note">* partial data (gray bars) — excluded from correlation analysis</p>'
         v3_charts.append(f"""
         <div class="chart-container">
             <h3>Mean Quality Score per Judge</h3>
@@ -1519,9 +2254,9 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
 
     # --- v3 key findings card ---
     v3_findings_html = """
-    <div class="card" style="border-left: 4px solid #648FFF;">
+    <div class="card feature-card">
         <h2>Key Findings</h2>
-        <p style="color: #555; margin-bottom: 12px;">
+        <p class="section-intro">
             v3 — 500 medium+hard HotpotQA questions, 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI)
         </p>
         <ul style="list-style: none; padding: 0; margin: 0;">
@@ -1577,7 +2312,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
             ahead of GPT-5.4 Mini and behind only GPT-5.4. Model version drift turns out to be a
             larger effect than provider differences.
         </p>
-        <p style="font-size: 0.85em; color: #888; margin-top: 16px;">
+        <p class="muted-note" style="margin-top: 16px;">
             <strong>Note on versions:</strong> these are model snapshots in time. Haiku 4.5
             (Oct 2025) is the current latest in the Haiku line. Opus 4 (May 2025) is two
             generations old. We did spot-check <strong>Opus 4.7</strong> (Jan 2026) on a
@@ -1594,7 +2329,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
 
     <div class="card">
         <p style="font-size: 0.9em;">
-            <a href="raw_scores_v3.csv" style="color: #648FFF;">Download the v3 raw data (CSV)</a>
+            <a href="raw_scores_v3.csv">Download the v3 raw data (CSV)</a>
         </p>
     </div>
 
@@ -1671,11 +2406,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
             return ""
         expl_html = ""
         if explanation:
-            expl_html = (
-                '<p class="chart-explanation" style="color: #555; font-size: 0.92em;'
-                ' line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">'
-                f'{explanation}</p>'
-            )
+            expl_html = f'<p class="chart-explanation">{explanation}</p>'
         return f"""
         <div class="chart-container">
             <h3>{title}</h3>{expl_html}
@@ -1696,7 +2427,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
         <h2>How This Experiment Works</h2>
         <p>
             We start with <strong><a href="https://hotpotqa.github.io/" target="_blank"
-            style="color: #648FFF;">HotpotQA</a></strong>, a dataset of real questions where the
+           >HotpotQA</a></strong>, a dataset of real questions where the
             correct answers are already known. Each question comes with source documents
             and a verified "gold" answer. We feed the question and documents into a
             <strong>RAG pipeline</strong> (NaiveRAG + Qwen3 4B) to generate an answer,
@@ -1717,7 +2448,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
         </p>
         {workflow_html}
         <p style="margin-top: 16px; font-size: 0.9em;">
-            <a href="raw_scores.csv" style="color: #648FFF;">Download the raw data (CSV)</a>
+            <a href="raw_scores.csv">Download the raw data (CSV)</a>
             to explore the full dataset yourself.
         </p>
     </div>
@@ -1984,11 +2715,20 @@ def _generate_experiment_0(csv_path: Path) -> str:
             highly without distinguishing quality.
         </p>
         <p>
-            <strong>Decision:</strong> Experiments 1 and 2 will use Claude Sonnet
-            as the primary scorer for maximum accuracy.
+            <strong>Decision (v1):</strong> Experiments 1 and 2 will use Claude
+            Sonnet as the primary scorer for maximum accuracy.
+        </p>
+        <p class="muted-note">
+            Superseded in v3 &mdash; after re-running on a larger, harder
+            150-question sample with current-generation judges, the panel was
+            changed to <strong>Claude Haiku 4.5 + GPT-5.4 mini</strong> (cheaper,
+            cross-provider, both current-generation). See the
+            <a href="experiment_0_v3.html">Experiment 0 v3 page</a> and the
+            Methodology &rsquo;Scorer Selection&rsquo; section for the revised
+            rationale.
         </p>
         <p style="margin-top: 16px; font-size: 0.9em;">
-            <a href="raw_scores.csv" style="color: #648FFF;">Download the raw data (CSV)</a>
+            <a href="raw_scores.csv">Download the raw data (CSV)</a>
             &mdash; all 50 questions, 6 judges, and gold metrics in one file.
         </p>
     </div>
@@ -1999,7 +2739,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
     # ------------------------------------------------------------------
     parts.append("""
     <h2>Lessons Learned</h2>
-    <div class="card" style="border-left: 4px solid #FE6100;">
+    <div class="card feature-card feature-card--warn">
         <h3>What We Got Wrong in Experiment 0 (v1)</h3>
         <p>
             Experiment 0 was our first end-to-end pipeline run. It answered the question
@@ -2089,7 +2829,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
             single metric misses.
         </p>
     </div>
-    <div class="card" style="border-left: 4px solid #648FFF; margin-top: 16px;">
+    <div class="card feature-card" style="margin-top: 16px;">
         <p style="margin: 0;">
             <strong>Experiment 0 v2</strong> reruns this scorer validation with all
             five fixes in place. The v1 results above are preserved as-is &mdash; they
@@ -2240,16 +2980,39 @@ def _generate_experiment_1(csv_path: Path) -> str:
         <h2>What This Experiment Tests</h2>
         <p>
             <strong>Does a smarter RAG strategy compensate for a smaller language model?</strong>
-            We test 5 RAG strategies (NaiveRAG, SelfRAG, CorrectiveRAG, AdaptiveRAG,
-            MultiQueryRAG) across 6 models ranging from 0.6B to 8B parameters.
-            All other variables are held constant: Recursive chunker (500/100),
-            qwen3-embedding:4b embedder, hybrid retrieval.
+            A two-axis factorial design: every one of 5 RAG strategies is run against
+            every one of 6 models, giving 30 configurations &times; 200 HotpotQA
+            questions = 6,000 scored answers. With both axes varied we can measure
+            main effects (does Corrective beat Naive on average? does 9B beat 4B?)
+            <em>and</em> their interaction (does Corrective help small models
+            more than large ones?).
         </p>
         <p>
-            200 HotpotQA questions are scored by Gemini 2.5 Flash (validated in Experiment 0).
-            The key question: when does investing in a complex strategy pay off vs. just
-            using a bigger model with simple NaiveRAG?
+            The key question: when does investing in a complex strategy pay off vs.
+            just using a bigger model with simple NaiveRAG?
         </p>
+        <div class="axis-grid">
+            <div class="axis-block axis-varies">
+                <div class="axis-label">Axis 1 &middot; varied</div>
+                <div class="axis-title">RAG strategy (5 levels)</div>
+                <div class="axis-detail">NaiveRAG, SelfRAG, MultiQueryRAG,
+                CorrectiveRAG, AdaptiveRAG</div>
+            </div>
+            <div class="axis-block axis-varies">
+                <div class="axis-label">Axis 2 &middot; varied</div>
+                <div class="axis-title">Model size (6 levels)</div>
+                <div class="axis-detail">Qwen 3.5 &mdash; 0.8B, 2B, 4B, 9B<br>
+                Gemma 4 e-tier &mdash; e2b, e4b</div>
+            </div>
+            <div class="axis-block axis-held">
+                <div class="axis-label">Held constant</div>
+                <div class="axis-title">Pipeline scaffolding</div>
+                <div class="axis-detail">RecursiveChunker (500 / 100) &middot;
+                embeddinggemma:300m &middot; hybrid retrieval, top-k 5 &middot;
+                no reranker &middot; 200 HotpotQA questions (seed 42) &middot;
+                judges: Claude Haiku 4.5 + GPT-5.4 mini</div>
+            </div>
+        </div>
     </div>
     """)
 
@@ -2259,10 +3022,7 @@ def _generate_experiment_1(csv_path: Path) -> str:
         explanation_html = ""
         if explanation:
             explanation_html = f"""
-            <p class="chart-explanation" style="color: #555; font-size: 0.92em;
-               line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
-                {explanation}
-            </p>"""
+            <p class="chart-explanation">{explanation}</p>"""
         parts.append(f"""
         <div class="chart-container">
             <h3>{title}</h3>{explanation_html}
@@ -2402,16 +3162,38 @@ def _generate_experiment_2(csv_path: Path) -> str:
         <h2>What This Experiment Tests</h2>
         <p>
             <strong>Does how you split documents into chunks affect answer quality,
-            and does it interact with model size?</strong> We test 4 chunking strategies
-            (Fixed 512, Recursive 500/100, Sentence, Semantic) across 4 Qwen3 models
-            (0.6B to 8B). Strategy is held constant at NaiveRAG to isolate the
-            chunking variable.
+            and does it interact with model size?</strong> A two-axis factorial
+            design: 4 chunking strategies &times; 4 Qwen 3.5 models = 16
+            configurations &times; 200 HotpotQA questions = 3,200 scored answers.
+            RAG strategy is held constant at NaiveRAG to isolate the chunking
+            variable from the strategy effects measured in Experiment 1.
         </p>
         <p>
-            This is an understudied question &mdash; most RAG research treats chunking
-            as a fixed preprocessing step. We test whether it deserves the same attention
-            as strategy and model selection.
+            This is an understudied question &mdash; most RAG research treats
+            chunking as a fixed preprocessing step. Here we test whether it deserves
+            the same attention as strategy and model selection.
         </p>
+        <div class="axis-grid">
+            <div class="axis-block axis-varies">
+                <div class="axis-label">Axis 1 &middot; varied</div>
+                <div class="axis-title">Chunking strategy (4 levels)</div>
+                <div class="axis-detail">Fixed 512 &middot; Recursive 500 / 100 &middot;
+                Sentence &middot; Semantic</div>
+            </div>
+            <div class="axis-block axis-varies">
+                <div class="axis-label">Axis 2 &middot; varied</div>
+                <div class="axis-title">Model size (4 levels)</div>
+                <div class="axis-detail">Qwen 3.5 &mdash; 0.8B, 2B, 4B, 9B</div>
+            </div>
+            <div class="axis-block axis-held">
+                <div class="axis-label">Held constant</div>
+                <div class="axis-title">Pipeline scaffolding</div>
+                <div class="axis-detail">NaiveRAG strategy &middot;
+                mxbai-embed-large embedder &middot; hybrid retrieval, top-k 5 &middot;
+                no reranker &middot; 200 HotpotQA questions (seed 42) &middot;
+                judges: Claude Haiku 4.5 + GPT-5.4 mini</div>
+            </div>
+        </div>
     </div>
     """)
 
@@ -2421,10 +3203,7 @@ def _generate_experiment_2(csv_path: Path) -> str:
         explanation_html = ""
         if explanation:
             explanation_html = f"""
-            <p class="chart-explanation" style="color: #555; font-size: 0.92em;
-               line-height: 1.5; margin: 8px 0 16px 0; padding: 0 8px;">
-                {explanation}
-            </p>"""
+            <p class="chart-explanation">{explanation}</p>"""
         parts.append(f"""
         <div class="chart-container">
             <h3>{title}</h3>{explanation_html}
@@ -2482,46 +3261,36 @@ def _generate_methodology() -> str:
 
         <h3>Embedder</h3>
         <p>How text chunks become vector representations for similarity search.
-           Held constant across experiments: <strong>qwen3-embedding:4b</strong> via Ollama
-           (Apache 2.0, ~2.5 GB on disk, 40K-token context window).</p>
-        <p>The original choice was <code>mxbai-embed-large</code>, which has a 512-token
-           context — adequate for short chunks but a methodological liability for an
-           experiment whose whole purpose is to compare chunking strategies. During the
-           first Experiment 2 run, the <code>FixedSizeChunker(500&nbsp;words)</code> and
-           <code>SemanticChunker</code> configurations triggered hundreds of HTTP&nbsp;400s
-           because their chunks (~700 tokens and up) overflowed the embedder's window;
-           setting Ollama's server-side <code>truncate=true</code> didn't help on the
-           current Ollama version, leaving client-side truncation as the only fix.
-           Truncating chunks to fit a small embedder isn't a fair test of chunkers — it
-           penalizes any strategy that prefers larger units (semantic, large-window
-           fixed) by silently discarding the tail of every oversized chunk before
-           similarity is computed.</p>
-        <p>Switching to <code>qwen3-embedding:4b</code> removes the constraint entirely.
-           Some of what tipped the choice:</p>
+           Embedder choice is <em>held constant within each experiment</em> but
+           changed once across the project timeline, so different experiments use
+           different embedders.</p>
         <ul>
-          <li><strong>Context window: 40K tokens</strong> — about 80&times; mxbai's 512.
-              No chunker our experiments produce comes close to filling it, so
-              chunker-vs-chunker comparisons run on the embedder's terms instead of
-              the other way round.</li>
-          <li><strong>Top-tier retrieval quality.</strong> The Qwen3-Embedding family
-              (released by Alibaba in 2025) leads MTEB multilingual at the 8B size and
-              the 4B variant is within a couple of points; competitive with
-              closed-API offerings.</li>
-          <li><strong>Apache 2.0, fully local.</strong> No API spend on the
-              retrieval path, no provider lock-in, reproducible by anyone with the
-              same Ollama tag.</li>
-          <li><strong>Same family as our generation models.</strong> Experiments 1
-              and 2 already exercise the Qwen 3.5 / 3.6 line for generation; using a
-              Qwen embedder keeps the stack coherent rather than mixing tokenizer
-              philosophies on either side of the retrieve / generate seam.</li>
-          <li><strong>Fits the hardware.</strong> 4B parameters &asymp; 2.5 GB on
-              disk, which leaves headroom alongside our largest generation models
-              on a 24 GB GPU. The 8B variant would be tighter; the 0.6B variant
-              would underperform on retrieval.</li>
+          <li><strong>Experiment 2</strong> (run before the 2026-05-13 switch):
+              <code>mxbai-embed-large</code> via Ollama — 512-token context.</li>
+          <li><strong>Experiment 1 &amp; Experiment 0 v3</strong> (post-switch):
+              <code>embeddinggemma:300m</code> via Ollama — 2048-token context,
+              768-dim output, Apache 2.0, ~300 MB on disk.</li>
         </ul>
-        <p>The earlier <code>mxbai-embed-large</code> data is preserved in the experiment backups
-           but no longer drives the live gallery. See the changelog at the bottom of
-           Experiment 2 for the date this switch took effect.</p>
+        <p>The switch was a methodological response to a chunking-vs-embedder
+           conflict surfaced during the first Experiment 2 run: the
+           <code>FixedSizeChunker(500&nbsp;words)</code> and
+           <code>SemanticChunker</code> configurations triggered hundreds of
+           HTTP&nbsp;400s because their chunks (~700 tokens and up) overflowed
+           mxbai&rsquo;s 512-token window. Setting Ollama&rsquo;s server-side
+           <code>truncate=true</code> didn&rsquo;t help on the current Ollama
+           version, leaving client-side truncation as the only fix. Truncating
+           chunks to fit a small embedder isn&rsquo;t a fair test of chunkers
+           &mdash; it silently discards the tail of every oversized chunk before
+           similarity is computed, penalising any strategy that prefers larger
+           units. The replacement is <strong>EmbeddingGemma 300M</strong>: a
+           text-only encoder distilled from Gemma 3 with a 2K-token context,
+           released under Apache 2.0 by Google, well-rated on MTEB at the
+           sub-1B size class, and small enough that it co-resides comfortably
+           with the 9B generation models on a 24&nbsp;GB GPU.</p>
+        <p>The earlier <code>mxbai-embed-large</code> data is preserved in
+           Experiment 2&rsquo;s archive but no longer drives new generation runs.
+           Comparisons that span both experiments should treat the embedder as
+           a known difference, not a held-constant variable.</p>
 
         <h3>Reranker</h3>
         <p>An optional second-pass ranker that re-scores retrieved chunks before they reach
@@ -2536,8 +3305,12 @@ def _generate_methodology() -> str:
            (query expansion).</p>
 
         <h3>Model</h3>
-        <p>Which language model generates the final answer. Tested: Qwen3 (0.6B, 1.7B,
-           4B, 8B) and Gemma 3 (1B, 4B) — all running locally via Ollama.</p>
+        <p>Which language model generates the final answer. Tested in Experiments
+           1 and 2: <strong>Qwen 3.5</strong> small tier (0.8B, 2B, 4B, 9B) plus
+           <strong>Gemma 4</strong> e-tier (e2b &asymp; 2.3B effective, e4b
+           &asymp; 4.5B effective) for the cross-family comparison in
+           Experiment 1. All run locally via Ollama, GGUF
+           Q4_K_M / Q8_0 quantisations as Ollama&rsquo;s default tags ship them.</p>
 
         <h2>Evaluation Approach</h2>
         <p>RAGBench uses dual evaluation to assess answer quality from two perspectives:</p>
@@ -2599,16 +3372,17 @@ def _generate_methodology() -> str:
                     <td>Qwen3-4B, NaiveRAG + BGE reranker</td>
                 </tr>
                 <tr>
-                    <td>1 (Strategy x Model)</td>
+                    <td>1 (Strategy &times; Model)</td>
                     <td>Does strategy compensate for model size?</td>
-                    <td>5 strategies x 6 models</td>
-                    <td>Recursive chunker, qwen3-embedding:4b</td>
+                    <td>5 strategies &times; 6 models = 30 configs &times; 200 questions</td>
+                    <td>Recursive chunker (500&thinsp;/&thinsp;100),
+                        embeddinggemma:300m, hybrid retrieval, no reranker</td>
                 </tr>
                 <tr>
-                    <td>2 (Chunking x Model)</td>
+                    <td>2 (Chunking &times; Model)</td>
                     <td>Does chunking strategy interact with model capability?</td>
-                    <td>4 chunkers x 4 models</td>
-                    <td>NaiveRAG, qwen3-embedding:4b</td>
+                    <td>4 chunkers &times; 4 models = 16 configs &times; 200 questions</td>
+                    <td>NaiveRAG, mxbai-embed-large, hybrid retrieval, no reranker</td>
                 </tr>
             </tbody>
         </table>
