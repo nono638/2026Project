@@ -104,8 +104,17 @@ ROW_PACE_S_DEFAULT = 0.5
 # Periodic longer rest mid-config to let GPU temperature drop. The
 # pre-fortification trail showed temp climbing 47 °C → 66 °C over ~30 min
 # right before BSOD #2. Every N rows we pause for a longer beat.
+#
+# 2026-05-19: reduced from 10 s → 3 s after BSOD #6 fired DURING a 10 s
+# rest at config 29/30, row 100. The fortified run held GPU at 51–56 °C
+# throughout 28 prior configs (no thermal headroom needed), so the long
+# idle was buying us nothing but a wider ASPM-downshift window — exactly
+# the regime apply_5090_stability.ps1 calls out as a known nvlddmkm
+# trigger. The sleep is broken into 1 s chunks (see _broken_sleep) so the
+# event log carries a per-second heartbeat across the rest interval,
+# shrinking post-mortem uncertainty on the next crash.
 ROW_REST_EVERY_N = 50
-ROW_REST_S = 10
+ROW_REST_S = 3
 
 # Sample GPU stats every N completed rows during a config. After the
 # 2026-05-18 BSOD cluster (4 distinct bugchecks in 12h), 50-row spacing
@@ -881,12 +890,25 @@ def main() -> None:
                     and config_rows_written % ROW_REST_EVERY_N == 0
                 ):
                     events.write(
-                        "row_rest",
+                        "row_rest_start",
                         config_idx=config_idx,
                         rows_written_this_config=config_rows_written,
                         rest_s=ROW_REST_S,
                     )
-                    time.sleep(ROW_REST_S)
+                    # Broken sleep: 1 s chunks with a fsynced heartbeat so a
+                    # BSOD landing inside the rest tells the post-mortem
+                    # exactly which second died. BSOD #6 (2026-05-19) hit
+                    # mid-rest with the old monolithic time.sleep(10) and
+                    # left a 10 s blind spot.
+                    for tick in range(ROW_REST_S):
+                        time.sleep(1)
+                        events.write(
+                            "row_rest_tick",
+                            config_idx=config_idx,
+                            rows_written_this_config=config_rows_written,
+                            tick=tick + 1,
+                            of=ROW_REST_S,
+                        )
                 elif args.row_pace_s > 0:
                     time.sleep(args.row_pace_s)
 

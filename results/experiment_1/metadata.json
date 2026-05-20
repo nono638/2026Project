@@ -1,0 +1,101 @@
+{
+  "experiment": "experiment_1",
+  "last_updated": "2026-05-19T20:56:38",
+  "n_examples": 6000,
+  "config": {
+    "n_questions": 200,
+    "seed": 42,
+    "models": [
+      "qwen3.5:0.8b",
+      "qwen3.5:2b",
+      "qwen3.5:4b",
+      "qwen3.5:9b",
+      "gemma4:e2b",
+      "gemma4:e4b"
+    ],
+    "strategies": [
+      "naive",
+      "self_rag",
+      "multi_query",
+      "corrective",
+      "adaptive"
+    ],
+    "ollama_host": null,
+    "skip_generation": false,
+    "scorers": [
+      "anthropic:claude-haiku-4-5-20251001",
+      "openai:gpt-5.4-mini"
+    ]
+  },
+  "judges": [
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "display_name": "Claude Haiku 4.5",
+      "n_scored": 5995
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-5.4-mini",
+      "display_name": "GPT-5.4 Mini",
+      "n_scored": 5993
+    }
+  ],
+  "model_details": {
+    "qwen3.5:0.8b": {
+      "tag": "qwen3.5:0.8b",
+      "digest": null,
+      "quantization_level": "Q8_0",
+      "parameter_size": "873.44M",
+      "family": "qwen35",
+      "format": "gguf",
+      "captured_at": "2026-05-19T20:11:34"
+    },
+    "qwen3.5:2b": {
+      "tag": "qwen3.5:2b",
+      "digest": null,
+      "quantization_level": "Q8_0",
+      "parameter_size": "2.3B",
+      "family": "qwen35",
+      "format": "gguf",
+      "captured_at": "2026-05-19T20:11:36"
+    },
+    "qwen3.5:4b": {
+      "tag": "qwen3.5:4b",
+      "digest": null,
+      "quantization_level": "Q4_K_M",
+      "parameter_size": "4.7B",
+      "family": "qwen35",
+      "format": "gguf",
+      "captured_at": "2026-05-19T20:11:38"
+    },
+    "qwen3.5:9b": {
+      "tag": "qwen3.5:9b",
+      "digest": null,
+      "quantization_level": "Q4_K_M",
+      "parameter_size": "9.7B",
+      "family": "qwen35",
+      "format": "gguf",
+      "captured_at": "2026-05-19T20:11:40"
+    },
+    "gemma4:e2b": {
+      "tag": "gemma4:e2b",
+      "digest": null,
+      "quantization_level": "Q4_K_M",
+      "parameter_size": "5.1B",
+      "family": "gemma4",
+      "format": "gguf",
+      "captured_at": "2026-05-19T20:11:42"
+    },
+    "gemma4:e4b": {
+      "tag": "gemma4:e4b",
+      "digest": null,
+      "quantization_level": "Q4_K_M",
+      "parameter_size": "8.0B",
+      "family": "gemma4",
+      "format": "gguf",
+      "captured_at": "2026-05-19T20:11:44"
+    }
+  },
+  "experiment_axis": "strategy_x_model_size"
+}
