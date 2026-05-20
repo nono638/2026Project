@@ -468,6 +468,81 @@ a:hover { text-decoration-color: var(--c-magenta); }
     color: var(--ink-3);
 }
 
+/* === Callout box (high-emphasis acknowledgement / warning) === */
+.callout {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-left: 4px solid var(--c-orange);
+    border-radius: 3px;
+    padding: 20px 26px 22px;
+    margin: 26px 0;
+}
+.callout--critical { border-left-color: var(--c-magenta); }
+.callout__label {
+    font-family: var(--mono);
+    font-size: 0.72em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-magenta);
+    margin-bottom: 10px;
+}
+.callout--critical .callout__label { color: var(--c-magenta); }
+.callout__title {
+    font-family: var(--serif);
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 12px;
+}
+.callout p {
+    margin: 8px 0;
+    color: var(--ink-2);
+    max-width: none;
+}
+
+/* === Audit / shortcomings table (severity pills + tight columns) === */
+.audit-table { font-size: 0.9em; }
+.audit-table td { vertical-align: top; line-height: 1.5; }
+.audit-table td:first-child {
+    font-family: var(--mono);
+    color: var(--ink-3);
+    width: 32px;
+    text-align: right;
+    padding-right: 8px;
+}
+.audit-table td:nth-child(4) { white-space: nowrap; }
+.sev {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+.sev--critical {
+    background: rgba(220,38,127,0.10);
+    color: #8a0a4a;
+    border-color: rgba(220,38,127,0.4);
+}
+.sev--high {
+    background: rgba(254,97,0,0.10);
+    color: #82340a;
+    border-color: rgba(254,97,0,0.36);
+}
+.sev--medium {
+    background: rgba(255,176,0,0.13);
+    color: #6b4a00;
+    border-color: rgba(255,176,0,0.5);
+}
+.sev--low {
+    background: rgba(34,168,132,0.10);
+    color: #0d5a3c;
+    border-color: rgba(34,168,132,0.32);
+}
+
 /* === Catch-all muted note (footnotes, chart caveats, asides) === */
 .muted-note,
 p.muted-note,
@@ -3504,7 +3579,230 @@ def _generate_methodology() -> str:
             <code>/api/chat</code> stats would let us answer
             cost-vs-quality questions without estimating token counts
             from string length. Embedder calls deserve their own
-            counter, separate from chat calls.
+            counter, separate from chat calls. See the audit table
+            below for the full backlog.
+        </p>
+
+        <h2 id="retrospective">Retrospective: Uncollected Details &amp; Reproducibility Gaps</h2>
+        <p>
+            The Logging Gaps section above covers the per-row prompt and
+            call-count omissions that Phase&nbsp;1 has now fixed. This
+            section is a wider audit of granular details that Experiments
+            0, 1, and 2 <em>also</em> did not record &mdash; honestly
+            scoped, with severity, so the limitations of the existing
+            data are visible to anyone reading the results rather than
+            buried in the codebase.
+        </p>
+
+        <div class="callout callout--critical">
+            <div class="callout__label">Most severe &middot; affects every row in every experiment</div>
+            <h3 class="callout__title">Stochastic generation without a fixed seed</h3>
+            <p>
+                Generation parameters were not set explicitly &mdash; the
+                runner used Ollama&rsquo;s defaults, which include
+                <code>temperature&nbsp;&asymp;&nbsp;0.8</code> and no
+                <code>seed</code>. That means a given row, if re-run
+                today, would produce a <em>different</em> answer (and
+                possibly a different LLM judgement, and possibly a
+                different branch path in CorrectiveRAG / AdaptiveRAG).
+                Row-level reproducibility is therefore not what a
+                research benchmark should provide. Aggregate statistics
+                (mean F1 over 200 questions, strategy &times; model
+                rankings) remain meaningful in expectation, but their
+                <em>variance</em> is partly stochastic-generation noise
+                that a <code>temperature&nbsp;=&nbsp;0</code> +
+                fixed-seed regime would eliminate. The fix is one line
+                of options in <code>OllamaLLM.generate</code>; a
+                principled fix also stamps <code>temperature</code>,
+                <code>top_p</code>, <code>top_k</code>, and
+                <code>seed</code> per row, which the new
+                instrumentation can carry without further changes.
+            </p>
+        </div>
+
+        <p>
+            The table below ranks the remaining gaps by how much they
+            limit interpretability of Experiments 0&ndash;2. None of
+            them invalidate the headline findings; they constrain how
+            finely the data can be sliced, audited, or reproduced.
+        </p>
+
+        <table class="data-table audit-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>What was not recorded</th>
+                    <th>Why it matters for Exp 0&ndash;2</th>
+                    <th>Severity</th>
+                    <th>Difficulty to add</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><strong>Generation params per row</strong>
+                        (temperature, top_p, top_k, seed)</td>
+                    <td>Same row re-run today produces a different
+                        answer. Eliminates row-level reproducibility;
+                        leaves aggregate statistics intact in expectation.</td>
+                    <td><span class="sev sev--critical">Critical</span></td>
+                    <td>Low &mdash; one options dict + CSV column</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><strong>Strategy hyperparameters per row</strong>
+                        (e.g.&nbsp;CorrectiveRAG&rsquo;s &ldquo;reformulate
+                        if &lt;&nbsp;2 chunks pass&rdquo; threshold,
+                        MultiQueryRAG&rsquo;s 3 sub-queries)</td>
+                    <td>If any threshold is tweaked between runs, two
+                        cells of the same (strategy,&nbsp;model) become
+                        silently incomparable. No versioning protects
+                        against this today.</td>
+                    <td><span class="sev sev--high">High</span></td>
+                    <td>Medium &mdash; <code>.hyperparameters</code>
+                        property per strategy + CSV stamp</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><strong>Branch path / decisions taken</strong>
+                        (Corrective: did reformulation fire? Adaptive:
+                        which sub-path? Self-RAG: did the critique change
+                        the answer?)</td>
+                    <td>For branchy strategies, this is half the
+                        information about what the strategy <em>did</em>
+                        on a row. Phase 1 traces capture intent labels
+                        but not boolean outcomes.</td>
+                    <td><span class="sev sev--high">High</span></td>
+                    <td>Medium &mdash; strategies populate
+                        <code>diagnostics["branch"]</code></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><strong>Per-call token counts</strong>
+                        (prompt_tokens, completion_tokens,
+                        eval_duration)</td>
+                    <td>Cost is currently estimated from string length
+                        &times;&nbsp;~4. With Ollama&rsquo;s
+                        <code>eval_count</code>/<code>prompt_eval_count</code>
+                        in <code>/api/chat</code> we&rsquo;d measure
+                        it. Also surfaces &ldquo;did this row hit the
+                        <code>num_predict</code> cap?&rdquo;</td>
+                    <td><span class="sev sev--medium">Medium</span></td>
+                    <td>Low &mdash; already in the response object</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><strong>Per-chunk retrieval scores</strong></td>
+                    <td>CSV shows <em>which</em> chunks were retrieved,
+                        not <em>with what similarity score</em>. Gold
+                        chunk at rank 1 score 0.89 is a very different
+                        signal from rank 5 score 0.41 &mdash; currently
+                        indistinguishable in raw_scores.csv.</td>
+                    <td><span class="sev sev--medium">Medium</span></td>
+                    <td>Low &mdash; already in the retriever&rsquo;s
+                        return dict, just not surfaced</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td><strong>Intermediate LLM outputs</strong>
+                        (relevance ratings, reformulated query text,
+                        classifier outputs)</td>
+                    <td>The intermediate strings that drive branch
+                        decisions and final-prompt content. Phase 1
+                        captures these in <code>traces.jsonl</code>
+                        going forward; not in the CSV.</td>
+                    <td><span class="sev sev--medium">Medium</span></td>
+                    <td>Trivial now (already in trace; needs a
+                        flattener)</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td><strong>Embedder calls per row</strong>
+                        (separate from chat calls)</td>
+                    <td>Lumped into <code>n_total_calls_inc_embed</code>
+                        currently. Separating lets us measure retrieval
+                        cost independently of generation cost.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Low &mdash; wire
+                        <code>record_complete("embed", &hellip;)</code>
+                        into OllamaEmbedder</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td><strong>Library versions</strong> at gen time
+                        (ollama-python, numpy, langchain-text-splitters,
+                        huggingface-hub)</td>
+                    <td>A retrieval bug fixed in
+                        <code>langchain-text-splitters&nbsp;0.4.5</code>
+                        would silently change chunk boundaries between
+                        runs. No versioning catches this today.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Low &mdash; once-per-run
+                        <code>pkg_resources</code> snapshot</td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td><strong>Ollama model digest</strong> (not just
+                        the tag)</td>
+                    <td>An <code>ollama pull qwen3.5:4b</code> can
+                        replace a tag&rsquo;s underlying weights without
+                        warning. We capture <code>quantization_level</code>
+                        but not the SHA of the model artifact actually
+                        loaded.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Low &mdash; <code>/api/show</code> returns
+                        <code>digest</code>; we already call this for
+                        quantization</td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td><strong>Per-chunk document IDs &amp; offsets</strong></td>
+                    <td>The CSV has <code>context_sent_to_llm</code>
+                        (text) but no
+                        <code>chunk_doc_id</code>&nbsp;/&nbsp;<code>chunk_offset</code>
+                        per retrieved chunk. &ldquo;Did we retrieve from
+                        the right source document?&rdquo; is text-matching
+                        rather than lookup.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Medium &mdash; the chunker/Document model has
+                        to carry doc_id end-to-end</td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td><strong>Hardware state per row</strong> (GPU
+                        temperature, power draw, clocks)</td>
+                    <td>Already captured every 10 rows in
+                        <code>events.jsonl</code>, but never joined onto
+                        rows. Thermal-correlated quality drift would be
+                        invisible without that join.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Trivial &mdash; post-hoc join from
+                        events.jsonl</td>
+                </tr>
+                <tr>
+                    <td>12</td>
+                    <td><strong>API judge network-vs-model timing</strong>
+                        breakdown (Anthropic / OpenAI)</td>
+                    <td>Scorer latency includes variable network time.
+                        Can&rsquo;t tell &ldquo;judge was slow today
+                        because of network&rdquo; from &ldquo;judge was
+                        slow because the model is slow on long
+                        contexts.&rdquo;</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Hard &mdash; providers don&rsquo;t expose it
+                        cleanly</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="muted-note">
+            None of these gaps invalidate the headline findings in
+            Experiments 0&ndash;2. They constrain how finely the data
+            can be re-analyzed, audited, or reproduced after the fact.
+            Items 1, 2, and 3 above are the practical limit to how
+            scientific the existing data can be made retroactively;
+            from the next experiment onward, items 1, 2, 4, 6, and 7
+            are the right batch to add together.
         </p>
 
     </div>
