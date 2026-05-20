@@ -430,6 +430,18 @@ a:hover { text-decoration-color: var(--c-magenta); }
     margin-bottom: 0;
 }
 
+/* Opening paragraph on long-form pages — larger, serif, leading higher */
+.methodology-content .lede,
+.lede {
+    font-family: var(--serif);
+    font-size: 1.18em;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 8px 0 28px;
+    max-width: 72ch;
+}
+.lede em { font-style: italic; color: var(--ink); }
+
 /* Inline "Further reading" / footnote-style paragraph */
 .further-reading {
     font-size: 0.9em;
@@ -1050,6 +1062,7 @@ _NAV_ITEMS = [
     ("exp1", "Exp 1: Strategy × Model", "experiment_1.html"),
     ("exp2", "Exp 2: Chunking × Model", "experiment_2.html"),
     ("methodology", "Methodology", "methodology.html"),
+    ("writeup", "Writeup", "writeup.html"),
 ]
 
 
@@ -3139,8 +3152,8 @@ def _generate_experiment_1(csv_path: Path) -> str:
                 expectation but the small inter-strategy gaps above
                 are within the noise that a temperature-0 + fixed-seed
                 regime would eliminate. See
-                <a href="methodology.html#retrospective">Methodology
-                &raquo; Retrospective</a>.</p>
+                <a href="writeup.html#reproducibility">Writeup
+                &raquo; Stochastic generation</a>.</p>
             </div>
         </div>
     </div>
@@ -3709,19 +3722,470 @@ def _generate_methodology() -> str:
             <code>/api/chat</code> stats would let us answer
             cost-vs-quality questions without estimating token counts
             from string length. Embedder calls deserve their own
-            counter, separate from chat calls. See the audit table
-            below for the full backlog.
+            counter, separate from chat calls. The full severity-ranked
+            audit of uncollected details lives on the
+            <a href="writeup.html#audit">Writeup page</a>, with
+            project motivation, hypotheses, headline findings, and the
+            BSOD post-mortem for context.
         </p>
 
-        <h2 id="retrospective">Retrospective: Uncollected Details &amp; Reproducibility Gaps</h2>
+    </div>
+    """
+    return _build_page_template(
+        "Methodology",
+        nav_active="methodology",
+        content_html=content,
+    )
+
+
+def _generate_writeup() -> str:
+    """Long-form project writeup — motivation, findings, BSODs, oversights.
+
+    Lives separately from Methodology because it's a reflective essay,
+    not a reference doc. The audience is a recruiter or faculty reader
+    who wants to know what RAGBench is, what we learned (good and bad),
+    and how honestly to read the dashboards.
+    """
+    content = """
+    <div class="methodology-content">
+
+        <p class="kicker-mono" style="color: var(--ink-muted);">Project writeup &middot; CUNY SPS, Spring 2026</p>
+        <p class="lede">
+            RAGBench started as a question that seemed easy enough to
+            measure: <em>does a smarter Retrieval-Augmented Generation
+            strategy actually compensate for using a smaller language
+            model?</em> Six BSODs, three revisions of the scorer
+            validation, two full strategy &times; model factorials, and
+            one painful realisation about uncollected provenance
+            later, the answer is &ldquo;mostly no &mdash; but
+            the experiment that taught us that needed more honesty about
+            its own limits than the first dashboard suggested.&rdquo;
+        </p>
+
+        <h2 id="motivation">Why RAGBench</h2>
         <p>
-            The Logging Gaps section above covers the per-row prompt and
-            call-count omissions that Phase&nbsp;1 has now fixed. This
-            section is a wider audit of granular details that Experiments
-            0, 1, and 2 <em>also</em> did not record &mdash; honestly
-            scoped, with severity, so the limitations of the existing
-            data are visible to anyone reading the results rather than
-            buried in the codebase.
+            The RAG literature is loud about strategy choice. Every few
+            weeks a new paper or blog post argues that some flavour of
+            self-critique, query reformulation, or adaptive routing
+            unlocks meaningful quality on a smaller, cheaper model. The
+            claims are plausible &mdash; small models hallucinate more,
+            and an extra LLM pass to verify or refine should help. But
+            the numbers cited are usually on different datasets, with
+            different models, against different retrievers, scored by
+            different judges. There&rsquo;s nowhere obvious to look and
+            ask: <strong>under controlled conditions, on a shared
+            question set, with everything else held constant, how big
+            is the strategy effect actually?</strong>
+        </p>
+        <p>
+            RAGBench is a configurable harness that tries to answer that
+            question for one shared question set (HotpotQA), one held-
+            constant embedder per experiment, one chunker per
+            experiment, and a panel of LLM judges that we first
+            validated against gold-standard metrics. It runs the full
+            cartesian product of (chunker &times; embedder &times;
+            strategy &times; LLM) configurations specified on the
+            command line and writes per-row results to a CSV that
+            downstream analysis reads. The codebase is on
+            <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">GitHub</a>;
+            it&rsquo;s very much a personal research project, not yet
+            something I&rsquo;d ask a stranger to install and trust.
+        </p>
+
+        <h2 id="hypotheses">What we set out to test</h2>
+        <p>
+            Three working hypotheses going in. I&rsquo;ll mark each
+            with what the data eventually said.
+        </p>
+        <ol>
+            <li><strong>H1.</strong> A clever RAG strategy on a small
+                language model will frequently beat plain NaiveRAG on
+                a larger model. <span class="muted-note">&mdash; Result:
+                <em>mostly false</em>. The &ldquo;Strategy Beats Size&rdquo;
+                chart in Experiment 1 finds upset cases, but the
+                average delta is +0.08 to +0.10 quality points and
+                the strategies that produce them (Corrective,
+                Multi-Query) sit essentially flat with Naive on
+                average. Self-RAG and Adaptive actively hurt every
+                model they touched.</span></li>
+            <li><strong>H2.</strong> Quality will scale roughly
+                monotonically with model size. <span class="muted-note">
+                &mdash; Result: <em>directionally true but flat in the
+                middle</em>. Going from 0.8B to 9B parameters
+                moved mean quality 3.27 &rarr; 4.03 &mdash; meaningful
+                at the bottom, but qwen3.5:4B (4.05) edged out
+                qwen3.5:9B (4.03) in both Experiment 1 and Experiment 2.
+                The 4B mark is the quality sweet spot for this
+                workload.</span></li>
+            <li><strong>H3.</strong> Chunker choice will interact
+                meaningfully with model size &mdash; better chunking
+                will rescue smaller models. <span class="muted-note">
+                &mdash; Result: <em>false</em>. Within any one model the
+                chunker spread is 0.16&ndash;0.27 quality points,
+                roughly at the noise floor of stochastic generation
+                (see below). Across chunkers the headline differences
+                are smaller than the smallest model-size step.</span></li>
+        </ol>
+
+        <h2 id="headline">Headline findings, cross-experiment</h2>
+        <p>
+            Pulled together from the two experiment dashboards:
+        </p>
+        <ul>
+            <li><strong>Strategy effects are small at best, hurtful at
+                worst.</strong> The three strategies that didn&rsquo;t
+                fight the model (Naive, Multi-Query, Corrective)
+                cluster within 0.07 quality points across 1,200 rows
+                each. The two that tried to be clever in
+                under-instrumented ways (Self-RAG&rsquo;s
+                self-critique loop, Adaptive&rsquo;s complexity
+                router) cost 0.7&ndash;1.4 quality points on every
+                model. Those negative results are the most
+                publishable thing in the dataset.</li>
+            <li><strong>Model size matters less than expected, and
+                non-monotonically.</strong> qwen3.5:4B beat
+                qwen3.5:9B in <em>both</em> experiments. Either the
+                9B variant is poorly calibrated for HotpotQA, or
+                we&rsquo;re into the regime where more parameters
+                hurt as much as they help on simple factoid Q&amp;A.</li>
+            <li><strong>Chunker choice barely moves the needle on
+                HotpotQA.</strong> The best chunker (fixed) and the
+                worst (sentence) differ by 0.20 quality points
+                aggregate. Spending engineering effort on chunker
+                tuning is unlikely to pay back vs spending it on
+                model selection or, frankly, on writing better
+                prompts.</li>
+            <li><strong>LLM judges agree when they&rsquo;re
+                contemporaneous.</strong> Experiment 0 v3 ran 9 judges
+                on 500 questions; cross-provider Pearson against gold
+                F1 was 0.55&ndash;0.60 for current-generation models
+                (GPT-5.4, Claude Sonnet 4.6) and dropped 30&ndash;45%
+                for older variants of the same families. <em>Model
+                version drift dominates provider differences</em>
+                &mdash; an under-appreciated property of the
+                LLM-as-judge approach.</li>
+            <li><strong>The winning configurations are boring.</strong>
+                Experiment 1 winner: NaiveRAG &times; qwen3.5:4B
+                (4.59 quality, 59% exact match). Experiment 2
+                winner: fixed-size chunker &times; qwen3.5:4B
+                (4.65 quality, 74% exact match). No clever strategy,
+                no clever chunker, mid-size model. The interesting
+                content is in the absence of the expected effects,
+                not in the rankings themselves.</li>
+        </ul>
+
+        <h2 id="bsods">The technical reality: six BSODs in eleven days</h2>
+        <p>
+            The hardware was an RTX 5090 Laptop GPU on Windows 11.
+            Between 2026-05-17 and 2026-05-19 the machine crashed six
+            times under sustained Ollama batch load:
+        </p>
+        <ul>
+            <li>2026-05-17 22:32 &mdash; <code>0x00000133</code>
+                DPC_WATCHDOG_VIOLATION (nvlddmkm)</li>
+            <li>2026-05-18 02:14 &mdash; <code>0x0000003B</code>
+                SYSTEM_SERVICE_EXCEPTION (resumed Exp 1, ~32 min in)</li>
+            <li>2026-05-18 09:21 &mdash; <code>0x0000000A</code>
+                IRQL_NOT_LESS_OR_EQUAL</li>
+            <li>2026-05-18 11:53 &mdash; <code>0x00000116</code>
+                VIDEO_TDR_ERROR (config 18/30, ~50 min in)</li>
+            <li>2026-05-18 18:?? &mdash; bugcheck not preserved
+                (BSOD #5)</li>
+            <li>2026-05-19 03:29 &mdash; silent kill mid-row_rest
+                sleep (config 29/30, query 100). No Python
+                traceback, log just stops &mdash; classic BSOD
+                silhouette.</li>
+        </ul>
+        <p>
+            Five distinct bugcheck codes, all rooted in nvlddmkm. The
+            NVIDIA developer forum has a long thread documenting
+            similar behaviour on the 5090 family under Ollama:
+            <a href="https://forums.developer.nvidia.com/t/rtx-5090-total-failure-hang-unload-in-ollama-after-couple-of-minutes/341659"
+               target="_blank" rel="noopener">&ldquo;RTX 5090 total
+            failure / hang / unload in Ollama after a couple of
+            minutes&rdquo;</a>. This is a driver / firmware
+            instability cluster, not a Python bug; pure software
+            pacing inside Python cannot eliminate it.
+        </p>
+        <p>
+            What helped:
+        </p>
+        <ul>
+            <li><strong>Workload pacing inside Python.</strong> A 0.5 s
+                sleep between every (generate + score) row, a longer
+                rest every 50 rows (cut from 10 s monolithic to 3
+                &times; 1 s ticks with fsynced heartbeats after BSOD #6
+                hit mid-sleep), and a 30 s cooldown between configs.
+                These widened the gaps between bursts enough to reduce
+                the frequency but not to zero.</li>
+            <li><strong>Ollama tuning.</strong>
+                <code>OLLAMA_MAX_LOADED_MODELS=1</code>,
+                <code>OLLAMA_NUM_PARALLEL=1</code>,
+                <code>OLLAMA_KEEP_ALIVE=24h</code>, served via a
+                detached <code>ollama serve</code> instead of the tray
+                app so the env vars actually applied. The
+                concurrent-residency churn between embedder and chat
+                models was the regime that correlated with the worst
+                BSOD cluster.</li>
+            <li><strong>Per-call <code>keep_alive=&quot;30m&quot;</code>
+                and <code>num_predict=1024</code></strong> in
+                <code>OllamaLLM.generate</code> &mdash; bounded
+                runaway generations that had been driving the longest
+                hangs.</li>
+            <li><strong>180 s per-request httpx timeout.</strong>
+                Ollama&rsquo;s Python client defaults to no timeout;
+                that&rsquo;s how an 8&ndash;17-minute hung
+                <code>chat()</code> happened before BSOD #3.</li>
+            <li><strong>System-level mitigations</strong>
+                (<code>scripts/apply_5090_stability.ps1</code>):
+                Windows TDR registry raised to 60 s, Hardware-Accelerated
+                GPU Scheduling off, PCIe ASPM disabled, high-performance
+                power plan. Cut the rate further.</li>
+        </ul>
+        <p>
+            What didn&rsquo;t fully work: clean NVIDIA driver reinstall,
+            and chasing &ldquo;cooler temperatures&rdquo; (the GPU
+            sat at 51&ndash;56&nbsp;&deg;C through the whole crashed run
+            &mdash; thermal headroom wasn&rsquo;t the issue).
+        </p>
+        <p>
+            What closed the loop on the human cost: a Python
+            <strong>watchdog wrapper</strong>
+            (<code>scripts/run_experiment_1_watchdog.py</code>) that
+            supervises the experiment subprocess and re-launches it
+            with <code>--resume</code> on any non-zero exit, with
+            exponential backoff and a zero-progress abort guard. Paired
+            with a Windows scheduled task
+            (<code>scripts/install_auto_resume_task.ps1</code>) that
+            fires the watchdog at logon with a 30 s delay, a BSOD now
+            costs only the reboot time. The final 300 rows of
+            Experiment 1 completed in 46 minutes on a single attempt,
+            no BSOD, after weeks of fighting that section of the
+            matrix.
+        </p>
+        <p>
+            Lessons that generalised beyond this hardware: <em>own the
+            unattended-execution loop</em> (don&rsquo;t assume the
+            machine will be reliable for the experiment&rsquo;s
+            wall-clock); <em>shrink the BSOD blast radius</em> by
+            doing per-row fsynced checkpoints to CSV plus heartbeat
+            JSONL events so post-mortems can answer &ldquo;what was
+            the process doing at the second of death?&rdquo;; and
+            <em>distinguish system-level fixes from software pacing</em>
+            &mdash; both helped here, but they helped for different
+            reasons and either alone was insufficient.
+        </p>
+
+        <h2 id="exp0">What we got wrong: Experiment 0&rsquo;s three revisions</h2>
+        <p>
+            Experiment 0&rsquo;s job was to pick the LLM judge for
+            Experiments 1 and 2. The first version was sound enough
+            to <em>answer the literal question asked</em> but had five
+            methodological oversights that only surfaced under
+            post-analysis. The reason there are three versions of
+            Experiment 0 on this site is that we kept catching them and
+            fixing them.
+        </p>
+        <h3>v1: the first end-to-end run</h3>
+        <p>
+            50 HotpotQA questions sampled proportionally across
+            difficulties, scored by 6 LLM judges. Headline conclusion:
+            use Claude Sonnet as the primary scorer. The five
+            oversights:
+        </p>
+        <ol>
+            <li><strong>Pipeline observability was absent.</strong> We
+                generated answers but didn&rsquo;t record which chunks
+                were retrieved, what context was assembled, or what
+                the LLM actually saw. When a row failed, &ldquo;why?&rdquo;
+                was guesswork.</li>
+            <li><strong>The scorer judged against information the LLM
+                never received.</strong> We passed the full source
+                document to the judge for the faithfulness rating, but
+                the answering model only saw the small subset of
+                retrieved chunks. A hallucinated detail that happened
+                to appear elsewhere in the document scored as
+                &ldquo;faithful.&rdquo;</li>
+            <li><strong>No reranker.</strong> v1 used raw hybrid
+                retrieval (BM25 + dense with RRF fusion) with no
+                cross-encoder reranker, which meant we validated our
+                scorers on a different pipeline configuration than the
+                one Experiments 1 and 2 would use.</li>
+            <li><strong>Ceiling effect.</strong> 50 questions
+                proportionally sampled meant ~74% exact match. With
+                ~13 wrong answers there wasn&rsquo;t enough signal
+                to discriminate between judges.</li>
+            <li><strong>No composite quality metric.</strong> We had
+                BERTScore, F1, and judge ratings as independent
+                signals but no way to ask &ldquo;do all three agree
+                this answer is good?&rdquo; A judge that gave 5/5 to
+                an answer with low BERTScore and low F1 had a blind
+                spot we couldn&rsquo;t see.</li>
+        </ol>
+        <h3>v2: corrections, but still single-judge thinking</h3>
+        <p>
+            150 medium+hard questions (eliminating the ceiling effect),
+            BGE reranker added, scorer fed the actual context the LLM
+            received, pipeline diagnostics captured. Conclusion stood
+            (Sonnet wins) but with the caveat that we were still
+            evaluating one judge at a time against gold metrics. The
+            insight that <em>judges should be evaluated as a panel,
+            cross-validating each other</em>, hadn&rsquo;t landed yet.
+        </p>
+        <h3>v3: the version-drift discovery</h3>
+        <p>
+            500 questions, 9 judges spanning 3 providers and 4 Claude
+            generations. Two things emerged that weren&rsquo;t in the
+            original plan:
+        </p>
+        <ul>
+            <li><strong>Model version drift dominates provider
+                differences.</strong> Claude Sonnet 4 hit r=0.40
+                against gold F1; Claude Sonnet 4.6, same provider
+                eight months later, hit r=0.58 &mdash; a 45%
+                relative improvement on identical answers. A
+                spot-check of Opus 4 vs Opus 4.7 showed the same
+                pattern. Within-provider version differences turned
+                out to <em>exceed</em> cross-provider differences,
+                which has consequences for anyone using
+                LLM-as-judge: you can&rsquo;t cite an old judge
+                model&rsquo;s correlation number and assume the
+                current version of the same family behaves the same.</li>
+            <li><strong>GPT-5.4 Mini is the best value judge.</strong>
+                r=0.55 against gold F1, $0.0015 per call, no
+                version-drift penalty. The final v3 conclusion changed
+                the Experiment 1 / 2 panel from &ldquo;Claude
+                Sonnet&rdquo; to &ldquo;Claude Haiku 4.5 + GPT-5.4
+                Mini&rdquo;: cross-provider, both current-generation,
+                ~$32 total budget across both full experiments.</li>
+        </ul>
+        <p>
+            The v1 conclusion on the website is annotated as
+            superseded by v3 rather than rewritten, so the
+            methodological evolution is visible to a reader.
+        </p>
+
+        <h2 id="exp12">What we got wrong: Experiments 1 and 2</h2>
+        <p>
+            By the time Experiments 1 and 2 ran, we&rsquo;d learned
+            quite a bit from Experiment 0&rsquo;s revisions: we were
+            now capturing what the LLM actually saw, scoring against
+            that, using a validated cross-provider judge panel, and
+            running on a real factorial design. The dashboards look
+            polished. They are <em>not</em> as scientifically robust
+            as they look.
+        </p>
+        <p>
+            The big oversight wasn&rsquo;t about <em>what</em> we
+            measured but <em>what we wrote down per row</em>. The CSV
+            captured the final answer text, the final context sent to
+            the LLM, total strategy latency, and gold-vs-RAG metrics
+            &mdash; plenty for headline rankings. What it didn&rsquo;t
+            capture:
+        </p>
+        <ul>
+            <li>The number of LLM calls per row &mdash; only a
+                process-wide running total in the heartbeat log.</li>
+            <li>The branch path taken by Corrective (did reformulation
+                fire?) or Adaptive (which sub-path did the classifier
+                pick?).</li>
+            <li>The intermediate LLM outputs (the
+                &ldquo;relevant&rdquo;/&ldquo;irrelevant&rdquo;
+                ratings inside Corrective, the reformulated query
+                Multi-Query produced, the classifier verdict
+                Adaptive returned). These drive branch decisions and
+                become inputs to later prompts &mdash; missing them
+                means missing the per-row substituted prompts for
+                every call after the first.</li>
+            <li>The code SHA at generation time, so an analyst could
+                pin which version of <code>src/strategies/</code>
+                produced a given row.</li>
+        </ul>
+        <p>
+            The prompt <em>templates</em> are version-controlled in
+            <code>src/strategies/*.py</code>, so the prompt
+            <em>shape</em> for every call is recoverable from source.
+            What isn&rsquo;t recoverable per row is the substituted
+            content for any call whose input came from a prior LLM
+            output. For NaiveRAG that&rsquo;s fully recoverable
+            (one fixed template, one chat call); for the other four
+            strategies it isn&rsquo;t.
+        </p>
+        <p>
+            That gap matters most for CorrectiveRAG and AdaptiveRAG,
+            which are precisely the strategies whose value
+            <em>depends</em> on conditional behaviour. Without
+            recording the conditional outcomes we can&rsquo;t do the
+            fine-grained error analysis that distinguishes
+            &ldquo;strategy didn&rsquo;t help&rdquo; from &ldquo;strategy
+            helped on the rows where its second pass actually
+            fired.&rdquo; That&rsquo;s the difference between a
+            publishable experiment and a working demo, and we
+            should own it openly.
+        </p>
+        <p>
+            Phase 1 of the fix shipped: a per-row trace
+            (<code>begin_row</code> / <code>end_row</code> /
+            <code>record_complete</code>) wraps every
+            <code>OllamaLLM.generate</code> call, every strategy now
+            tags its calls with an <em>intent</em> label
+            (<code>rate_relevance</code>, <code>reformulate_query</code>,
+            <code>classify_complexity</code>, etc.), and the runner
+            writes the full per-call trace to a sidecar
+            <code>traces.jsonl</code> alongside <code>events.jsonl</code>.
+            Seven new CSV columns (<code>n_llm_calls</code>,
+            <code>llm_call_intents</code>, <code>final_prompt</code>,
+            <code>prompts_source</code>, <code>code_sha</code>,
+            <code>llm_num_predict</code>, <code>llm_keep_alive</code>)
+            carry the summary. Historical rows have been
+            schema-aligned via a backfill script; NaiveRAG rows have
+            their <code>final_prompt</code> reconstructed
+            byte-deterministically, multi-step strategy rows are
+            tagged but not fabricated.
+        </p>
+
+        <h2 id="reproducibility">Stochastic generation: the reproducibility cost</h2>
+        <p>
+            The other reason Experiments 0&ndash;2 are less
+            reproducible than they should be: the runner used
+            Ollama&rsquo;s default generation parameters, which
+            include <code>temperature&nbsp;&asymp;&nbsp;0.8</code> and
+            no seed. The same row, if re-run today, would produce a
+            different answer &mdash; and possibly a different LLM
+            judgement of it, and possibly a different branch path in
+            Corrective or Adaptive.
+        </p>
+        <p>
+            That means row-level reproducibility is gone. Aggregate
+            statistics (mean F1 over 200 questions, strategy &times;
+            model rankings) remain meaningful <em>in expectation</em>,
+            but their <em>variance</em> carries unnecessary
+            stochastic-generation noise. The 0.07-point gap between
+            Naive and Corrective in Experiment 1, and the 0.20-point
+            chunker spread in Experiment 2, are both within the noise
+            band that a <code>temperature&nbsp;=&nbsp;0</code> +
+            fixed-seed regime would eliminate. We don&rsquo;t know how
+            much of that &ldquo;within noise&rdquo; is real
+            indistinguishability vs sampling variance until we re-run
+            with deterministic generation.
+        </p>
+        <p>
+            This is one line of options in
+            <code>OllamaLLM.generate</code> and a few CSV columns to
+            stamp it per row; the new per-row instrumentation can
+            carry it without further changes. Phase&nbsp;2 work.
+        </p>
+
+        <h2 id="audit">The full audit: uncollected details, severity-ranked</h2>
+        <p>
+            The prose above sketched the gaps in narrative form. This is
+            the comprehensive list, ordered by how much each gap limits
+            interpretability of Experiments 0&ndash;2. None of these
+            invalidate the headline findings; they constrain how finely
+            the data can be sliced, audited, or reproduced. Items 1, 2,
+            and 3 are the practical limit to how scientific the existing
+            data can be made retroactively; for the next experiment, items
+            1, 2, 4, 6, and 7 are the right batch to add together.
         </p>
 
         <div class="callout callout--critical">
@@ -3749,13 +4213,6 @@ def _generate_methodology() -> str:
                 instrumentation can carry without further changes.
             </p>
         </div>
-
-        <p>
-            The table below ranks the remaining gaps by how much they
-            limit interpretability of Experiments 0&ndash;2. None of
-            them invalidate the headline findings; they constrain how
-            finely the data can be sliced, audited, or reproduced.
-        </p>
 
         <table class="data-table audit-table">
             <thead>
@@ -3925,21 +4382,120 @@ def _generate_methodology() -> str:
             </tbody>
         </table>
 
-        <p class="muted-note">
-            None of these gaps invalidate the headline findings in
-            Experiments 0&ndash;2. They constrain how finely the data
-            can be re-analyzed, audited, or reproduced after the fact.
-            Items 1, 2, and 3 above are the practical limit to how
-            scientific the existing data can be made retroactively;
-            from the next experiment onward, items 1, 2, 4, 6, and 7
-            are the right batch to add together.
+        <h2 id="public-ready">How far is this from public-ready?</h2>
+        <p>
+            Honestly, a fair amount. RAGBench is a personal research
+            project I&rsquo;d be comfortable showing to a hiring
+            manager or to a faculty advisor; I&rsquo;d <em>not</em> be
+            comfortable having a stranger cite the numbers as if they
+            were a benchmark on the order of MTEB or HELM. The
+            distance from here to &ldquo;cite-able benchmark&rdquo;
+            is roughly:
+        </p>
+        <ul>
+            <li><strong>Strict reproducibility.</strong> Fix
+                temperature=0 + seed, pin every dependency version,
+                stamp library + Ollama versions per row. Without this
+                no number can be exactly replicated.</li>
+            <li><strong>Confidence intervals on the headline numbers.</strong>
+                The dashboards show point estimates of means. There
+                are no error bars or significance tests. With 200
+                questions per cell that&rsquo;s perfectly tractable
+                bootstrap territory; just not done yet.</li>
+            <li><strong>More than one dataset.</strong> Everything
+                here is HotpotQA. The conclusions need to be
+                replicated on at least one factoid dataset (SQuAD 2.0
+                is wired up but unused) and one long-form / domain-
+                specific corpus before they generalise.</li>
+            <li><strong>More than one hardware platform.</strong> All
+                the timing data is from one 5090 Laptop on one
+                Windows install. Latency comparisons would shift on
+                a server-class GPU, and the BSOD story is specifically
+                a 5090 driver issue.</li>
+            <li><strong>Cost measurement, not estimation.</strong>
+                Currently cost is estimated from string length &times;
+                ~4. Per-call <code>prompt_tokens</code>/<code>completion_tokens</code>
+                from Ollama&rsquo;s <code>/api/chat</code> response
+                turns that into measurement; on the API side we have
+                the actual usage figures from the SDKs already.</li>
+            <li><strong>Per-row provenance for everything in the
+                <a href="methodology.html#logging-gaps">audit table</a>.</strong>
+                Phase 1 fixed prompts + call counts; Phase 2 needs
+                generation params, strategy hyperparameters, branch
+                outcomes, token counts, per-chunk retrieval scores.</li>
+            <li><strong>Documentation for outside users.</strong> The
+                README is honest about what works on the author&rsquo;s
+                machine. It&rsquo;s not a Quickstart that would land
+                cleanly on a fresh install elsewhere &mdash; the
+                Ollama setup, the model downloads, the API keys, the
+                Windows-specific stability scripts, and the assumption
+                of an RTX-class GPU would all need spelling out.</li>
+            <li><strong>Statistical analysis beyond the dashboards.</strong>
+                The visualisations summarise; they don&rsquo;t prove
+                anything. A proper writeup would include an ANOVA on
+                the strategy &times; model design, a regression
+                isolating the main effects, and a discussion of
+                where the negative results are bounded by sample
+                size.</li>
+            <li><strong>Test coverage for edge cases.</strong> 691
+                tests pass today, but they cover happy paths plus
+                the failures we&rsquo;ve already debugged. Network
+                partition during retrieval, Ollama runner mid-call
+                crash, malformed strategy output, judge API rate
+                limit during a long run &mdash; some of these are
+                handled in code, none of them are systematically
+                tested.</li>
+        </ul>
+        <p>
+            That&rsquo;s probably another month of focused work to
+            close. The good news: most of it is mechanical, not
+            conceptual. The hard part &mdash; designing the
+            experiments, picking the judges, surviving the
+            5090 &mdash; is largely behind us.
+        </p>
+
+        <h2 id="next">What&rsquo;s next</h2>
+        <ul>
+            <li>Set <code>temperature=0</code> and a per-row seed in
+                <code>OllamaLLM.generate</code>, stamp both per row.
+                Re-run a subset (say, 10 questions &times; full matrix)
+                to estimate how much of the inter-strategy noise is
+                stochastic vs systematic.</li>
+            <li>Expose strategy hyperparameters
+                (<code>min_relevant_chunks</code>,
+                <code>n_alt_queries</code>) as Python properties
+                instead of hardcoded constants, and stamp them per row.</li>
+            <li>Pull Ollama&rsquo;s <code>eval_count</code> /
+                <code>prompt_eval_count</code> into the per-call
+                trace records; surface per-row token totals in the CSV.</li>
+            <li>Run Experiment 1 again with the new instrumentation,
+                so a clean apples-to-apples comparison exists between
+                &ldquo;reconstructed-minimal&rdquo; and
+                &ldquo;recorded&rdquo; regimes.</li>
+            <li>Add bootstrap confidence intervals to the headline
+                charts. Probably the highest-leverage analysis
+                upgrade.</li>
+            <li>Decide whether to publish at all, or to leave RAGBench
+                as a personal infrastructure project and use the
+                lessons (logging-first instrumentation, BSOD-resilient
+                runners, transparent retrospective) on the next thing.</li>
+        </ul>
+
+        <p class="muted-note" style="margin-top: 28px;">
+            The full <a href="#audit">audit table</a> of uncollected
+            granular details is above on this page. The schema-level
+            &ldquo;Logging Gaps&rdquo; reference (new CSV columns,
+            sidecar paths, backfill tag) lives on
+            <a href="methodology.html#logging-gaps">Methodology</a>.
+            Source code on
+            <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">GitHub</a>.
         </p>
 
     </div>
     """
     return _build_page_template(
-        "Methodology",
-        nav_active="methodology",
+        "Writeup",
+        nav_active="writeup",
         content_html=content,
     )
 
@@ -4148,6 +4704,10 @@ def main(
     # Always generate methodology page regardless of --experiments flag
     methodology_html = _generate_methodology()
     (output_dir / "methodology.html").write_text(methodology_html, encoding="utf-8")
+
+    # Long-form project writeup — motivation, findings, postmortem.
+    writeup_html = _generate_writeup()
+    (output_dir / "writeup.html").write_text(writeup_html, encoding="utf-8")
 
     # Generate index page
     index_html = _build_page_template(

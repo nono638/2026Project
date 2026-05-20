@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writeup — RAGBench</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+
+/* RAGBench gallery — editorial/academic theme.
+   Cream paper, serif display type, IBM-palette accents as data markers. */
+
+:root {
+    /* Paper + ink */
+    --paper:       #f6f3ea;
+    --paper-2:     #fdfbf4;
+    --paper-edge:  #e6dfcc;
+    --ink:         #18181b;
+    --ink-2:       #3a3a3f;
+    --ink-3:       #6a6a72;
+    --ink-muted:   #9d9d9d;
+    /* IBM colorblind-safe palette — chart-locked, do not change */
+    --c-blue:      #648FFF;
+    --c-purple:    #785EF0;
+    --c-magenta:   #DC267F;
+    --c-orange:    #FE6100;
+    --c-gold:      #FFB000;
+    --c-teal:      #22A884;
+    /* Type stacks — system fonts only (no CDN) */
+    --serif:  ui-serif, Charter, "Bitstream Charter", "Sitka Text", "Source Serif Pro", Cambria, Georgia, serif;
+    --sans:   -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono:   ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 17px;
+    /* subtle vignette at the top of the viewport — sets atmosphere without
+       competing with the Plotly charts further down the page */
+    background-image: radial-gradient(ellipse 70% 35% at 50% -8%,
+                                       rgba(100,143,255,0.06),
+                                       transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* === Navigation === */
+.nav {
+    background: rgba(246, 243, 234, 0.92);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 18px 32px;
+    display: flex;
+    gap: 4px;
+    align-items: baseline;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.nav .brand {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.45em;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    margin-right: auto;
+    position: relative;
+}
+.nav .brand::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 26px;
+    height: 2px;
+    background: var(--c-blue);
+}
+.nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-family: var(--sans);
+    font-size: 0.74em;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 12px;
+    border-radius: 2px;
+    transition: color 0.15s, background 0.15s;
+    position: relative;
+}
+.nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.nav a.active { color: var(--ink); background: transparent; }
+.nav a.active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 2px;
+    height: 2px;
+    background: var(--c-blue);
+}
+.nav__source {
+    margin-left: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-2);
+    border: 1px solid var(--paper-edge);
+    background: var(--paper-2);
+}
+.nav__source:hover {
+    color: var(--ink);
+    background: var(--paper);
+    border-color: var(--ink-muted);
+}
+.nav__source svg { display: inline-block; vertical-align: middle; }
+
+/* === Version sub-nav === */
+.version-nav {
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 10px 32px;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 0.82em;
+}
+.version-nav .version-label {
+    color: var(--ink-muted);
+    font-size: 0.85em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-right: 10px;
+}
+.version-nav a {
+    color: var(--ink-3);
+    text-decoration: none;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.95em;
+    transition: color 0.15s, background 0.15s;
+}
+.version-nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.version-nav a.active {
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    padding: 2px 9px;
+}
+
+/* === Main content === */
+.content {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+}
+
+/* === Typography === */
+h1, h2, h3, h4 {
+    font-family: var(--serif);
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    line-height: 1.22;
+}
+h1 {
+    font-size: 2.4em;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    position: relative;
+}
+h1::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 56px;
+    height: 3px;
+    background: var(--c-blue);
+}
+h2 {
+    font-size: 1.55em;
+    margin-top: 52px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--paper-edge);
+}
+h3 {
+    font-size: 1.18em;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    color: var(--ink);
+}
+h4 {
+    font-size: 1em;
+    margin-bottom: 6px;
+    color: var(--ink);
+}
+p {
+    margin: 14px 0;
+    color: var(--ink-2);
+    max-width: 72ch;
+}
+strong { color: var(--ink); font-weight: 600; }
+em { font-style: italic; color: var(--ink-2); }
+
+a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--c-blue);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.15s;
+}
+a:hover { text-decoration-color: var(--c-magenta); }
+
+/* === Cards === */
+.card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 34px 38px;
+    margin: 28px 0;
+    position: relative;
+}
+/* Editorial section-marker — short colored tick at the top of every card */
+.card::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 38px;
+    width: 44px;
+    height: 3px;
+    background: var(--c-blue);
+}
+.card h2:first-child { margin-top: 0; }
+
+/* === Experiment grid === */
+.experiment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 22px;
+    margin: 28px 0;
+}
+.experiment-card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 28px 30px;
+    transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.experiment-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--c-blue);
+    transform: scaleX(0.18);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+}
+.experiment-card:nth-child(2)::before { background: var(--c-purple); }
+.experiment-card:nth-child(3)::before { background: var(--c-magenta); }
+.experiment-card:nth-child(4)::before { background: var(--c-orange); }
+.experiment-card:nth-child(5)::before { background: var(--c-teal); }
+.experiment-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--ink-muted);
+    box-shadow: 0 10px 30px -16px rgba(24,24,27,0.22);
+}
+.experiment-card:hover::before { transform: scaleX(1); }
+.experiment-card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.experiment-card h3 {
+    color: var(--ink);
+    margin-top: 14px;
+    margin-bottom: 8px;
+    font-size: 1.28em;
+}
+.experiment-card p {
+    color: var(--ink-3);
+    font-size: 0.94em;
+    margin: 0;
+    max-width: none;
+}
+.experiment-card .status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 0.7em;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+}
+.status-ready {
+    background: rgba(34,168,132,0.12);
+    color: #0d5a3c;
+    border: 1px solid rgba(34,168,132,0.32);
+}
+.status-placeholder {
+    background: rgba(254,97,0,0.10);
+    color: #82340a;
+    border: 1px solid rgba(254,97,0,0.32);
+}
+
+/* === Chart container === */
+.chart-container {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px;
+    margin: 24px 0;
+}
+
+/* === Feature card (cards that want an extra-loud left accent) === */
+.feature-card {
+    border-left: 4px solid var(--c-blue);
+    padding-left: 34px;
+    margin-bottom: 32px;
+}
+.feature-card::before { display: none; }
+.feature-card .cta-btn { margin-top: 16px; }
+.feature-card--warn { border-left-color: var(--c-orange); }
+
+/* Italic kicker line under a section title */
+.kicker-italic {
+    color: var(--ink-3);
+    font-style: italic;
+    margin-bottom: 14px;
+    font-family: var(--serif);
+}
+
+/* Mono-caps label that sits above an h2 ("HEADLINE FINDINGS" etc.) */
+.kicker-mono {
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--c-magenta);
+    margin-bottom: 0;
+}
+
+/* Opening paragraph on long-form pages — larger, serif, leading higher */
+.methodology-content .lede,
+.lede {
+    font-family: var(--serif);
+    font-size: 1.18em;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 8px 0 28px;
+    max-width: 72ch;
+}
+.lede em { font-style: italic; color: var(--ink); }
+
+/* Inline "Further reading" / footnote-style paragraph */
+.further-reading {
+    font-size: 0.9em;
+    color: var(--ink-3);
+    margin-top: 18px;
+    line-height: 1.55;
+}
+.further-reading strong { color: var(--ink-2); }
+
+/* === RAG explainer figure (Wikipedia CC-BY-SA diagram on the index) === */
+.rag-figure {
+    margin: 22px auto 6px;
+    max-width: 560px;
+    text-align: center;
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 22px 16px;
+}
+.rag-figure__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 480px;
+    margin: 0 auto;
+}
+.rag-figure__caption {
+    font-family: var(--serif);
+    font-size: 0.92em;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin-top: 14px;
+    padding: 0 6px;
+    text-align: left;
+    font-style: italic;
+}
+.rag-figure__caption strong { font-style: normal; color: var(--ink); }
+.rag-figure__caption em { font-style: italic; color: var(--ink); }
+.rag-figure__credit {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 0.78em;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+}
+
+/* === Callout box (high-emphasis acknowledgement / warning) === */
+.callout {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-left: 4px solid var(--c-orange);
+    border-radius: 3px;
+    padding: 20px 26px 22px;
+    margin: 26px 0;
+}
+.callout--critical { border-left-color: var(--c-magenta); }
+.callout__label {
+    font-family: var(--mono);
+    font-size: 0.72em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-magenta);
+    margin-bottom: 10px;
+}
+.callout--critical .callout__label { color: var(--c-magenta); }
+.callout__title {
+    font-family: var(--serif);
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 12px;
+}
+.callout p {
+    margin: 8px 0;
+    color: var(--ink-2);
+    max-width: none;
+}
+
+/* === Audit / shortcomings table (severity pills + tight columns) === */
+.audit-table { font-size: 0.9em; }
+.audit-table td { vertical-align: top; line-height: 1.5; }
+.audit-table td:first-child {
+    font-family: var(--mono);
+    color: var(--ink-3);
+    width: 32px;
+    text-align: right;
+    padding-right: 8px;
+}
+.audit-table td:nth-child(4) { white-space: nowrap; }
+.sev {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+.sev--critical {
+    background: rgba(220,38,127,0.10);
+    color: #8a0a4a;
+    border-color: rgba(220,38,127,0.4);
+}
+.sev--high {
+    background: rgba(254,97,0,0.10);
+    color: #82340a;
+    border-color: rgba(254,97,0,0.36);
+}
+.sev--medium {
+    background: rgba(255,176,0,0.13);
+    color: #6b4a00;
+    border-color: rgba(255,176,0,0.5);
+}
+.sev--low {
+    background: rgba(34,168,132,0.10);
+    color: #0d5a3c;
+    border-color: rgba(34,168,132,0.32);
+}
+
+/* === Catch-all muted note (footnotes, chart caveats, asides) === */
+.muted-note,
+p.muted-note,
+li.muted-note {
+    color: var(--ink-3);
+    font-size: 0.88em;
+    font-style: italic;
+    line-height: 1.5;
+}
+.section-intro {
+    color: var(--ink-2);
+    margin-bottom: 16px;
+}
+
+/* === Chart explanation prose (sits between chart heading and chart) === */
+.chart-explanation {
+    color: var(--ink-2);
+    font-size: 0.94em;
+    line-height: 1.55;
+    margin: 6px 0 18px;
+    padding: 0 4px;
+    max-width: 78ch;
+}
+.chart-explanation strong { color: var(--ink); }
+
+/* === Experiment design callout (axes varied vs held constant) === */
+.axis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: 14px;
+    margin: 22px 0 4px;
+}
+.axis-block {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 16px 18px;
+    position: relative;
+}
+.axis-block::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 28px;
+    height: 2px;
+}
+.axis-varies::before { background: var(--c-magenta); }
+.axis-held::before   { background: var(--ink-muted); }
+.axis-label {
+    font-family: var(--mono);
+    font-size: 0.7em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+}
+.axis-varies .axis-label { color: var(--c-magenta); }
+.axis-title {
+    font-family: var(--serif);
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+}
+.axis-detail {
+    font-size: 0.88em;
+    color: var(--ink-2);
+    line-height: 1.5;
+}
+
+/* === Strategy explainer table (index "RAG Strategies in this study") === */
+.strategy-list {
+    margin: 18px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.strategy-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--paper-edge);
+}
+.strategy-row:last-child { border-bottom: 1px solid var(--paper-edge); }
+.strategy-name {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.08em;
+    color: var(--ink);
+    position: relative;
+    padding-left: 14px;
+}
+.strategy-name::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.45em;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--c-blue);
+}
+.strategy-row:nth-child(2) .strategy-name::before { background: var(--c-purple); }
+.strategy-row:nth-child(3) .strategy-name::before { background: var(--c-magenta); }
+.strategy-row:nth-child(4) .strategy-name::before { background: var(--c-orange); }
+.strategy-row:nth-child(5) .strategy-name::before { background: var(--c-teal); }
+.strategy-desc { color: var(--ink-2); font-size: 0.96em; line-height: 1.55; }
+.strategy-desc strong { color: var(--ink); }
+.strategy-meta {
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 0.78em;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+}
+
+/* === Worked example callout (one annotated row from the data) === */
+.worked-example {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    margin-top: 26px;
+    position: relative;
+}
+.worked-example::before {
+    content: "EXAMPLE";
+    position: absolute;
+    top: -8px;
+    left: 22px;
+    background: var(--paper-2);
+    padding: 0 8px;
+    font-family: var(--mono);
+    font-size: 0.66em;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+}
+.worked-example h3 {
+    margin-top: 0;
+    color: var(--ink);
+    font-size: 1.18em;
+}
+.worked-example__lede {
+    font-size: 0.92em;
+    color: var(--ink-3);
+    margin: 6px 0 18px;
+}
+.worked-example__rows {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 18px;
+    font-size: 0.95em;
+    line-height: 1.6;
+    margin: 0;
+}
+.worked-example__rows dt { margin: 0; }
+.worked-example__rows dd { margin: 0; color: var(--ink-2); }
+.worked-example__label {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--ink);
+}
+.worked-example__label[data-accent="question"] { color: var(--c-purple); }
+.worked-example__label[data-accent="gold"]     { color: var(--c-gold); }
+.worked-example__label[data-accent="rag"]      { color: var(--c-orange); }
+.worked-example__rag { font-style: italic; }
+.worked-example code {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.92em;
+}
+
+.worked-example__section {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--paper-edge);
+}
+.worked-example__section-label {
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 12px;
+}
+.worked-example__section-label[data-accent="metrics"] { color: var(--c-teal); }
+.worked-example__section-label[data-accent="judges"]  { color: var(--c-purple); }
+
+.worked-example__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.worked-example__metric {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 12px 14px;
+}
+.worked-example__metric-label {
+    font-size: 0.78em;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.worked-example__metric-value {
+    font-family: var(--serif);
+    font-size: 1.55em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 4px 0;
+    font-variant-numeric: tabular-nums;
+}
+.worked-example__metric-value--good { color: var(--c-teal); }
+.worked-example__metric-value--warn { color: var(--c-orange); }
+.worked-example__metric-note {
+    font-size: 0.82em;
+    color: var(--ink-3);
+    line-height: 1.4;
+}
+
+.worked-example__judges {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px 14px;
+    font-size: 0.91em;
+    color: var(--ink-2);
+}
+.worked-example__judges strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.worked-example__note {
+    font-size: 0.88em;
+    color: var(--ink-3);
+    margin-top: 12px;
+    line-height: 1.55;
+}
+
+/* === Captions === */
+.caption {
+    font-family: var(--serif);
+    font-size: 0.94em;
+    color: var(--ink-3);
+    font-style: italic;
+    max-width: 72ch;
+    margin: 8px auto 30px;
+    line-height: 1.5;
+    padding: 0 12px;
+    text-align: center;
+}
+
+/* === Placeholder === */
+.placeholder { text-align: center; padding: 80px 24px; }
+.placeholder h2 {
+    border: none;
+    color: var(--ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.placeholder p {
+    color: var(--ink-3);
+    max-width: 600px;
+    margin: 16px auto;
+}
+
+/* === Data tables — Tufte-style rules === */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92em;
+    margin: 20px 0;
+    font-variant-numeric: tabular-nums;
+}
+.data-table th, .data-table td {
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    border: none;
+    border-bottom: 1px solid var(--paper-edge);
+}
+.data-table thead th {
+    background: transparent;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    font-weight: 600;
+    font-size: 0.76em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-family: var(--sans);
+}
+.data-table tbody tr:last-child td { border-bottom: 2px solid var(--ink); }
+.data-table tbody tr:hover { background: rgba(100,143,255,0.05); }
+
+/* === Footer === */
+.footer {
+    text-align: center;
+    padding: 40px 24px 32px;
+    color: var(--ink-3);
+    font-size: 0.88em;
+    border-top: 1px solid var(--paper-edge);
+    margin-top: 60px;
+    font-family: var(--serif);
+    font-style: italic;
+}
+.footer a {
+    color: var(--ink);
+    text-decoration-color: var(--c-blue);
+}
+.footer a:hover { text-decoration-color: var(--c-magenta); }
+
+/* === Hero (index landing) — oversized serif, editorial kicker === */
+.hero {
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    padding: 16px 0 56px;
+    margin: -16px 0 48px;
+    border-bottom: 1px solid var(--paper-edge);
+    position: relative;
+}
+.hero::before {
+    content: "Findings Gallery · 2026";
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 22px;
+}
+.hero h1 {
+    color: var(--ink);
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 18px;
+    font-size: 4.6em;
+    font-weight: 600;
+    letter-spacing: -0.038em;
+    line-height: 0.96;
+    font-family: var(--serif);
+}
+.hero h1::after { display: none; }
+.hero .tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.4em;
+    color: var(--ink-2);
+    margin: 0 0 24px 0;
+    max-width: 36ch;
+    line-height: 1.32;
+}
+.hero .description {
+    max-width: 64ch;
+    margin: 0 0 30px 0;
+    color: var(--ink-2);
+    line-height: 1.7;
+    font-size: 1.02em;
+}
+.hero .cta-btn {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 26px;
+    border-radius: 2px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.82em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--sans);
+    transition: background 0.18s, transform 0.18s;
+    border: 1px solid var(--ink);
+}
+.hero .cta-btn:hover {
+    background: var(--c-blue);
+    border-color: var(--c-blue);
+    color: var(--paper-2);
+    transform: translateY(-1px);
+}
+
+/* === Key findings cards === */
+.findings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 28px 0;
+}
+.finding-card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    border-left: 3px solid var(--c-blue);
+    transition: transform 0.18s, border-left-color 0.18s, box-shadow 0.18s;
+}
+.finding-card:nth-child(2) { border-left-color: var(--c-purple); }
+.finding-card:nth-child(3) { border-left-color: var(--c-magenta); }
+.finding-card:nth-child(4) { border-left-color: var(--c-orange); }
+.finding-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -14px rgba(24,24,27,0.18);
+}
+.finding-card h4 {
+    color: var(--ink);
+    margin-bottom: 8px;
+    font-size: 1.02em;
+    font-family: var(--serif);
+    line-height: 1.3;
+}
+.finding-card p {
+    color: var(--ink-3);
+    font-size: 0.91em;
+    margin: 0;
+    max-width: none;
+}
+
+/* === Methodology page — readable prose column === */
+.methodology-content {
+    max-width: 72ch;
+    margin: 0 auto;
+}
+.methodology-content h2 { margin-top: 56px; }
+.methodology-content p {
+    margin: 16px 0;
+    color: var(--ink-2);
+    max-width: none;
+}
+.methodology-content pre {
+    background: var(--ink);
+    color: #e8e4d6;
+    padding: 22px 24px;
+    border-radius: 3px;
+    overflow-x: auto;
+    font-size: 0.86em;
+    line-height: 1.7;
+    font-family: var(--mono);
+    margin: 22px 0;
+}
+.methodology-content code {
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+    border: 1px solid var(--paper-edge);
+    color: var(--ink);
+}
+.methodology-content pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    body { font-size: 16px; }
+    .content { padding: 36px 20px 56px; }
+    .hero { padding: 12px 0 36px; margin: -12px 0 32px; }
+    .hero h1 { font-size: 2.5em; }
+    .hero .tagline { font-size: 1.12em; }
+    .hero::before { font-size: 0.68em; margin-bottom: 16px; }
+    .experiment-grid { grid-template-columns: 1fr; }
+    .findings-grid { grid-template-columns: 1fr; }
+    .nav { flex-wrap: wrap; gap: 4px; padding: 14px 18px; }
+    .nav a { font-size: 0.7em; padding: 6px 8px; }
+    .nav .brand { font-size: 1.25em; width: 100%; margin-right: 0; margin-bottom: 8px; }
+    .version-nav { padding: 8px 18px; flex-wrap: wrap; }
+    .card { padding: 24px 22px; }
+    .card::before { left: 22px; }
+    h1 { font-size: 1.9em; }
+    h2 { font-size: 1.32em; }
+    .axis-grid { grid-template-columns: 1fr; }
+    .strategy-row { grid-template-columns: 1fr; gap: 6px; }
+    .strategy-name { padding-left: 14px; }
+    .worked-example__rows { grid-template-columns: 1fr; gap: 4px 0; }
+    .worked-example__rows dd { margin-bottom: 8px; }
+    .worked-example__metrics { grid-template-columns: 1fr; }
+    .worked-example__judges  { grid-template-columns: repeat(2, 1fr); }
+    .feature-card { padding-left: 22px; }
+}
+
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <span class="brand">RAGBench</span>
+        <a href="index.html">Home</a>
+    <a href="experiment_0_v3.html">Exp 0v3: Scorer Validation</a>
+    <a href="experiment_1.html">Exp 1: Strategy × Model</a>
+    <a href="experiment_2.html">Exp 2: Chunking × Model</a>
+    <a href="methodology.html">Methodology</a>
+    <a href="writeup.html" class="active">Writeup</a>
+        <a class="nav__source" href="https://github.com/nono638/2026Project"
+           target="_blank" rel="noopener" aria-label="RAGBench source code on GitHub">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            <span>Source</span>
+        </a>
+    </nav>
+    <div class="content">
+        <h1>Writeup</h1>
+        
+    <div class="methodology-content">
+
+        <p class="kicker-mono" style="color: var(--ink-muted);">Project writeup &middot; CUNY SPS, Spring 2026</p>
+        <p class="lede">
+            RAGBench started as a question that seemed easy enough to
+            measure: <em>does a smarter Retrieval-Augmented Generation
+            strategy actually compensate for using a smaller language
+            model?</em> Six BSODs, three revisions of the scorer
+            validation, two full strategy &times; model factorials, and
+            one painful realisation about uncollected provenance
+            later, the answer is &ldquo;mostly no &mdash; but
+            the experiment that taught us that needed more honesty about
+            its own limits than the first dashboard suggested.&rdquo;
+        </p>
+
+        <h2 id="motivation">Why RAGBench</h2>
+        <p>
+            The RAG literature is loud about strategy choice. Every few
+            weeks a new paper or blog post argues that some flavour of
+            self-critique, query reformulation, or adaptive routing
+            unlocks meaningful quality on a smaller, cheaper model. The
+            claims are plausible &mdash; small models hallucinate more,
+            and an extra LLM pass to verify or refine should help. But
+            the numbers cited are usually on different datasets, with
+            different models, against different retrievers, scored by
+            different judges. There&rsquo;s nowhere obvious to look and
+            ask: <strong>under controlled conditions, on a shared
+            question set, with everything else held constant, how big
+            is the strategy effect actually?</strong>
+        </p>
+        <p>
+            RAGBench is a configurable harness that tries to answer that
+            question for one shared question set (HotpotQA), one held-
+            constant embedder per experiment, one chunker per
+            experiment, and a panel of LLM judges that we first
+            validated against gold-standard metrics. It runs the full
+            cartesian product of (chunker &times; embedder &times;
+            strategy &times; LLM) configurations specified on the
+            command line and writes per-row results to a CSV that
+            downstream analysis reads. The codebase is on
+            <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">GitHub</a>;
+            it&rsquo;s very much a personal research project, not yet
+            something I&rsquo;d ask a stranger to install and trust.
+        </p>
+
+        <h2 id="hypotheses">What we set out to test</h2>
+        <p>
+            Three working hypotheses going in. I&rsquo;ll mark each
+            with what the data eventually said.
+        </p>
+        <ol>
+            <li><strong>H1.</strong> A clever RAG strategy on a small
+                language model will frequently beat plain NaiveRAG on
+                a larger model. <span class="muted-note">&mdash; Result:
+                <em>mostly false</em>. The &ldquo;Strategy Beats Size&rdquo;
+                chart in Experiment 1 finds upset cases, but the
+                average delta is +0.08 to +0.10 quality points and
+                the strategies that produce them (Corrective,
+                Multi-Query) sit essentially flat with Naive on
+                average. Self-RAG and Adaptive actively hurt every
+                model they touched.</span></li>
+            <li><strong>H2.</strong> Quality will scale roughly
+                monotonically with model size. <span class="muted-note">
+                &mdash; Result: <em>directionally true but flat in the
+                middle</em>. Going from 0.8B to 9B parameters
+                moved mean quality 3.27 &rarr; 4.03 &mdash; meaningful
+                at the bottom, but qwen3.5:4B (4.05) edged out
+                qwen3.5:9B (4.03) in both Experiment 1 and Experiment 2.
+                The 4B mark is the quality sweet spot for this
+                workload.</span></li>
+            <li><strong>H3.</strong> Chunker choice will interact
+                meaningfully with model size &mdash; better chunking
+                will rescue smaller models. <span class="muted-note">
+                &mdash; Result: <em>false</em>. Within any one model the
+                chunker spread is 0.16&ndash;0.27 quality points,
+                roughly at the noise floor of stochastic generation
+                (see below). Across chunkers the headline differences
+                are smaller than the smallest model-size step.</span></li>
+        </ol>
+
+        <h2 id="headline">Headline findings, cross-experiment</h2>
+        <p>
+            Pulled together from the two experiment dashboards:
+        </p>
+        <ul>
+            <li><strong>Strategy effects are small at best, hurtful at
+                worst.</strong> The three strategies that didn&rsquo;t
+                fight the model (Naive, Multi-Query, Corrective)
+                cluster within 0.07 quality points across 1,200 rows
+                each. The two that tried to be clever in
+                under-instrumented ways (Self-RAG&rsquo;s
+                self-critique loop, Adaptive&rsquo;s complexity
+                router) cost 0.7&ndash;1.4 quality points on every
+                model. Those negative results are the most
+                publishable thing in the dataset.</li>
+            <li><strong>Model size matters less than expected, and
+                non-monotonically.</strong> qwen3.5:4B beat
+                qwen3.5:9B in <em>both</em> experiments. Either the
+                9B variant is poorly calibrated for HotpotQA, or
+                we&rsquo;re into the regime where more parameters
+                hurt as much as they help on simple factoid Q&amp;A.</li>
+            <li><strong>Chunker choice barely moves the needle on
+                HotpotQA.</strong> The best chunker (fixed) and the
+                worst (sentence) differ by 0.20 quality points
+                aggregate. Spending engineering effort on chunker
+                tuning is unlikely to pay back vs spending it on
+                model selection or, frankly, on writing better
+                prompts.</li>
+            <li><strong>LLM judges agree when they&rsquo;re
+                contemporaneous.</strong> Experiment 0 v3 ran 9 judges
+                on 500 questions; cross-provider Pearson against gold
+                F1 was 0.55&ndash;0.60 for current-generation models
+                (GPT-5.4, Claude Sonnet 4.6) and dropped 30&ndash;45%
+                for older variants of the same families. <em>Model
+                version drift dominates provider differences</em>
+                &mdash; an under-appreciated property of the
+                LLM-as-judge approach.</li>
+            <li><strong>The winning configurations are boring.</strong>
+                Experiment 1 winner: NaiveRAG &times; qwen3.5:4B
+                (4.59 quality, 59% exact match). Experiment 2
+                winner: fixed-size chunker &times; qwen3.5:4B
+                (4.65 quality, 74% exact match). No clever strategy,
+                no clever chunker, mid-size model. The interesting
+                content is in the absence of the expected effects,
+                not in the rankings themselves.</li>
+        </ul>
+
+        <h2 id="bsods">The technical reality: six BSODs in eleven days</h2>
+        <p>
+            The hardware was an RTX 5090 Laptop GPU on Windows 11.
+            Between 2026-05-17 and 2026-05-19 the machine crashed six
+            times under sustained Ollama batch load:
+        </p>
+        <ul>
+            <li>2026-05-17 22:32 &mdash; <code>0x00000133</code>
+                DPC_WATCHDOG_VIOLATION (nvlddmkm)</li>
+            <li>2026-05-18 02:14 &mdash; <code>0x0000003B</code>
+                SYSTEM_SERVICE_EXCEPTION (resumed Exp 1, ~32 min in)</li>
+            <li>2026-05-18 09:21 &mdash; <code>0x0000000A</code>
+                IRQL_NOT_LESS_OR_EQUAL</li>
+            <li>2026-05-18 11:53 &mdash; <code>0x00000116</code>
+                VIDEO_TDR_ERROR (config 18/30, ~50 min in)</li>
+            <li>2026-05-18 18:?? &mdash; bugcheck not preserved
+                (BSOD #5)</li>
+            <li>2026-05-19 03:29 &mdash; silent kill mid-row_rest
+                sleep (config 29/30, query 100). No Python
+                traceback, log just stops &mdash; classic BSOD
+                silhouette.</li>
+        </ul>
+        <p>
+            Five distinct bugcheck codes, all rooted in nvlddmkm. The
+            NVIDIA developer forum has a long thread documenting
+            similar behaviour on the 5090 family under Ollama:
+            <a href="https://forums.developer.nvidia.com/t/rtx-5090-total-failure-hang-unload-in-ollama-after-couple-of-minutes/341659"
+               target="_blank" rel="noopener">&ldquo;RTX 5090 total
+            failure / hang / unload in Ollama after a couple of
+            minutes&rdquo;</a>. This is a driver / firmware
+            instability cluster, not a Python bug; pure software
+            pacing inside Python cannot eliminate it.
+        </p>
+        <p>
+            What helped:
+        </p>
+        <ul>
+            <li><strong>Workload pacing inside Python.</strong> A 0.5 s
+                sleep between every (generate + score) row, a longer
+                rest every 50 rows (cut from 10 s monolithic to 3
+                &times; 1 s ticks with fsynced heartbeats after BSOD #6
+                hit mid-sleep), and a 30 s cooldown between configs.
+                These widened the gaps between bursts enough to reduce
+                the frequency but not to zero.</li>
+            <li><strong>Ollama tuning.</strong>
+                <code>OLLAMA_MAX_LOADED_MODELS=1</code>,
+                <code>OLLAMA_NUM_PARALLEL=1</code>,
+                <code>OLLAMA_KEEP_ALIVE=24h</code>, served via a
+                detached <code>ollama serve</code> instead of the tray
+                app so the env vars actually applied. The
+                concurrent-residency churn between embedder and chat
+                models was the regime that correlated with the worst
+                BSOD cluster.</li>
+            <li><strong>Per-call <code>keep_alive=&quot;30m&quot;</code>
+                and <code>num_predict=1024</code></strong> in
+                <code>OllamaLLM.generate</code> &mdash; bounded
+                runaway generations that had been driving the longest
+                hangs.</li>
+            <li><strong>180 s per-request httpx timeout.</strong>
+                Ollama&rsquo;s Python client defaults to no timeout;
+                that&rsquo;s how an 8&ndash;17-minute hung
+                <code>chat()</code> happened before BSOD #3.</li>
+            <li><strong>System-level mitigations</strong>
+                (<code>scripts/apply_5090_stability.ps1</code>):
+                Windows TDR registry raised to 60 s, Hardware-Accelerated
+                GPU Scheduling off, PCIe ASPM disabled, high-performance
+                power plan. Cut the rate further.</li>
+        </ul>
+        <p>
+            What didn&rsquo;t fully work: clean NVIDIA driver reinstall,
+            and chasing &ldquo;cooler temperatures&rdquo; (the GPU
+            sat at 51&ndash;56&nbsp;&deg;C through the whole crashed run
+            &mdash; thermal headroom wasn&rsquo;t the issue).
+        </p>
+        <p>
+            What closed the loop on the human cost: a Python
+            <strong>watchdog wrapper</strong>
+            (<code>scripts/run_experiment_1_watchdog.py</code>) that
+            supervises the experiment subprocess and re-launches it
+            with <code>--resume</code> on any non-zero exit, with
+            exponential backoff and a zero-progress abort guard. Paired
+            with a Windows scheduled task
+            (<code>scripts/install_auto_resume_task.ps1</code>) that
+            fires the watchdog at logon with a 30 s delay, a BSOD now
+            costs only the reboot time. The final 300 rows of
+            Experiment 1 completed in 46 minutes on a single attempt,
+            no BSOD, after weeks of fighting that section of the
+            matrix.
+        </p>
+        <p>
+            Lessons that generalised beyond this hardware: <em>own the
+            unattended-execution loop</em> (don&rsquo;t assume the
+            machine will be reliable for the experiment&rsquo;s
+            wall-clock); <em>shrink the BSOD blast radius</em> by
+            doing per-row fsynced checkpoints to CSV plus heartbeat
+            JSONL events so post-mortems can answer &ldquo;what was
+            the process doing at the second of death?&rdquo;; and
+            <em>distinguish system-level fixes from software pacing</em>
+            &mdash; both helped here, but they helped for different
+            reasons and either alone was insufficient.
+        </p>
+
+        <h2 id="exp0">What we got wrong: Experiment 0&rsquo;s three revisions</h2>
+        <p>
+            Experiment 0&rsquo;s job was to pick the LLM judge for
+            Experiments 1 and 2. The first version was sound enough
+            to <em>answer the literal question asked</em> but had five
+            methodological oversights that only surfaced under
+            post-analysis. The reason there are three versions of
+            Experiment 0 on this site is that we kept catching them and
+            fixing them.
+        </p>
+        <h3>v1: the first end-to-end run</h3>
+        <p>
+            50 HotpotQA questions sampled proportionally across
+            difficulties, scored by 6 LLM judges. Headline conclusion:
+            use Claude Sonnet as the primary scorer. The five
+            oversights:
+        </p>
+        <ol>
+            <li><strong>Pipeline observability was absent.</strong> We
+                generated answers but didn&rsquo;t record which chunks
+                were retrieved, what context was assembled, or what
+                the LLM actually saw. When a row failed, &ldquo;why?&rdquo;
+                was guesswork.</li>
+            <li><strong>The scorer judged against information the LLM
+                never received.</strong> We passed the full source
+                document to the judge for the faithfulness rating, but
+                the answering model only saw the small subset of
+                retrieved chunks. A hallucinated detail that happened
+                to appear elsewhere in the document scored as
+                &ldquo;faithful.&rdquo;</li>
+            <li><strong>No reranker.</strong> v1 used raw hybrid
+                retrieval (BM25 + dense with RRF fusion) with no
+                cross-encoder reranker, which meant we validated our
+                scorers on a different pipeline configuration than the
+                one Experiments 1 and 2 would use.</li>
+            <li><strong>Ceiling effect.</strong> 50 questions
+                proportionally sampled meant ~74% exact match. With
+                ~13 wrong answers there wasn&rsquo;t enough signal
+                to discriminate between judges.</li>
+            <li><strong>No composite quality metric.</strong> We had
+                BERTScore, F1, and judge ratings as independent
+                signals but no way to ask &ldquo;do all three agree
+                this answer is good?&rdquo; A judge that gave 5/5 to
+                an answer with low BERTScore and low F1 had a blind
+                spot we couldn&rsquo;t see.</li>
+        </ol>
+        <h3>v2: corrections, but still single-judge thinking</h3>
+        <p>
+            150 medium+hard questions (eliminating the ceiling effect),
+            BGE reranker added, scorer fed the actual context the LLM
+            received, pipeline diagnostics captured. Conclusion stood
+            (Sonnet wins) but with the caveat that we were still
+            evaluating one judge at a time against gold metrics. The
+            insight that <em>judges should be evaluated as a panel,
+            cross-validating each other</em>, hadn&rsquo;t landed yet.
+        </p>
+        <h3>v3: the version-drift discovery</h3>
+        <p>
+            500 questions, 9 judges spanning 3 providers and 4 Claude
+            generations. Two things emerged that weren&rsquo;t in the
+            original plan:
+        </p>
+        <ul>
+            <li><strong>Model version drift dominates provider
+                differences.</strong> Claude Sonnet 4 hit r=0.40
+                against gold F1; Claude Sonnet 4.6, same provider
+                eight months later, hit r=0.58 &mdash; a 45%
+                relative improvement on identical answers. A
+                spot-check of Opus 4 vs Opus 4.7 showed the same
+                pattern. Within-provider version differences turned
+                out to <em>exceed</em> cross-provider differences,
+                which has consequences for anyone using
+                LLM-as-judge: you can&rsquo;t cite an old judge
+                model&rsquo;s correlation number and assume the
+                current version of the same family behaves the same.</li>
+            <li><strong>GPT-5.4 Mini is the best value judge.</strong>
+                r=0.55 against gold F1, $0.0015 per call, no
+                version-drift penalty. The final v3 conclusion changed
+                the Experiment 1 / 2 panel from &ldquo;Claude
+                Sonnet&rdquo; to &ldquo;Claude Haiku 4.5 + GPT-5.4
+                Mini&rdquo;: cross-provider, both current-generation,
+                ~$32 total budget across both full experiments.</li>
+        </ul>
+        <p>
+            The v1 conclusion on the website is annotated as
+            superseded by v3 rather than rewritten, so the
+            methodological evolution is visible to a reader.
+        </p>
+
+        <h2 id="exp12">What we got wrong: Experiments 1 and 2</h2>
+        <p>
+            By the time Experiments 1 and 2 ran, we&rsquo;d learned
+            quite a bit from Experiment 0&rsquo;s revisions: we were
+            now capturing what the LLM actually saw, scoring against
+            that, using a validated cross-provider judge panel, and
+            running on a real factorial design. The dashboards look
+            polished. They are <em>not</em> as scientifically robust
+            as they look.
+        </p>
+        <p>
+            The big oversight wasn&rsquo;t about <em>what</em> we
+            measured but <em>what we wrote down per row</em>. The CSV
+            captured the final answer text, the final context sent to
+            the LLM, total strategy latency, and gold-vs-RAG metrics
+            &mdash; plenty for headline rankings. What it didn&rsquo;t
+            capture:
+        </p>
+        <ul>
+            <li>The number of LLM calls per row &mdash; only a
+                process-wide running total in the heartbeat log.</li>
+            <li>The branch path taken by Corrective (did reformulation
+                fire?) or Adaptive (which sub-path did the classifier
+                pick?).</li>
+            <li>The intermediate LLM outputs (the
+                &ldquo;relevant&rdquo;/&ldquo;irrelevant&rdquo;
+                ratings inside Corrective, the reformulated query
+                Multi-Query produced, the classifier verdict
+                Adaptive returned). These drive branch decisions and
+                become inputs to later prompts &mdash; missing them
+                means missing the per-row substituted prompts for
+                every call after the first.</li>
+            <li>The code SHA at generation time, so an analyst could
+                pin which version of <code>src/strategies/</code>
+                produced a given row.</li>
+        </ul>
+        <p>
+            The prompt <em>templates</em> are version-controlled in
+            <code>src/strategies/*.py</code>, so the prompt
+            <em>shape</em> for every call is recoverable from source.
+            What isn&rsquo;t recoverable per row is the substituted
+            content for any call whose input came from a prior LLM
+            output. For NaiveRAG that&rsquo;s fully recoverable
+            (one fixed template, one chat call); for the other four
+            strategies it isn&rsquo;t.
+        </p>
+        <p>
+            That gap matters most for CorrectiveRAG and AdaptiveRAG,
+            which are precisely the strategies whose value
+            <em>depends</em> on conditional behaviour. Without
+            recording the conditional outcomes we can&rsquo;t do the
+            fine-grained error analysis that distinguishes
+            &ldquo;strategy didn&rsquo;t help&rdquo; from &ldquo;strategy
+            helped on the rows where its second pass actually
+            fired.&rdquo; That&rsquo;s the difference between a
+            publishable experiment and a working demo, and we
+            should own it openly.
+        </p>
+        <p>
+            Phase 1 of the fix shipped: a per-row trace
+            (<code>begin_row</code> / <code>end_row</code> /
+            <code>record_complete</code>) wraps every
+            <code>OllamaLLM.generate</code> call, every strategy now
+            tags its calls with an <em>intent</em> label
+            (<code>rate_relevance</code>, <code>reformulate_query</code>,
+            <code>classify_complexity</code>, etc.), and the runner
+            writes the full per-call trace to a sidecar
+            <code>traces.jsonl</code> alongside <code>events.jsonl</code>.
+            Seven new CSV columns (<code>n_llm_calls</code>,
+            <code>llm_call_intents</code>, <code>final_prompt</code>,
+            <code>prompts_source</code>, <code>code_sha</code>,
+            <code>llm_num_predict</code>, <code>llm_keep_alive</code>)
+            carry the summary. Historical rows have been
+            schema-aligned via a backfill script; NaiveRAG rows have
+            their <code>final_prompt</code> reconstructed
+            byte-deterministically, multi-step strategy rows are
+            tagged but not fabricated.
+        </p>
+
+        <h2 id="reproducibility">Stochastic generation: the reproducibility cost</h2>
+        <p>
+            The other reason Experiments 0&ndash;2 are less
+            reproducible than they should be: the runner used
+            Ollama&rsquo;s default generation parameters, which
+            include <code>temperature&nbsp;&asymp;&nbsp;0.8</code> and
+            no seed. The same row, if re-run today, would produce a
+            different answer &mdash; and possibly a different LLM
+            judgement of it, and possibly a different branch path in
+            Corrective or Adaptive.
+        </p>
+        <p>
+            That means row-level reproducibility is gone. Aggregate
+            statistics (mean F1 over 200 questions, strategy &times;
+            model rankings) remain meaningful <em>in expectation</em>,
+            but their <em>variance</em> carries unnecessary
+            stochastic-generation noise. The 0.07-point gap between
+            Naive and Corrective in Experiment 1, and the 0.20-point
+            chunker spread in Experiment 2, are both within the noise
+            band that a <code>temperature&nbsp;=&nbsp;0</code> +
+            fixed-seed regime would eliminate. We don&rsquo;t know how
+            much of that &ldquo;within noise&rdquo; is real
+            indistinguishability vs sampling variance until we re-run
+            with deterministic generation.
+        </p>
+        <p>
+            This is one line of options in
+            <code>OllamaLLM.generate</code> and a few CSV columns to
+            stamp it per row; the new per-row instrumentation can
+            carry it without further changes. Phase&nbsp;2 work.
+        </p>
+
+        <h2 id="audit">The full audit: uncollected details, severity-ranked</h2>
+        <p>
+            The prose above sketched the gaps in narrative form. This is
+            the comprehensive list, ordered by how much each gap limits
+            interpretability of Experiments 0&ndash;2. None of these
+            invalidate the headline findings; they constrain how finely
+            the data can be sliced, audited, or reproduced. Items 1, 2,
+            and 3 are the practical limit to how scientific the existing
+            data can be made retroactively; for the next experiment, items
+            1, 2, 4, 6, and 7 are the right batch to add together.
+        </p>
+
+        <div class="callout callout--critical">
+            <div class="callout__label">Most severe &middot; affects every row in every experiment</div>
+            <h3 class="callout__title">Stochastic generation without a fixed seed</h3>
+            <p>
+                Generation parameters were not set explicitly &mdash; the
+                runner used Ollama&rsquo;s defaults, which include
+                <code>temperature&nbsp;&asymp;&nbsp;0.8</code> and no
+                <code>seed</code>. That means a given row, if re-run
+                today, would produce a <em>different</em> answer (and
+                possibly a different LLM judgement, and possibly a
+                different branch path in CorrectiveRAG / AdaptiveRAG).
+                Row-level reproducibility is therefore not what a
+                research benchmark should provide. Aggregate statistics
+                (mean F1 over 200 questions, strategy &times; model
+                rankings) remain meaningful in expectation, but their
+                <em>variance</em> is partly stochastic-generation noise
+                that a <code>temperature&nbsp;=&nbsp;0</code> +
+                fixed-seed regime would eliminate. The fix is one line
+                of options in <code>OllamaLLM.generate</code>; a
+                principled fix also stamps <code>temperature</code>,
+                <code>top_p</code>, <code>top_k</code>, and
+                <code>seed</code> per row, which the new
+                instrumentation can carry without further changes.
+            </p>
+        </div>
+
+        <table class="data-table audit-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>What was not recorded</th>
+                    <th>Why it matters for Exp 0&ndash;2</th>
+                    <th>Severity</th>
+                    <th>Difficulty to add</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td><strong>Generation params per row</strong>
+                        (temperature, top_p, top_k, seed)</td>
+                    <td>Same row re-run today produces a different
+                        answer. Eliminates row-level reproducibility;
+                        leaves aggregate statistics intact in expectation.</td>
+                    <td><span class="sev sev--critical">Critical</span></td>
+                    <td>Low &mdash; one options dict + CSV column</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td><strong>Strategy hyperparameters per row</strong>
+                        (e.g.&nbsp;CorrectiveRAG&rsquo;s &ldquo;reformulate
+                        if &lt;&nbsp;2 chunks pass&rdquo; threshold,
+                        MultiQueryRAG&rsquo;s 3 sub-queries)</td>
+                    <td>If any threshold is tweaked between runs, two
+                        cells of the same (strategy,&nbsp;model) become
+                        silently incomparable. No versioning protects
+                        against this today.</td>
+                    <td><span class="sev sev--high">High</span></td>
+                    <td>Medium &mdash; <code>.hyperparameters</code>
+                        property per strategy + CSV stamp</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td><strong>Branch path / decisions taken</strong>
+                        (Corrective: did reformulation fire? Adaptive:
+                        which sub-path? Self-RAG: did the critique change
+                        the answer?)</td>
+                    <td>For branchy strategies, this is half the
+                        information about what the strategy <em>did</em>
+                        on a row. Phase 1 traces capture intent labels
+                        but not boolean outcomes.</td>
+                    <td><span class="sev sev--high">High</span></td>
+                    <td>Medium &mdash; strategies populate
+                        <code>diagnostics["branch"]</code></td>
+                </tr>
+                <tr>
+                    <td>4</td>
+                    <td><strong>Per-call token counts</strong>
+                        (prompt_tokens, completion_tokens,
+                        eval_duration)</td>
+                    <td>Cost is currently estimated from string length
+                        &times;&nbsp;~4. With Ollama&rsquo;s
+                        <code>eval_count</code>/<code>prompt_eval_count</code>
+                        in <code>/api/chat</code> we&rsquo;d measure
+                        it. Also surfaces &ldquo;did this row hit the
+                        <code>num_predict</code> cap?&rdquo;</td>
+                    <td><span class="sev sev--medium">Medium</span></td>
+                    <td>Low &mdash; already in the response object</td>
+                </tr>
+                <tr>
+                    <td>5</td>
+                    <td><strong>Per-chunk retrieval scores</strong></td>
+                    <td>CSV shows <em>which</em> chunks were retrieved,
+                        not <em>with what similarity score</em>. Gold
+                        chunk at rank 1 score 0.89 is a very different
+                        signal from rank 5 score 0.41 &mdash; currently
+                        indistinguishable in raw_scores.csv.</td>
+                    <td><span class="sev sev--medium">Medium</span></td>
+                    <td>Low &mdash; already in the retriever&rsquo;s
+                        return dict, just not surfaced</td>
+                </tr>
+                <tr>
+                    <td>6</td>
+                    <td><strong>Intermediate LLM outputs</strong>
+                        (relevance ratings, reformulated query text,
+                        classifier outputs)</td>
+                    <td>The intermediate strings that drive branch
+                        decisions and final-prompt content. Phase 1
+                        captures these in <code>traces.jsonl</code>
+                        going forward; not in the CSV.</td>
+                    <td><span class="sev sev--medium">Medium</span></td>
+                    <td>Trivial now (already in trace; needs a
+                        flattener)</td>
+                </tr>
+                <tr>
+                    <td>7</td>
+                    <td><strong>Embedder calls per row</strong>
+                        (separate from chat calls)</td>
+                    <td>Lumped into <code>n_total_calls_inc_embed</code>
+                        currently. Separating lets us measure retrieval
+                        cost independently of generation cost.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Low &mdash; wire
+                        <code>record_complete("embed", &hellip;)</code>
+                        into OllamaEmbedder</td>
+                </tr>
+                <tr>
+                    <td>8</td>
+                    <td><strong>Library versions</strong> at gen time
+                        (ollama-python, numpy, langchain-text-splitters,
+                        huggingface-hub)</td>
+                    <td>A retrieval bug fixed in
+                        <code>langchain-text-splitters&nbsp;0.4.5</code>
+                        would silently change chunk boundaries between
+                        runs. No versioning catches this today.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Low &mdash; once-per-run
+                        <code>pkg_resources</code> snapshot</td>
+                </tr>
+                <tr>
+                    <td>9</td>
+                    <td><strong>Ollama model digest</strong> (not just
+                        the tag)</td>
+                    <td>An <code>ollama pull qwen3.5:4b</code> can
+                        replace a tag&rsquo;s underlying weights without
+                        warning. We capture <code>quantization_level</code>
+                        but not the SHA of the model artifact actually
+                        loaded.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Low &mdash; <code>/api/show</code> returns
+                        <code>digest</code>; we already call this for
+                        quantization</td>
+                </tr>
+                <tr>
+                    <td>10</td>
+                    <td><strong>Per-chunk document IDs &amp; offsets</strong></td>
+                    <td>The CSV has <code>context_sent_to_llm</code>
+                        (text) but no
+                        <code>chunk_doc_id</code>&nbsp;/&nbsp;<code>chunk_offset</code>
+                        per retrieved chunk. &ldquo;Did we retrieve from
+                        the right source document?&rdquo; is text-matching
+                        rather than lookup.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Medium &mdash; the chunker/Document model has
+                        to carry doc_id end-to-end</td>
+                </tr>
+                <tr>
+                    <td>11</td>
+                    <td><strong>Hardware state per row</strong> (GPU
+                        temperature, power draw, clocks)</td>
+                    <td>Already captured every 10 rows in
+                        <code>events.jsonl</code>, but never joined onto
+                        rows. Thermal-correlated quality drift would be
+                        invisible without that join.</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Trivial &mdash; post-hoc join from
+                        events.jsonl</td>
+                </tr>
+                <tr>
+                    <td>12</td>
+                    <td><strong>API judge network-vs-model timing</strong>
+                        breakdown (Anthropic / OpenAI)</td>
+                    <td>Scorer latency includes variable network time.
+                        Can&rsquo;t tell &ldquo;judge was slow today
+                        because of network&rdquo; from &ldquo;judge was
+                        slow because the model is slow on long
+                        contexts.&rdquo;</td>
+                    <td><span class="sev sev--low">Low</span></td>
+                    <td>Hard &mdash; providers don&rsquo;t expose it
+                        cleanly</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="public-ready">How far is this from public-ready?</h2>
+        <p>
+            Honestly, a fair amount. RAGBench is a personal research
+            project I&rsquo;d be comfortable showing to a hiring
+            manager or to a faculty advisor; I&rsquo;d <em>not</em> be
+            comfortable having a stranger cite the numbers as if they
+            were a benchmark on the order of MTEB or HELM. The
+            distance from here to &ldquo;cite-able benchmark&rdquo;
+            is roughly:
+        </p>
+        <ul>
+            <li><strong>Strict reproducibility.</strong> Fix
+                temperature=0 + seed, pin every dependency version,
+                stamp library + Ollama versions per row. Without this
+                no number can be exactly replicated.</li>
+            <li><strong>Confidence intervals on the headline numbers.</strong>
+                The dashboards show point estimates of means. There
+                are no error bars or significance tests. With 200
+                questions per cell that&rsquo;s perfectly tractable
+                bootstrap territory; just not done yet.</li>
+            <li><strong>More than one dataset.</strong> Everything
+                here is HotpotQA. The conclusions need to be
+                replicated on at least one factoid dataset (SQuAD 2.0
+                is wired up but unused) and one long-form / domain-
+                specific corpus before they generalise.</li>
+            <li><strong>More than one hardware platform.</strong> All
+                the timing data is from one 5090 Laptop on one
+                Windows install. Latency comparisons would shift on
+                a server-class GPU, and the BSOD story is specifically
+                a 5090 driver issue.</li>
+            <li><strong>Cost measurement, not estimation.</strong>
+                Currently cost is estimated from string length &times;
+                ~4. Per-call <code>prompt_tokens</code>/<code>completion_tokens</code>
+                from Ollama&rsquo;s <code>/api/chat</code> response
+                turns that into measurement; on the API side we have
+                the actual usage figures from the SDKs already.</li>
+            <li><strong>Per-row provenance for everything in the
+                <a href="methodology.html#logging-gaps">audit table</a>.</strong>
+                Phase 1 fixed prompts + call counts; Phase 2 needs
+                generation params, strategy hyperparameters, branch
+                outcomes, token counts, per-chunk retrieval scores.</li>
+            <li><strong>Documentation for outside users.</strong> The
+                README is honest about what works on the author&rsquo;s
+                machine. It&rsquo;s not a Quickstart that would land
+                cleanly on a fresh install elsewhere &mdash; the
+                Ollama setup, the model downloads, the API keys, the
+                Windows-specific stability scripts, and the assumption
+                of an RTX-class GPU would all need spelling out.</li>
+            <li><strong>Statistical analysis beyond the dashboards.</strong>
+                The visualisations summarise; they don&rsquo;t prove
+                anything. A proper writeup would include an ANOVA on
+                the strategy &times; model design, a regression
+                isolating the main effects, and a discussion of
+                where the negative results are bounded by sample
+                size.</li>
+            <li><strong>Test coverage for edge cases.</strong> 691
+                tests pass today, but they cover happy paths plus
+                the failures we&rsquo;ve already debugged. Network
+                partition during retrieval, Ollama runner mid-call
+                crash, malformed strategy output, judge API rate
+                limit during a long run &mdash; some of these are
+                handled in code, none of them are systematically
+                tested.</li>
+        </ul>
+        <p>
+            That&rsquo;s probably another month of focused work to
+            close. The good news: most of it is mechanical, not
+            conceptual. The hard part &mdash; designing the
+            experiments, picking the judges, surviving the
+            5090 &mdash; is largely behind us.
+        </p>
+
+        <h2 id="next">What&rsquo;s next</h2>
+        <ul>
+            <li>Set <code>temperature=0</code> and a per-row seed in
+                <code>OllamaLLM.generate</code>, stamp both per row.
+                Re-run a subset (say, 10 questions &times; full matrix)
+                to estimate how much of the inter-strategy noise is
+                stochastic vs systematic.</li>
+            <li>Expose strategy hyperparameters
+                (<code>min_relevant_chunks</code>,
+                <code>n_alt_queries</code>) as Python properties
+                instead of hardcoded constants, and stamp them per row.</li>
+            <li>Pull Ollama&rsquo;s <code>eval_count</code> /
+                <code>prompt_eval_count</code> into the per-call
+                trace records; surface per-row token totals in the CSV.</li>
+            <li>Run Experiment 1 again with the new instrumentation,
+                so a clean apples-to-apples comparison exists between
+                &ldquo;reconstructed-minimal&rdquo; and
+                &ldquo;recorded&rdquo; regimes.</li>
+            <li>Add bootstrap confidence intervals to the headline
+                charts. Probably the highest-leverage analysis
+                upgrade.</li>
+            <li>Decide whether to publish at all, or to leave RAGBench
+                as a personal infrastructure project and use the
+                lessons (logging-first instrumentation, BSOD-resilient
+                runners, transparent retrospective) on the next thing.</li>
+        </ul>
+
+        <p class="muted-note" style="margin-top: 28px;">
+            The full <a href="#audit">audit table</a> of uncollected
+            granular details is above on this page. The schema-level
+            &ldquo;Logging Gaps&rdquo; reference (new CSV columns,
+            sidecar paths, backfill tag) lives on
+            <a href="methodology.html#logging-gaps">Methodology</a>.
+            Source code on
+            <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">GitHub</a>.
+        </p>
+
+    </div>
+    
+    </div>
+    <div class="footer">
+        Built by Noah &middot; CUNY SPS, Spring 2026 &middot;
+        <a href="methodology.html">Methodology</a> &middot;
+        <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">Source on GitHub</a>
+    </div>
+</body>
+</html>
