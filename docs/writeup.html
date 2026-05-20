@@ -992,6 +992,7 @@ li.muted-note {
     <a href="experiment_2.html">Exp 2: Chunking × Model</a>
     <a href="methodology.html">Methodology</a>
     <a href="writeup.html" class="active">Writeup</a>
+    <a href="data.html">Data</a>
         <a class="nav__source" href="https://github.com/nono638/2026Project"
            target="_blank" rel="noopener" aria-label="RAGBench source code on GitHub">
             <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
@@ -1130,106 +1131,53 @@ li.muted-note {
                 not in the rankings themselves.</li>
         </ul>
 
-        <h2 id="bsods">The technical reality: six BSODs in eleven days</h2>
+        <h2 id="bsods">The technical reality: the laptop kept crashing</h2>
         <p>
-            The hardware was an RTX 5090 Laptop GPU on Windows 11.
-            Between 2026-05-17 and 2026-05-19 the machine crashed six
-            times under sustained Ollama batch load:
-        </p>
-        <ul>
-            <li>2026-05-17 22:32 &mdash; <code>0x00000133</code>
-                DPC_WATCHDOG_VIOLATION (nvlddmkm)</li>
-            <li>2026-05-18 02:14 &mdash; <code>0x0000003B</code>
-                SYSTEM_SERVICE_EXCEPTION (resumed Exp 1, ~32 min in)</li>
-            <li>2026-05-18 09:21 &mdash; <code>0x0000000A</code>
-                IRQL_NOT_LESS_OR_EQUAL</li>
-            <li>2026-05-18 11:53 &mdash; <code>0x00000116</code>
-                VIDEO_TDR_ERROR (config 18/30, ~50 min in)</li>
-            <li>2026-05-18 18:?? &mdash; bugcheck not preserved
-                (BSOD #5)</li>
-            <li>2026-05-19 03:29 &mdash; silent kill mid-row_rest
-                sleep (config 29/30, query 100). No Python
-                traceback, log just stops &mdash; classic BSOD
-                silhouette.</li>
-        </ul>
-        <p>
-            Five distinct bugcheck codes, all rooted in nvlddmkm. The
-            NVIDIA developer forum has a long thread documenting
-            similar behaviour on the 5090 family under Ollama:
-            <a href="https://forums.developer.nvidia.com/t/rtx-5090-total-failure-hang-unload-in-ollama-after-couple-of-minutes/341659"
-               target="_blank" rel="noopener">&ldquo;RTX 5090 total
-            failure / hang / unload in Ollama after a couple of
-            minutes&rdquo;</a>. This is a driver / firmware
-            instability cluster, not a Python bug; pure software
-            pacing inside Python cannot eliminate it.
+            The biggest non-research problem in the whole project was
+            that the laptop running everything kept crashing. Over
+            three days in mid-May the machine blue-screened
+            <strong>six times</strong> while in the middle of long
+            batch experiments. Each crash forced a reboot and lost
+            whatever the experiment was working on at that second.
+            The cause turned out to be a known stability problem with
+            the laptop&rsquo;s graphics card and its driver when
+            running language models for long stretches &mdash; not a
+            bug in RAGBench&rsquo;s code, but very much our problem to
+            work around.
         </p>
         <p>
-            What helped:
-        </p>
-        <ul>
-            <li><strong>Workload pacing inside Python.</strong> A 0.5 s
-                sleep between every (generate + score) row, a longer
-                rest every 50 rows (cut from 10 s monolithic to 3
-                &times; 1 s ticks with fsynced heartbeats after BSOD #6
-                hit mid-sleep), and a 30 s cooldown between configs.
-                These widened the gaps between bursts enough to reduce
-                the frequency but not to zero.</li>
-            <li><strong>Ollama tuning.</strong>
-                <code>OLLAMA_MAX_LOADED_MODELS=1</code>,
-                <code>OLLAMA_NUM_PARALLEL=1</code>,
-                <code>OLLAMA_KEEP_ALIVE=24h</code>, served via a
-                detached <code>ollama serve</code> instead of the tray
-                app so the env vars actually applied. The
-                concurrent-residency churn between embedder and chat
-                models was the regime that correlated with the worst
-                BSOD cluster.</li>
-            <li><strong>Per-call <code>keep_alive=&quot;30m&quot;</code>
-                and <code>num_predict=1024</code></strong> in
-                <code>OllamaLLM.generate</code> &mdash; bounded
-                runaway generations that had been driving the longest
-                hangs.</li>
-            <li><strong>180 s per-request httpx timeout.</strong>
-                Ollama&rsquo;s Python client defaults to no timeout;
-                that&rsquo;s how an 8&ndash;17-minute hung
-                <code>chat()</code> happened before BSOD #3.</li>
-            <li><strong>System-level mitigations</strong>
-                (<code>scripts/apply_5090_stability.ps1</code>):
-                Windows TDR registry raised to 60 s, Hardware-Accelerated
-                GPU Scheduling off, PCIe ASPM disabled, high-performance
-                power plan. Cut the rate further.</li>
-        </ul>
-        <p>
-            What didn&rsquo;t fully work: clean NVIDIA driver reinstall,
-            and chasing &ldquo;cooler temperatures&rdquo; (the GPU
-            sat at 51&ndash;56&nbsp;&deg;C through the whole crashed run
-            &mdash; thermal headroom wasn&rsquo;t the issue).
+            Solving it took five layers of fixes stacked on top of
+            each other: slowing down the rate at which RAGBench called
+            the language model, tuning Ollama (the local model server)
+            to use less aggressive defaults, raising some Windows
+            timeout settings that were too short for long
+            model-generation kernels, saving progress to disk after
+            every single row so a crash cost at most one row of work,
+            and finally wrapping the whole experiment in a supervisor
+            program that automatically restarts and resumes the run
+            after the laptop reboots. With all five in place, the last
+            300 rows of Experiment 1 finished in 46 minutes on a
+            single uninterrupted attempt &mdash; after weeks of
+            fighting the same section of the matrix.
         </p>
         <p>
-            What closed the loop on the human cost: a Python
-            <strong>watchdog wrapper</strong>
-            (<code>scripts/run_experiment_1_watchdog.py</code>) that
-            supervises the experiment subprocess and re-launches it
-            with <code>--resume</code> on any non-zero exit, with
-            exponential backoff and a zero-progress abort guard. Paired
-            with a Windows scheduled task
-            (<code>scripts/install_auto_resume_task.ps1</code>) that
-            fires the watchdog at logon with a 30 s delay, a BSOD now
-            costs only the reboot time. The final 300 rows of
-            Experiment 1 completed in 46 minutes on a single attempt,
-            no BSOD, after weeks of fighting that section of the
-            matrix.
+            The broader lesson: on consumer hardware, don&rsquo;t
+            trust that your machine will stay up for the whole
+            duration of a long ML experiment. Write the experiment as
+            if it will be interrupted, because eventually it will.
         </p>
-        <p>
-            Lessons that generalised beyond this hardware: <em>own the
-            unattended-execution loop</em> (don&rsquo;t assume the
-            machine will be reliable for the experiment&rsquo;s
-            wall-clock); <em>shrink the BSOD blast radius</em> by
-            doing per-row fsynced checkpoints to CSV plus heartbeat
-            JSONL events so post-mortems can answer &ldquo;what was
-            the process doing at the second of death?&rdquo;; and
-            <em>distinguish system-level fixes from software pacing</em>
-            &mdash; both helped here, but they helped for different
-            reasons and either alone was insufficient.
+        <p style="margin-top: 18px;">
+            <a href="engineering.html" class="cta-btn">
+                Click here for more technical details &rarr;
+            </a>
+        </p>
+        <p class="muted-note">
+            The detail page covers the specific bugcheck codes,
+            Ollama environment vars, Windows registry settings,
+            client-side timeouts, watchdog architecture, and the
+            scheduled-task auto-resume pattern. Read it if you care
+            about kernel-level diagnostics or unattended-experiment
+            engineering; skip it otherwise.
         </p>
 
         <h2 id="exp0">What we got wrong: Experiment 0&rsquo;s three revisions</h2>

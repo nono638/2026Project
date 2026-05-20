@@ -1063,6 +1063,7 @@ _NAV_ITEMS = [
     ("exp2", "Exp 2: Chunking × Model", "experiment_2.html"),
     ("methodology", "Methodology", "methodology.html"),
     ("writeup", "Writeup", "writeup.html"),
+    ("data", "Data", "data.html"),
 ]
 
 
@@ -3738,6 +3739,830 @@ def _generate_methodology() -> str:
     )
 
 
+def _generate_data() -> str:
+    """Downloads + column dictionary + example pandas snippets.
+
+    A reference page for anyone who wants to verify or extend the
+    analysis. Every CSV referenced here is generated from the live
+    pipeline and copied into ``docs/`` at gallery-render time.
+    """
+    content = """
+    <div class="methodology-content">
+
+        <p class="kicker-mono" style="color: var(--ink-muted);">Data &middot; CSV downloads &amp; column dictionary</p>
+        <p class="lede">
+            Everything the gallery charts is built from raw per-row
+            CSVs. They&rsquo;re published here so anyone can verify the
+            numbers in the dashboards, reproduce the analyses, or run
+            their own. Sidecar JSONL files carry the per-row LLM-call
+            traces and the BSOD-resilience heartbeat events. Sizes are
+            modest enough for direct download; the larger files
+            (Experiments 1 and 2) are 20&ndash;30&nbsp;MB.
+        </p>
+
+        <h2 id="downloads">Downloadable datasets</h2>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Dataset</th>
+                    <th>Rows</th>
+                    <th>Size</th>
+                    <th>Description</th>
+                    <th>File</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Experiment 0 v1</td>
+                    <td>50 questions &times; 6 judges = 300 scores</td>
+                    <td>~25&nbsp;KB</td>
+                    <td>First scorer-validation pass. Proportionally
+                        sampled HotpotQA; ceiling effect, no
+                        reranker. Superseded by v3 but preserved for
+                        the methodological-evolution narrative.</td>
+                    <td><a href="raw_scores.csv">raw_scores.csv</a></td>
+                </tr>
+                <tr>
+                    <td>Experiment 0 v2</td>
+                    <td>150 medium+hard questions &times; ~7 judges</td>
+                    <td>~280&nbsp;KB</td>
+                    <td>Corrected ceiling effect (medium+hard only),
+                        added BGE reranker, scorer fed actual context
+                        sent to LLM. Still single-judge headline.</td>
+                    <td><a href="raw_scores_v2.csv">raw_scores_v2.csv</a></td>
+                </tr>
+                <tr>
+                    <td>Experiment 0 v3</td>
+                    <td>500 questions &times; up to 12 judges</td>
+                    <td>~950&nbsp;KB</td>
+                    <td>Definitive scorer validation. Surfaced the
+                        model-version-drift result that changed the
+                        Exp 1/2 panel to Claude Haiku 4.5 + GPT-5.4
+                        Mini.</td>
+                    <td><a href="raw_scores_v3.csv">raw_scores_v3.csv</a></td>
+                </tr>
+                <tr>
+                    <td>Experiment 1</td>
+                    <td>5 strategies &times; 6 models &times; 200 = 6,000 rows</td>
+                    <td>~20&nbsp;MB</td>
+                    <td>Strategy &times; Model Size factorial.
+                        HotpotQA, RecursiveChunker(500/100),
+                        embeddinggemma:300m, hybrid retrieval.</td>
+                    <td><a href="experiment_1_raw_scores.csv">experiment_1_raw_scores.csv</a></td>
+                </tr>
+                <tr>
+                    <td>Experiment 2</td>
+                    <td>4 chunkers &times; 4 models &times; 200 = 3,200 rows</td>
+                    <td>~30&nbsp;MB</td>
+                    <td>Chunking &times; Model Size factorial.
+                        HotpotQA, NaiveRAG, mxbai-embed-large, hybrid
+                        retrieval.</td>
+                    <td><a href="experiment_2_raw_scores.csv">experiment_2_raw_scores.csv</a></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="sidecars">Sidecar files</h2>
+        <p>
+            Two JSONL files travel alongside each experiment&rsquo;s
+            CSV. They&rsquo;re not in the dashboards but they&rsquo;re
+            essential for forensic deep-dives.
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Sidecar</th>
+                    <th>Format</th>
+                    <th>What&rsquo;s in it</th>
+                    <th>File</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>events.jsonl</code> (Exp 1)</td>
+                    <td>One JSON object per line, ~150&nbsp;KB</td>
+                    <td>Heartbeat events from the runner:
+                        <code>run_start</code>, <code>config_start</code>,
+                        <code>row_done</code> (with running call total
+                        + last in-flight call), <code>gpu_snapshot</code>,
+                        <code>row_rest_start</code>/<code>tick</code>,
+                        <code>config_end</code>, <code>run_end</code>.
+                        Built to shrink the BSOD blast radius from one
+                        snapshot-interval to one row.</td>
+                    <td><a href="experiment_1_events.jsonl">experiment_1_events.jsonl</a></td>
+                </tr>
+                <tr>
+                    <td><code>traces.jsonl</code> (Exp 1, going forward)</td>
+                    <td>One JSON object per row, variable size</td>
+                    <td>Per-row LLM-call trace: list of every
+                        <code>OllamaLLM.generate</code> call the
+                        strategy made, with intent label, prompt,
+                        response, latency. Empty for rows produced
+                        before the per-row instrumentation shipped
+                        (see <a href="writeup.html#exp12">Writeup
+                        &raquo; Exp 1/2 oversights</a>).</td>
+                    <td><em>generated on next run</em></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 id="dictionary">Column dictionary</h2>
+        <p>
+            All columns that appear in the experiment CSVs, grouped
+            by purpose. Not every column is present in every file
+            &mdash; older runs predate some additions.
+        </p>
+
+        <h3>Identifiers</h3>
+        <table class="data-table">
+            <thead>
+                <tr><th>Column</th><th>Type</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>strategy</code></td><td>string</td>
+                    <td>RAG strategy name: <code>naive</code>,
+                        <code>self_rag</code>, <code>multi_query</code>,
+                        <code>corrective</code>, <code>adaptive</code>
+                        (Exp 1 only).</td></tr>
+                <tr><td><code>chunker</code></td><td>string</td>
+                    <td>Chunking strategy: <code>fixed</code>,
+                        <code>recursive</code>, <code>sentence</code>,
+                        <code>semantic</code> (Exp 2 only).</td></tr>
+                <tr><td><code>model</code></td><td>string</td>
+                    <td>Ollama model tag used for generation.</td></tr>
+                <tr><td><code>question</code></td><td>string</td>
+                    <td>HotpotQA question text. Joins back to the
+                        original dataset via exact match.</td></tr>
+                <tr><td><code>dataset_name</code></td><td>string</td>
+                    <td>Source dataset (always <code>hotpotqa</code>
+                        currently).</td></tr>
+                <tr><td><code>dataset_sample_seed</code></td><td>int</td>
+                    <td>Random seed used to sample the question
+                        subset (always <code>42</code>).</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Gold-standard metrics</h3>
+        <table class="data-table">
+            <thead>
+                <tr><th>Column</th><th>Type</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>gold_answer</code></td><td>string</td>
+                    <td>Reference answer from HotpotQA.</td></tr>
+                <tr><td><code>rag_answer</code></td><td>string</td>
+                    <td>The model&rsquo;s generated answer.</td></tr>
+                <tr><td><code>gold_f1</code></td><td>float [0,1]</td>
+                    <td>Token-level F1 between rag_answer and
+                        gold_answer.</td></tr>
+                <tr><td><code>gold_exact_match</code></td><td>bool</td>
+                    <td>True if gold_answer appears verbatim in
+                        rag_answer (case-insensitive substring).</td></tr>
+                <tr><td><code>gold_bertscore</code></td><td>float [0,1]</td>
+                    <td>BERTScore F1 between rag_answer and
+                        gold_answer (microsoft/deberta-xlarge-mnli).</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Per-judge scorer metrics</h3>
+        <p>
+            Each judge in the panel contributes five columns, prefixed
+            with a safe-name slug of the judge identifier.
+            <code>&lt;judge&gt;</code> below stands for the slug
+            (e.g.&nbsp;<code>anthropic_claude_haiku_4_5_20251001</code>,
+            <code>openai_gpt_5_4_mini</code>). The number of judges
+            varies by experiment &mdash; Exp 1/2 use a 2-judge panel,
+            Exp 0 v3 ran up to 12 judges for the validation comparison.
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr><th>Column</th><th>Type</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>&lt;judge&gt;_faithfulness</code></td>
+                    <td>float [1,5]</td>
+                    <td>Judge&rsquo;s 1&ndash;5 rating: how well the
+                        rag_answer is supported by the retrieved context.</td></tr>
+                <tr><td><code>&lt;judge&gt;_relevance</code></td>
+                    <td>float [1,5]</td>
+                    <td>How well the rag_answer addresses the
+                        question.</td></tr>
+                <tr><td><code>&lt;judge&gt;_conciseness</code></td>
+                    <td>float [1,5]</td>
+                    <td>Whether the rag_answer avoids unnecessary
+                        verbosity.</td></tr>
+                <tr><td><code>&lt;judge&gt;_quality</code></td>
+                    <td>float [1,5]</td>
+                    <td>Mean of the three sub-metrics &mdash; the
+                        judge&rsquo;s composite quality score.</td></tr>
+                <tr><td><code>&lt;judge&gt;_scorer_latency_ms</code></td>
+                    <td>float</td>
+                    <td>Wall-clock latency of this judge&rsquo;s
+                        scoring call.</td></tr>
+                <tr><td><code>consensus_quality</code></td>
+                    <td>float [1,5]</td>
+                    <td>Mean of per-judge <code>quality</code> across
+                        the active panel &mdash; the primary metric
+                        the dashboards use.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Latency</h3>
+        <table class="data-table">
+            <thead>
+                <tr><th>Column</th><th>Type</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>strategy_latency_ms</code></td><td>float</td>
+                    <td>Time from <code>strategy.run()</code> call to
+                        return &mdash; covers retrieval + every LLM
+                        call the strategy made.</td></tr>
+                <tr><td><code>scorer_latency_ms_total</code></td><td>float</td>
+                    <td>Sum of per-judge scoring latencies.</td></tr>
+                <tr><td><code>total_latency_ms</code></td><td>float</td>
+                    <td>Sum of the two above. Useful for end-to-end
+                        cost.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Failure diagnostics</h3>
+        <table class="data-table">
+            <thead>
+                <tr><th>Column</th><th>Type</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>context_sent_to_llm</code></td><td>string</td>
+                    <td>The exact context (retrieved chunks
+                        concatenated, post-filter) the answer-generation
+                        call saw. Can be tens of KB &mdash; the bulk of
+                        the row size.</td></tr>
+                <tr><td><code>failure_stage</code></td><td>string</td>
+                    <td>Substring-attribution: which pipeline stage
+                        is most likely responsible for a wrong answer.
+                        One of <code>none</code>, <code>chunker</code>,
+                        <code>retrieval</code>, <code>filtering</code>,
+                        <code>generation</code>, <code>unknown</code>.</td></tr>
+                <tr><td><code>failure_stage_confidence</code></td>
+                    <td>string</td>
+                    <td>Confidence label for the stage attribution
+                        (<code>high</code>, <code>medium</code>,
+                        <code>low</code>, <code>n/a</code>).</td></tr>
+                <tr><td><code>failure_stage_method</code></td>
+                    <td>string</td>
+                    <td>Detection method used &mdash; currently
+                        <code>substring</code>.</td></tr>
+                <tr><td><code>gold_in_chunks</code></td><td>bool</td>
+                    <td>True if the gold answer appears in any chunk
+                        the chunker produced.</td></tr>
+                <tr><td><code>gold_in_retrieved</code></td><td>bool</td>
+                    <td>True if the gold answer appears in any chunk
+                        that came back from retrieval.</td></tr>
+                <tr><td><code>gold_in_context</code></td><td>bool</td>
+                    <td>True if the gold answer appears in the
+                        post-filter context sent to the model.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>Pipeline metadata (held constant within an experiment)</h3>
+        <table class="data-table">
+            <thead>
+                <tr><th>Column</th><th>Type</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>chunk_type</code></td><td>string</td>
+                    <td>Chunker family: <code>recursive</code>,
+                        <code>fixed</code>, <code>sentence</code>,
+                        <code>semantic</code>.</td></tr>
+                <tr><td><code>chunk_size</code></td><td>int</td>
+                    <td>Target chunk size in tokens (where applicable).</td></tr>
+                <tr><td><code>chunk_overlap</code></td><td>int</td>
+                    <td>Overlap between adjacent chunks in tokens.</td></tr>
+                <tr><td><code>num_chunks</code></td><td>int</td>
+                    <td>Total chunks the chunker produced for the
+                        source document.</td></tr>
+                <tr><td><code>embed_provider</code></td><td>string</td>
+                    <td>Embedder provider, e.g.&nbsp;<code>ollama</code>.</td></tr>
+                <tr><td><code>embed_model</code></td><td>string</td>
+                    <td>Embedder model tag.</td></tr>
+                <tr><td><code>embed_dimension</code></td><td>int</td>
+                    <td>Output dimension of the embedder.</td></tr>
+                <tr><td><code>retrieval_mode</code></td><td>string</td>
+                    <td>Retrieval mode: <code>hybrid</code>,
+                        <code>dense</code>, or <code>sparse</code>.</td></tr>
+                <tr><td><code>retrieval_top_k</code></td><td>int</td>
+                    <td>How many chunks the retriever returned.</td></tr>
+                <tr><td><code>num_chunks_retrieved</code></td><td>int</td>
+                    <td>Actual number of chunks in
+                        <code>context_sent_to_llm</code>
+                        (may differ from <code>retrieval_top_k</code>
+                        for strategies that filter).</td></tr>
+                <tr><td><code>context_char_length</code></td><td>int</td>
+                    <td>Character length of
+                        <code>context_sent_to_llm</code>.</td></tr>
+                <tr><td><code>reranker_model</code></td><td>string|null</td>
+                    <td>Reranker model name (null when no reranker
+                        was used &mdash; the default for Exp 1 and 2).</td></tr>
+                <tr><td><code>reranker_top_k</code></td><td>int|null</td>
+                    <td>Top-k after reranking.</td></tr>
+                <tr><td><code>llm_provider</code></td><td>string</td>
+                    <td>LLM provider (always <code>ollama</code>).</td></tr>
+                <tr><td><code>llm_host</code></td><td>string</td>
+                    <td>Ollama host URL or <code>local</code>.</td></tr>
+                <tr><td><code>llm_model</code></td><td>string</td>
+                    <td>Ollama tag used for generation.</td></tr>
+                <tr><td><code>llm_quantization</code></td><td>string</td>
+                    <td>Quantization level reported by Ollama
+                        <code>/api/show</code> at runtime (e.g.&nbsp;<code>Q4_K_M</code>,
+                        <code>Q8_0</code>), or <code>unknown</code>.</td></tr>
+            </tbody>
+        </table>
+
+        <h3>LLM-call provenance (Phase 1 instrumentation, going forward)</h3>
+        <p>
+            Added with the per-row trace work documented in the
+            <a href="writeup.html#exp12">Writeup&rsquo;s Exp 1/2
+            oversights section</a>. Rows produced before that
+            instrumentation shipped have <code>prompts_source</code>
+            set to <code>reconstructed_minimal_2026-05-20</code>;
+            new rows are tagged <code>recorded</code>.
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr><th>Column</th><th>Type</th><th>Meaning</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>n_llm_calls</code></td><td>int</td>
+                    <td>Number of LLM chat completions the strategy
+                        made for this row. For NaiveRAG always 1;
+                        variable for branchy strategies.</td></tr>
+                <tr><td><code>llm_call_intents</code></td><td>string</td>
+                    <td>Pipe-separated intent labels in call order,
+                        e.g.&nbsp;<code>rate_relevance|rate_relevance|generate_answer</code>.
+                        See <a href="writeup.html#exp12">Writeup</a> for
+                        the label vocabulary per strategy.</td></tr>
+                <tr><td><code>final_prompt</code></td><td>string</td>
+                    <td>The literal substituted prompt sent to the
+                        answer-generation call (the last call in the
+                        trace). Reconstructed for NaiveRAG backfill
+                        rows; recorded verbatim for new rows.</td></tr>
+                <tr><td><code>prompts_source</code></td><td>string</td>
+                    <td><code>recorded</code> for rows produced by the
+                        instrumented runner;
+                        <code>reconstructed_minimal_2026-05-20</code>
+                        for historical backfilled rows.</td></tr>
+                <tr><td><code>code_sha</code></td><td>string</td>
+                    <td>7-char git HEAD SHA at generation time, so an
+                        analyst can pin which version of
+                        <code>src/strategies/</code> produced the row.
+                        Empty on backfilled rows.</td></tr>
+                <tr><td><code>llm_num_predict</code></td><td>int</td>
+                    <td>Token-generation cap passed to Ollama
+                        (<code>OllamaLLM.DEFAULT_NUM_PREDICT</code>,
+                        currently 1024).</td></tr>
+                <tr><td><code>llm_keep_alive</code></td><td>string</td>
+                    <td>Model-residency hint passed to Ollama
+                        (<code>30m</code>).</td></tr>
+                <tr><td><code>n_total_calls_inc_embed</code></td>
+                    <td>int</td>
+                    <td>Backfill-only: total Ollama calls (chat +
+                        embed) attributable to this row, derived from
+                        <code>events.jsonl</code> deltas. Not a
+                        substitute for the precise
+                        <code>n_llm_calls</code> &mdash; it lumps
+                        embedder calls in.</td></tr>
+                <tr><td><code>n_token_*</code> &middot; <em>not yet present</em></td>
+                    <td>&mdash;</td>
+                    <td>Per-call prompt / completion token counts.
+                        See the <a href="writeup.html#audit">audit table
+                        on Writeup</a> row 4 &mdash; on the Phase 2
+                        backlog.</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="usage">Example usage</h2>
+        <p>
+            A few snippets for common analyses. They assume
+            <code>pip install pandas</code> and that you&rsquo;ve
+            downloaded one of the CSVs above.
+        </p>
+
+        <h3>Load Experiment 1 and reproduce the per-strategy ranking</h3>
+        <pre><code>import csv, pandas as pd
+
+# raw_scores.csv has rows with multi-KB context fields; raise the limit
+# or pandas will choke on the largest cells.
+csv.field_size_limit(2**31 - 1)
+
+df = pd.read_csv("experiment_1_raw_scores.csv", engine="python")
+
+ranking = (
+    df.groupby("strategy")["consensus_quality"]
+      .agg(["mean", "std", "count"])
+      .round(3)
+      .sort_values("mean", ascending=False)
+)
+print(ranking)
+# strategy      mean    std  count
+# naive        4.340  0.840   1199
+# multi_query  4.334  0.818   1200
+# corrective   4.268  0.881   1200
+# adaptive     3.594  1.252   1200
+# self_rag     2.992  1.073   1196</code></pre>
+
+        <h3>Filter to rows produced by the new instrumentation</h3>
+        <pre><code># Recorded rows have the full per-call trace; reconstructed rows are
+# schema-aligned but don't carry intermediate LLM outputs.
+recorded = df[df["prompts_source"] == "recorded"]
+backfilled = df[df["prompts_source"].str.startswith("reconstructed", na=False)]
+print(f"recorded: {len(recorded)}  backfilled: {len(backfilled)}")</code></pre>
+
+        <h3>Join the per-row LLM-call trace back to the CSV</h3>
+        <pre><code>import json
+
+traces = {}
+with open("experiment_1_traces.jsonl") as fh:
+    for line in fh:
+        rec = json.loads(line)
+        traces[(rec["strategy"], rec["model"], rec["question"])] = rec["trace"]
+
+def get_trace(row):
+    return traces.get((row["strategy"], row["model"], row["question"]), [])
+
+df["trace"] = df.apply(get_trace, axis=1)
+df["n_chat_calls_recorded"] = df["trace"].str.len()
+# For recorded rows this should equal n_llm_calls; for backfilled rows
+# trace will be [] and n_chat_calls_recorded will be 0.</code></pre>
+
+        <h3>Compare model size on a fixed strategy</h3>
+        <pre><code>fixed_strategy = df[df["strategy"] == "naive"]
+by_model = (
+    fixed_strategy.groupby("model")[["consensus_quality", "gold_f1"]]
+      .mean()
+      .round(3)
+      .sort_values("consensus_quality", ascending=False)
+)
+print(by_model)</code></pre>
+
+        <h2 id="licensing">Licensing &amp; attribution</h2>
+        <p>
+            The CSVs are derivatives of HotpotQA, which is
+            <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">CC-BY-SA 4.0</a>;
+            the derived data is shared under the same license.
+            Generated answers are model outputs &mdash; treat them as
+            you would any LLM output. The pipeline code that produced
+            them is on
+            <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">GitHub</a>
+            under that repository&rsquo;s license.
+        </p>
+
+    </div>
+    """
+    return _build_page_template(
+        "Data",
+        nav_active="data",
+        content_html=content,
+    )
+
+
+def _generate_engineering() -> str:
+    """Full BSOD post-mortem + stability engineering notes.
+
+    Linked from the Writeup&rsquo;s plain-English summary; not in the
+    global nav (would be jargon-heavy for casual visitors).
+    """
+    content = """
+    <div class="methodology-content">
+
+        <p class="kicker-mono" style="color: var(--ink-muted);">Engineering notes &middot; the technical detail</p>
+        <p class="lede">
+            This is the full account of the hardware-stability problems
+            that nearly stopped Experiments 1 and 2, and the
+            engineering layers that eventually made the matrix
+            complete. It&rsquo;s the technical companion to the
+            plain-English summary on
+            <a href="writeup.html#bsods">Writeup&rsquo;s &ldquo;The
+            technical reality&rdquo;</a>. Skip it unless you care
+            about Windows kernel bugcheck codes, Ollama internals, or
+            unattended-experiment supervision patterns.
+        </p>
+
+        <h2 id="bsods">Six BSODs in eleven days</h2>
+        <p>
+            The hardware was an RTX 5090 Laptop GPU on Windows 11.
+            Between 2026-05-17 and 2026-05-19 the machine crashed six
+            times under sustained Ollama batch load. Five distinct
+            bugcheck codes appeared, all rooted in the NVIDIA display
+            driver (<code>nvlddmkm</code>).
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr><th>Date / time</th><th>Bugcheck</th><th>Symptom &amp; phase of run</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2026-05-17 22:32</td>
+                    <td><code>0x00000133</code> DPC_WATCHDOG_VIOLATION</td>
+                    <td>nvlddmkm DPC stayed in a single CPU for too
+                        long. First crash &mdash; surfaced the pattern.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 02:14</td>
+                    <td><code>0x0000003B</code> SYSTEM_SERVICE_EXCEPTION</td>
+                    <td>Resumed Exp 1 ~32 min after restart.
+                        nvlddmkm stack again.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 09:21</td>
+                    <td><code>0x0000000A</code> IRQL_NOT_LESS_OR_EQUAL</td>
+                    <td>Standard hardware-driver fault. Resumed run.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 11:53</td>
+                    <td><code>0x00000116</code> VIDEO_TDR_ERROR</td>
+                    <td>Windows&rsquo; Timeout Detection &amp; Recovery
+                        fired when the GPU stopped responding inside an
+                        LLM kernel. Config 18/30
+                        (multi_query &times; qwen3.5:9b @ query 69).</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 ??:??</td>
+                    <td><em>bugcheck not preserved</em></td>
+                    <td>BSOD #5 &mdash; minidump was rolled out before
+                        triage.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-19 03:29</td>
+                    <td><em>silent kill</em></td>
+                    <td>No Python traceback, log just stops mid-row_rest
+                        sleep. Config 29/30
+                        (corrective &times; gemma4:e4b @ query 100).
+                        Classic BSOD silhouette.</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>
+            The NVIDIA developer forum has a long thread documenting
+            similar behaviour on the 5090 family under Ollama load:
+            <a href="https://forums.developer.nvidia.com/t/rtx-5090-total-failure-hang-unload-in-ollama-after-couple-of-minutes/341659"
+               target="_blank" rel="noopener">RTX 5090 total failure /
+            hang / unload in Ollama after a couple of minutes</a>. The
+            consensus across that thread is that this is a driver
+            and firmware-level instability cluster on the 5090 SKU,
+            triggered (not caused) by sustained mixed embed / chat
+            workloads.
+        </p>
+
+        <h2 id="software-pacing">Layer 1: software pacing inside the experiment runner</h2>
+        <p>
+            None of these eliminated the BSODs but they cut frequency
+            enough to make progress between crashes. All live in
+            <code>scripts/run_experiment_1.py</code>.
+        </p>
+        <ul>
+            <li><strong>Row pace:</strong> 0.5&nbsp;s sleep between
+                every completed (generate&nbsp;+&nbsp;score) row,
+                configurable via <code>--row-pace-s</code>. Inserted
+                between bursts so the GPU could drain its DPC queue
+                before the next embed/chat hit.</li>
+            <li><strong>Periodic mid-config rest:</strong> originally
+                a single 10&nbsp;s sleep every 50 rows. Cut to
+                3&nbsp;&times;&nbsp;1&nbsp;s ticks (with an fsynced
+                <code>row_rest_tick</code> heartbeat each second) after
+                BSOD #6 hit mid-sleep &mdash; the 10&nbsp;s monolithic
+                idle was a fat window for ASPM downshift to occur and
+                wasn&rsquo;t earning anything (GPU sat at 51&ndash;56&nbsp;&deg;C
+                throughout).</li>
+            <li><strong>Inter-config cooldown:</strong> 30&nbsp;s
+                between configs. Gave the driver clean unload time
+                before the next model loaded.</li>
+            <li><strong>Per-row CSV flush + fsync:</strong> the runner
+                writes a single row to <code>raw_scores.csv</code>
+                and forces it to disk before moving on. A power loss
+                costs at most one row instead of one config (~25
+                minutes of work).</li>
+            <li><strong>Per-row JSONL heartbeat:</strong>
+                <code>events.jsonl</code> gets a <code>row_done</code>
+                record with the running <code>calls_total</code> and
+                the last in-flight call descriptor. Post-mortem can
+                identify the row and call type the BSOD interrupted.</li>
+            <li><strong>Periodic GPU snapshot:</strong> every 10 rows
+                a <code>gpu_snapshot</code> event records temp /
+                utilization / VRAM / power so thermal-correlated
+                crashes can be reconstructed from the trail.</li>
+        </ul>
+
+        <h2 id="ollama-tuning">Layer 2: Ollama server tuning</h2>
+        <p>
+            The default Ollama install on Windows runs as a tray app
+            with <code>OLLAMA_MAX_LOADED_MODELS=3</code> and
+            <code>OLLAMA_NUM_PARALLEL</code> set by the server&rsquo;s
+            heuristics. The concurrent embedder/chat residency was the
+            allocator-churn regime that correlated with the worst
+            BSOD cluster. The fix is to stop the tray-spawned server
+            and re-launch <code>ollama serve</code> with explicit env
+            vars &mdash; the tray ignores env vars set after launch.
+        </p>
+        <p>
+            <code>scripts/start_ollama_safe.ps1</code> does this. The
+            vars it sets:
+        </p>
+        <ul>
+            <li><code>OLLAMA_MAX_LOADED_MODELS=1</code> &mdash; forces
+                a clean unload/reload between embedder and chat
+                instead of keeping both resident.</li>
+            <li><code>OLLAMA_NUM_PARALLEL=1</code> &mdash; our
+                pipeline is serial; this disables Ollama&rsquo;s
+                per-slot KV duplication.</li>
+            <li><code>OLLAMA_KEEP_ALIVE=24h</code> &mdash; well past
+                any single experiment config; eviction still happens
+                on model-switch (Ollama&rsquo;s
+                <code>MAX_LOADED_MODELS=1</code> rule supersedes
+                keep_alive when slots are full).</li>
+            <li><code>OLLAMA_MAX_QUEUE=512</code> &mdash; explicit so
+                it survives a default change.</li>
+            <li><code>OLLAMA_MODELS=D:\\OllamaModels</code> &mdash;
+                the tray app reads this from its own config, not from
+                env vars; passing it explicitly to the replacement
+                <code>ollama serve</code> avoids the fallback to
+                <code>%USERPROFILE%\\.ollama\\models</code> that
+                otherwise reports every model as 404.</li>
+        </ul>
+        <p>
+            Two settings deliberately <em>not</em> set:
+            <code>OLLAMA_FLASH_ATTENTION</code> (auto-disabled when an
+            embed model is loaded, so a mixed pipeline ignores it
+            anyway) and <code>OLLAMA_KV_CACHE_TYPE</code> (q8_0 KV
+            silently falls back to f16 on archs that don&rsquo;t
+            support it, masking what&rsquo;s actually running).
+        </p>
+
+        <h2 id="client-tuning">Layer 3: Ollama client tuning</h2>
+        <p>
+            In <code>src/llms/ollama.py</code>:
+        </p>
+        <ul>
+            <li><strong><code>keep_alive=&quot;30m&quot;</code> per
+                call.</strong> Ollama&rsquo;s default of 5 minutes
+                let the timer expire mid-config when a slow
+                generation (or judge-side stall) ran long; that
+                forced a full reload on the next call. 30&nbsp;m
+                safely spans worst-case config duration without
+                locking the GPU when the experiment moves to the
+                next model.</li>
+            <li><strong><code>num_predict=1024</code></strong> cap on
+                tokens per generation. Without this, qwen3.5:9b was
+                observed generating runaway responses of 8&ndash;17+
+                minutes on single queries (the regime that drove
+                BSOD #3). Sized from analysis of completed Exp 1 rows
+                across all 5 strategies &mdash; 1024 covers
+                &gt;95% of non-degenerate answers while keeping
+                worst-case generation well under the 180&nbsp;s
+                client timeout.</li>
+            <li><strong>180&nbsp;s per-call httpx timeout.</strong>
+                The Ollama Python client defaults to no timeout,
+                which is how an 8&ndash;17-minute hung
+                <code>chat()</code> happened before BSOD #3. 180&nbsp;s
+                is 3&times; the expected worst-case for a 9B model
+                on the 5090 Laptop.</li>
+            <li><strong>Runner-crash recovery wait.</strong>
+                <code>experiment_utils.py</code> recognises Ollama&rsquo;s
+                &ldquo;model runner has unexpectedly stopped&rdquo;
+                error and waits 60&nbsp;s before retrying (the runner
+                process needs ~30&ndash;90&nbsp;s to come back up
+                cleanly after a crash). Normal 2&ndash;8&nbsp;s
+                backoff hits a dead runner and hangs again.</li>
+        </ul>
+
+        <h2 id="system-tuning">Layer 4: Windows / NVIDIA driver settings</h2>
+        <p>
+            <code>scripts/apply_5090_stability.ps1</code> (run as
+            Administrator, then reboot):
+        </p>
+        <ul>
+            <li><strong>TDR registry keys raised.</strong>
+                <code>TdrDelay=60</code>,
+                <code>TdrDdiDelay=60</code>,
+                <code>TdrLevel=3</code> under
+                <code>HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers</code>.
+                Default is 2&nbsp;s / 5&nbsp;s, which is too short for
+                LLM kernels that legitimately hold the GPU through
+                long generations &mdash; was triggering 0x116
+                VIDEO_TDR_ERROR (BSOD #4). Raised to 60&nbsp;s with
+                full recovery enabled (don&rsquo;t set
+                <code>TdrLevel=0</code>; that masks bugs instead of
+                surviving them).</li>
+            <li><strong>Hardware-Accelerated GPU Scheduling off.</strong>
+                <code>HwSchMode=1</code>. Implicated in 5090
+                nvlddmkm DPC instability and in the NVIDIA dev forum
+                thread cited above. NVIDIA driver re-installs
+                sometimes flip this back on &mdash; check after any
+                driver update.</li>
+            <li><strong>PCIe ASPM disabled.</strong>
+                <code>powercfg /setacvalueindex SCHEME_CURRENT
+                501a4d13-... ee12f906-... 0</code>. ASPM transitions
+                on dGPU laptops are a documented trigger for
+                nvlddmkm stalls, and our per-row pacing was creating
+                idle windows where ASPM could downshift. Plus a
+                forced high-performance power plan so the GPU
+                isn&rsquo;t throttled mid-call.</li>
+        </ul>
+        <p>
+            Things that <em>didn&rsquo;t</em> help: a clean NVIDIA
+            driver reinstall (the issue is cross-driver-version), and
+            chasing &ldquo;cooler temperatures&rdquo; (the GPU sat at
+            51&ndash;56&nbsp;&deg;C through the crashed runs &mdash;
+            thermal headroom wasn&rsquo;t the issue).
+        </p>
+
+        <h2 id="watchdog">Layer 5: unattended supervision</h2>
+        <p>
+            The lower four layers reduced BSOD <em>frequency</em>.
+            Layer 5 reduced BSOD <em>cost</em>: when a crash did
+            happen, the run resumed itself rather than waiting for a
+            human to notice and re-launch.
+        </p>
+        <ul>
+            <li><strong>Watchdog wrapper.</strong>
+                <code>scripts/run_experiment_1_watchdog.py</code>
+                supervises the experiment as a subprocess. On any
+                non-zero exit it re-launches with
+                <code>--resume</code>; the runner&rsquo;s row-level
+                CSV checkpoint means at most one row is repeated.
+                Exponential backoff caps at 120&nbsp;s. A zero-progress
+                abort guard stops the loop if two consecutive
+                attempts add no rows &mdash; protects against a
+                deterministic Python bug burning through the restart
+                budget. Clean exit at 6,000 rows.</li>
+            <li><strong>Auto-resume after reboot.</strong>
+                <code>scripts/install_auto_resume_task.ps1</code>
+                registers a Windows Task Scheduler entry
+                (<code>RagBench-Experiment1-AutoResume</code>) that
+                fires the watchdog at logon with a 30&nbsp;s delay.
+                Closes the human-in-loop gap entirely: after a BSOD,
+                log back in, wait ~30&nbsp;s, the experiment resumes
+                from the last checkpointed row.</li>
+        </ul>
+        <p>
+            With all five layers in place, the final 300 rows of
+            Experiment 1 completed in 46 minutes on a single
+            watchdog attempt, no BSOD, no human intervention &mdash;
+            after weeks of fighting that section of the matrix.
+        </p>
+
+        <h2 id="lessons">Lessons that generalise</h2>
+        <ol>
+            <li><strong>Own the unattended-execution loop.</strong>
+                Don&rsquo;t assume the machine will be reliable for the
+                wall-clock duration of an experiment. For multi-day
+                workloads, a watchdog plus auto-resume after reboot
+                is the difference between &ldquo;completes overnight&rdquo;
+                and &ldquo;needs daily intervention.&rdquo;</li>
+            <li><strong>Shrink the BSOD blast radius.</strong> Per-row
+                fsynced CSV checkpoints + per-row JSONL heartbeats
+                let any post-mortem answer &ldquo;what was the process
+                doing at the second of death?&rdquo; This is cheap to
+                add and pays back hugely on every crash.</li>
+            <li><strong>System-level fixes and software pacing are
+                complements, not substitutes.</strong> Either alone
+                was insufficient on this hardware; together they
+                made the run viable.</li>
+            <li><strong>Default settings on consumer hardware are
+                tuned for desktop interactivity, not batch ML.</strong>
+                Windows TDR, GPU scheduling, PCIe ASPM, and Ollama&rsquo;s
+                tray-app defaults all needed override before a
+                multi-hour Ollama batch could finish reliably.</li>
+            <li><strong>Forum threads are diagnostic data.</strong>
+                The NVIDIA dev forum thread on the 5090 + Ollama
+                pattern was more useful for narrowing the bug
+                hypothesis than any single official source. When
+                bugcheck codes look unfamiliar, search the
+                workload + hardware combination on the appropriate
+                vendor forum before deeper triage.</li>
+        </ol>
+
+        <p class="muted-note" style="margin-top: 28px;">
+            All five layers above are in the source tree and can be
+            re-applied to a future run: pacing constants in
+            <code>scripts/run_experiment_1.py</code>; Ollama wrapper
+            in <code>src/llms/ollama.py</code>; system mitigations in
+            <code>scripts/apply_5090_stability.ps1</code> and
+            <code>scripts/start_ollama_safe.ps1</code>; supervisor in
+            <code>scripts/run_experiment_1_watchdog.py</code> +
+            <code>scripts/install_auto_resume_task.ps1</code>. Back
+            to <a href="writeup.html#bsods">the Writeup summary</a> or
+            on to the rest of the
+            <a href="writeup.html">project writeup</a>.
+        </p>
+
+    </div>
+    """
+    return _build_page_template(
+        "Engineering Notes",
+        nav_active="",  # not in nav; deep-link target only
+        content_html=content,
+    )
+
+
 def _generate_writeup() -> str:
     """Long-form project writeup — motivation, findings, BSODs, oversights.
 
@@ -3874,106 +4699,53 @@ def _generate_writeup() -> str:
                 not in the rankings themselves.</li>
         </ul>
 
-        <h2 id="bsods">The technical reality: six BSODs in eleven days</h2>
+        <h2 id="bsods">The technical reality: the laptop kept crashing</h2>
         <p>
-            The hardware was an RTX 5090 Laptop GPU on Windows 11.
-            Between 2026-05-17 and 2026-05-19 the machine crashed six
-            times under sustained Ollama batch load:
-        </p>
-        <ul>
-            <li>2026-05-17 22:32 &mdash; <code>0x00000133</code>
-                DPC_WATCHDOG_VIOLATION (nvlddmkm)</li>
-            <li>2026-05-18 02:14 &mdash; <code>0x0000003B</code>
-                SYSTEM_SERVICE_EXCEPTION (resumed Exp 1, ~32 min in)</li>
-            <li>2026-05-18 09:21 &mdash; <code>0x0000000A</code>
-                IRQL_NOT_LESS_OR_EQUAL</li>
-            <li>2026-05-18 11:53 &mdash; <code>0x00000116</code>
-                VIDEO_TDR_ERROR (config 18/30, ~50 min in)</li>
-            <li>2026-05-18 18:?? &mdash; bugcheck not preserved
-                (BSOD #5)</li>
-            <li>2026-05-19 03:29 &mdash; silent kill mid-row_rest
-                sleep (config 29/30, query 100). No Python
-                traceback, log just stops &mdash; classic BSOD
-                silhouette.</li>
-        </ul>
-        <p>
-            Five distinct bugcheck codes, all rooted in nvlddmkm. The
-            NVIDIA developer forum has a long thread documenting
-            similar behaviour on the 5090 family under Ollama:
-            <a href="https://forums.developer.nvidia.com/t/rtx-5090-total-failure-hang-unload-in-ollama-after-couple-of-minutes/341659"
-               target="_blank" rel="noopener">&ldquo;RTX 5090 total
-            failure / hang / unload in Ollama after a couple of
-            minutes&rdquo;</a>. This is a driver / firmware
-            instability cluster, not a Python bug; pure software
-            pacing inside Python cannot eliminate it.
+            The biggest non-research problem in the whole project was
+            that the laptop running everything kept crashing. Over
+            three days in mid-May the machine blue-screened
+            <strong>six times</strong> while in the middle of long
+            batch experiments. Each crash forced a reboot and lost
+            whatever the experiment was working on at that second.
+            The cause turned out to be a known stability problem with
+            the laptop&rsquo;s graphics card and its driver when
+            running language models for long stretches &mdash; not a
+            bug in RAGBench&rsquo;s code, but very much our problem to
+            work around.
         </p>
         <p>
-            What helped:
-        </p>
-        <ul>
-            <li><strong>Workload pacing inside Python.</strong> A 0.5 s
-                sleep between every (generate + score) row, a longer
-                rest every 50 rows (cut from 10 s monolithic to 3
-                &times; 1 s ticks with fsynced heartbeats after BSOD #6
-                hit mid-sleep), and a 30 s cooldown between configs.
-                These widened the gaps between bursts enough to reduce
-                the frequency but not to zero.</li>
-            <li><strong>Ollama tuning.</strong>
-                <code>OLLAMA_MAX_LOADED_MODELS=1</code>,
-                <code>OLLAMA_NUM_PARALLEL=1</code>,
-                <code>OLLAMA_KEEP_ALIVE=24h</code>, served via a
-                detached <code>ollama serve</code> instead of the tray
-                app so the env vars actually applied. The
-                concurrent-residency churn between embedder and chat
-                models was the regime that correlated with the worst
-                BSOD cluster.</li>
-            <li><strong>Per-call <code>keep_alive=&quot;30m&quot;</code>
-                and <code>num_predict=1024</code></strong> in
-                <code>OllamaLLM.generate</code> &mdash; bounded
-                runaway generations that had been driving the longest
-                hangs.</li>
-            <li><strong>180 s per-request httpx timeout.</strong>
-                Ollama&rsquo;s Python client defaults to no timeout;
-                that&rsquo;s how an 8&ndash;17-minute hung
-                <code>chat()</code> happened before BSOD #3.</li>
-            <li><strong>System-level mitigations</strong>
-                (<code>scripts/apply_5090_stability.ps1</code>):
-                Windows TDR registry raised to 60 s, Hardware-Accelerated
-                GPU Scheduling off, PCIe ASPM disabled, high-performance
-                power plan. Cut the rate further.</li>
-        </ul>
-        <p>
-            What didn&rsquo;t fully work: clean NVIDIA driver reinstall,
-            and chasing &ldquo;cooler temperatures&rdquo; (the GPU
-            sat at 51&ndash;56&nbsp;&deg;C through the whole crashed run
-            &mdash; thermal headroom wasn&rsquo;t the issue).
+            Solving it took five layers of fixes stacked on top of
+            each other: slowing down the rate at which RAGBench called
+            the language model, tuning Ollama (the local model server)
+            to use less aggressive defaults, raising some Windows
+            timeout settings that were too short for long
+            model-generation kernels, saving progress to disk after
+            every single row so a crash cost at most one row of work,
+            and finally wrapping the whole experiment in a supervisor
+            program that automatically restarts and resumes the run
+            after the laptop reboots. With all five in place, the last
+            300 rows of Experiment 1 finished in 46 minutes on a
+            single uninterrupted attempt &mdash; after weeks of
+            fighting the same section of the matrix.
         </p>
         <p>
-            What closed the loop on the human cost: a Python
-            <strong>watchdog wrapper</strong>
-            (<code>scripts/run_experiment_1_watchdog.py</code>) that
-            supervises the experiment subprocess and re-launches it
-            with <code>--resume</code> on any non-zero exit, with
-            exponential backoff and a zero-progress abort guard. Paired
-            with a Windows scheduled task
-            (<code>scripts/install_auto_resume_task.ps1</code>) that
-            fires the watchdog at logon with a 30 s delay, a BSOD now
-            costs only the reboot time. The final 300 rows of
-            Experiment 1 completed in 46 minutes on a single attempt,
-            no BSOD, after weeks of fighting that section of the
-            matrix.
+            The broader lesson: on consumer hardware, don&rsquo;t
+            trust that your machine will stay up for the whole
+            duration of a long ML experiment. Write the experiment as
+            if it will be interrupted, because eventually it will.
         </p>
-        <p>
-            Lessons that generalised beyond this hardware: <em>own the
-            unattended-execution loop</em> (don&rsquo;t assume the
-            machine will be reliable for the experiment&rsquo;s
-            wall-clock); <em>shrink the BSOD blast radius</em> by
-            doing per-row fsynced checkpoints to CSV plus heartbeat
-            JSONL events so post-mortems can answer &ldquo;what was
-            the process doing at the second of death?&rdquo;; and
-            <em>distinguish system-level fixes from software pacing</em>
-            &mdash; both helped here, but they helped for different
-            reasons and either alone was insufficient.
+        <p style="margin-top: 18px;">
+            <a href="engineering.html" class="cta-btn">
+                Click here for more technical details &rarr;
+            </a>
+        </p>
+        <p class="muted-note">
+            The detail page covers the specific bugcheck codes,
+            Ollama environment vars, Windows registry settings,
+            client-side timeouts, watchdog architecture, and the
+            scheduled-task auto-resume pattern. Read it if you care
+            about kernel-level diagnostics or unattended-experiment
+            engineering; skip it otherwise.
         </p>
 
         <h2 id="exp0">What we got wrong: Experiment 0&rsquo;s three revisions</h2>
@@ -4709,6 +5481,38 @@ def main(
     writeup_html = _generate_writeup()
     (output_dir / "writeup.html").write_text(writeup_html, encoding="utf-8")
 
+    # Engineering Notes — deep-dive technical companion to the Writeup's
+    # plain-English BSOD summary. Not in the nav; linked from Writeup.
+    engineering_html = _generate_engineering()
+    (output_dir / "engineering.html").write_text(engineering_html, encoding="utf-8")
+
+    # Data / Downloads page + copy large CSVs so they're directly
+    # downloadable from the live site. Exp 0 v1/v2/v3 CSVs are copied
+    # in the experiment-0 block above; here we mirror Exp 1 and Exp 2
+    # plus the events.jsonl heartbeat sidecar so the Data page links
+    # resolve. Files are tens of MB but well under Pages's per-file
+    # 100 MB and per-site 1 GB limits.
+    import shutil as _shutil
+    for exp_num in (1, 2):
+        src_csv = results_dir / f"experiment_{exp_num}" / "raw_scores.csv"
+        if src_csv.exists() and src_csv.stat().st_size > 0:
+            try:
+                _shutil.copy2(
+                    src_csv,
+                    output_dir / f"experiment_{exp_num}_raw_scores.csv",
+                )
+            except OSError as exc:
+                logger.warning("Could not copy %s into docs/: %s", src_csv, exc)
+    exp1_events = results_dir / "experiment_1" / "events.jsonl"
+    if exp1_events.exists():
+        try:
+            _shutil.copy2(exp1_events, output_dir / "experiment_1_events.jsonl")
+        except OSError as exc:
+            logger.warning("Could not copy events.jsonl into docs/: %s", exc)
+
+    data_html = _generate_data()
+    (output_dir / "data.html").write_text(data_html, encoding="utf-8")
+
     # Generate index page
     index_html = _build_page_template(
         "RAGBench Findings Gallery",
@@ -4717,8 +5521,11 @@ def main(
     )
     (output_dir / "index.html").write_text(index_html, encoding="utf-8")
 
-    logger.info("Gallery generated: %d pages in %s", len(experiments) + 2, output_dir)
-    print(f"Gallery generated in {output_dir}/ ({len(experiments) + 2} pages)")
+    # Count actually-rendered HTML files (experiments + index +
+    # methodology + writeup + engineering + data + any version pages).
+    page_count = len(list(output_dir.glob("*.html")))
+    logger.info("Gallery generated: %d HTML pages in %s", page_count, output_dir)
+    print(f"Gallery generated in {output_dir}/ ({page_count} pages)")
 
 
 # ---------------------------------------------------------------------------

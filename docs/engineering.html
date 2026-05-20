@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engineering Notes — RAGBench</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+
+/* RAGBench gallery — editorial/academic theme.
+   Cream paper, serif display type, IBM-palette accents as data markers. */
+
+:root {
+    /* Paper + ink */
+    --paper:       #f6f3ea;
+    --paper-2:     #fdfbf4;
+    --paper-edge:  #e6dfcc;
+    --ink:         #18181b;
+    --ink-2:       #3a3a3f;
+    --ink-3:       #6a6a72;
+    --ink-muted:   #9d9d9d;
+    /* IBM colorblind-safe palette — chart-locked, do not change */
+    --c-blue:      #648FFF;
+    --c-purple:    #785EF0;
+    --c-magenta:   #DC267F;
+    --c-orange:    #FE6100;
+    --c-gold:      #FFB000;
+    --c-teal:      #22A884;
+    /* Type stacks — system fonts only (no CDN) */
+    --serif:  ui-serif, Charter, "Bitstream Charter", "Sitka Text", "Source Serif Pro", Cambria, Georgia, serif;
+    --sans:   -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, system-ui, sans-serif;
+    --mono:   ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.65;
+    font-size: 17px;
+    /* subtle vignette at the top of the viewport — sets atmosphere without
+       competing with the Plotly charts further down the page */
+    background-image: radial-gradient(ellipse 70% 35% at 50% -8%,
+                                       rgba(100,143,255,0.06),
+                                       transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* === Navigation === */
+.nav {
+    background: rgba(246, 243, 234, 0.92);
+    backdrop-filter: saturate(140%) blur(8px);
+    -webkit-backdrop-filter: saturate(140%) blur(8px);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 18px 32px;
+    display: flex;
+    gap: 4px;
+    align-items: baseline;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.nav .brand {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.45em;
+    color: var(--ink);
+    letter-spacing: -0.015em;
+    margin-right: auto;
+    position: relative;
+}
+.nav .brand::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -3px;
+    width: 26px;
+    height: 2px;
+    background: var(--c-blue);
+}
+.nav a {
+    color: var(--ink-2);
+    text-decoration: none;
+    font-family: var(--sans);
+    font-size: 0.74em;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 12px;
+    border-radius: 2px;
+    transition: color 0.15s, background 0.15s;
+    position: relative;
+}
+.nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.nav a.active { color: var(--ink); background: transparent; }
+.nav a.active::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 2px;
+    height: 2px;
+    background: var(--c-blue);
+}
+.nav__source {
+    margin-left: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-2);
+    border: 1px solid var(--paper-edge);
+    background: var(--paper-2);
+}
+.nav__source:hover {
+    color: var(--ink);
+    background: var(--paper);
+    border-color: var(--ink-muted);
+}
+.nav__source svg { display: inline-block; vertical-align: middle; }
+
+/* === Version sub-nav === */
+.version-nav {
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--paper-edge);
+    padding: 10px 32px;
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+    font-size: 0.82em;
+}
+.version-nav .version-label {
+    color: var(--ink-muted);
+    font-size: 0.85em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-right: 10px;
+}
+.version-nav a {
+    color: var(--ink-3);
+    text-decoration: none;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.95em;
+    transition: color 0.15s, background 0.15s;
+}
+.version-nav a:hover { color: var(--ink); background: rgba(24,24,27,0.04); }
+.version-nav a.active {
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    padding: 2px 9px;
+}
+
+/* === Main content === */
+.content {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 56px 32px 80px;
+}
+
+/* === Typography === */
+h1, h2, h3, h4 {
+    font-family: var(--serif);
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.012em;
+    line-height: 1.22;
+}
+h1 {
+    font-size: 2.4em;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    position: relative;
+}
+h1::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 56px;
+    height: 3px;
+    background: var(--c-blue);
+}
+h2 {
+    font-size: 1.55em;
+    margin-top: 52px;
+    margin-bottom: 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--paper-edge);
+}
+h3 {
+    font-size: 1.18em;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    color: var(--ink);
+}
+h4 {
+    font-size: 1em;
+    margin-bottom: 6px;
+    color: var(--ink);
+}
+p {
+    margin: 14px 0;
+    color: var(--ink-2);
+    max-width: 72ch;
+}
+strong { color: var(--ink); font-weight: 600; }
+em { font-style: italic; color: var(--ink-2); }
+
+a {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--c-blue);
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 3px;
+    transition: text-decoration-color 0.15s;
+}
+a:hover { text-decoration-color: var(--c-magenta); }
+
+/* === Cards === */
+.card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 34px 38px;
+    margin: 28px 0;
+    position: relative;
+}
+/* Editorial section-marker — short colored tick at the top of every card */
+.card::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 38px;
+    width: 44px;
+    height: 3px;
+    background: var(--c-blue);
+}
+.card h2:first-child { margin-top: 0; }
+
+/* === Experiment grid === */
+.experiment-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 22px;
+    margin: 28px 0;
+}
+.experiment-card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 28px 30px;
+    transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.experiment-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--c-blue);
+    transform: scaleX(0.18);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+}
+.experiment-card:nth-child(2)::before { background: var(--c-purple); }
+.experiment-card:nth-child(3)::before { background: var(--c-magenta); }
+.experiment-card:nth-child(4)::before { background: var(--c-orange); }
+.experiment-card:nth-child(5)::before { background: var(--c-teal); }
+.experiment-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--ink-muted);
+    box-shadow: 0 10px 30px -16px rgba(24,24,27,0.22);
+}
+.experiment-card:hover::before { transform: scaleX(1); }
+.experiment-card a {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+.experiment-card h3 {
+    color: var(--ink);
+    margin-top: 14px;
+    margin-bottom: 8px;
+    font-size: 1.28em;
+}
+.experiment-card p {
+    color: var(--ink-3);
+    font-size: 0.94em;
+    margin: 0;
+    max-width: none;
+}
+.experiment-card .status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 2px;
+    font-size: 0.7em;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+}
+.status-ready {
+    background: rgba(34,168,132,0.12);
+    color: #0d5a3c;
+    border: 1px solid rgba(34,168,132,0.32);
+}
+.status-placeholder {
+    background: rgba(254,97,0,0.10);
+    color: #82340a;
+    border: 1px solid rgba(254,97,0,0.32);
+}
+
+/* === Chart container === */
+.chart-container {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px;
+    margin: 24px 0;
+}
+
+/* === Feature card (cards that want an extra-loud left accent) === */
+.feature-card {
+    border-left: 4px solid var(--c-blue);
+    padding-left: 34px;
+    margin-bottom: 32px;
+}
+.feature-card::before { display: none; }
+.feature-card .cta-btn { margin-top: 16px; }
+.feature-card--warn { border-left-color: var(--c-orange); }
+
+/* Italic kicker line under a section title */
+.kicker-italic {
+    color: var(--ink-3);
+    font-style: italic;
+    margin-bottom: 14px;
+    font-family: var(--serif);
+}
+
+/* Mono-caps label that sits above an h2 ("HEADLINE FINDINGS" etc.) */
+.kicker-mono {
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--c-magenta);
+    margin-bottom: 0;
+}
+
+/* Opening paragraph on long-form pages — larger, serif, leading higher */
+.methodology-content .lede,
+.lede {
+    font-family: var(--serif);
+    font-size: 1.18em;
+    line-height: 1.55;
+    color: var(--ink);
+    margin: 8px 0 28px;
+    max-width: 72ch;
+}
+.lede em { font-style: italic; color: var(--ink); }
+
+/* Inline "Further reading" / footnote-style paragraph */
+.further-reading {
+    font-size: 0.9em;
+    color: var(--ink-3);
+    margin-top: 18px;
+    line-height: 1.55;
+}
+.further-reading strong { color: var(--ink-2); }
+
+/* === RAG explainer figure (Wikipedia CC-BY-SA diagram on the index) === */
+.rag-figure {
+    margin: 22px auto 6px;
+    max-width: 560px;
+    text-align: center;
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 22px 16px;
+}
+.rag-figure__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-width: 480px;
+    margin: 0 auto;
+}
+.rag-figure__caption {
+    font-family: var(--serif);
+    font-size: 0.92em;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin-top: 14px;
+    padding: 0 6px;
+    text-align: left;
+    font-style: italic;
+}
+.rag-figure__caption strong { font-style: normal; color: var(--ink); }
+.rag-figure__caption em { font-style: italic; color: var(--ink); }
+.rag-figure__credit {
+    display: block;
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 0.78em;
+    letter-spacing: 0.04em;
+    color: var(--ink-3);
+}
+
+/* === Callout box (high-emphasis acknowledgement / warning) === */
+.callout {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-left: 4px solid var(--c-orange);
+    border-radius: 3px;
+    padding: 20px 26px 22px;
+    margin: 26px 0;
+}
+.callout--critical { border-left-color: var(--c-magenta); }
+.callout__label {
+    font-family: var(--mono);
+    font-size: 0.72em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-magenta);
+    margin-bottom: 10px;
+}
+.callout--critical .callout__label { color: var(--c-magenta); }
+.callout__title {
+    font-family: var(--serif);
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 12px;
+}
+.callout p {
+    margin: 8px 0;
+    color: var(--ink-2);
+    max-width: none;
+}
+
+/* === Audit / shortcomings table (severity pills + tight columns) === */
+.audit-table { font-size: 0.9em; }
+.audit-table td { vertical-align: top; line-height: 1.5; }
+.audit-table td:first-child {
+    font-family: var(--mono);
+    color: var(--ink-3);
+    width: 32px;
+    text-align: right;
+    padding-right: 8px;
+}
+.audit-table td:nth-child(4) { white-space: nowrap; }
+.sev {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+}
+.sev--critical {
+    background: rgba(220,38,127,0.10);
+    color: #8a0a4a;
+    border-color: rgba(220,38,127,0.4);
+}
+.sev--high {
+    background: rgba(254,97,0,0.10);
+    color: #82340a;
+    border-color: rgba(254,97,0,0.36);
+}
+.sev--medium {
+    background: rgba(255,176,0,0.13);
+    color: #6b4a00;
+    border-color: rgba(255,176,0,0.5);
+}
+.sev--low {
+    background: rgba(34,168,132,0.10);
+    color: #0d5a3c;
+    border-color: rgba(34,168,132,0.32);
+}
+
+/* === Catch-all muted note (footnotes, chart caveats, asides) === */
+.muted-note,
+p.muted-note,
+li.muted-note {
+    color: var(--ink-3);
+    font-size: 0.88em;
+    font-style: italic;
+    line-height: 1.5;
+}
+.section-intro {
+    color: var(--ink-2);
+    margin-bottom: 16px;
+}
+
+/* === Chart explanation prose (sits between chart heading and chart) === */
+.chart-explanation {
+    color: var(--ink-2);
+    font-size: 0.94em;
+    line-height: 1.55;
+    margin: 6px 0 18px;
+    padding: 0 4px;
+    max-width: 78ch;
+}
+.chart-explanation strong { color: var(--ink); }
+
+/* === Experiment design callout (axes varied vs held constant) === */
+.axis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.2fr;
+    gap: 14px;
+    margin: 22px 0 4px;
+}
+.axis-block {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 16px 18px;
+    position: relative;
+}
+.axis-block::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 28px;
+    height: 2px;
+}
+.axis-varies::before { background: var(--c-magenta); }
+.axis-held::before   { background: var(--ink-muted); }
+.axis-label {
+    font-family: var(--mono);
+    font-size: 0.7em;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+}
+.axis-varies .axis-label { color: var(--c-magenta); }
+.axis-title {
+    font-family: var(--serif);
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+}
+.axis-detail {
+    font-size: 0.88em;
+    color: var(--ink-2);
+    line-height: 1.5;
+}
+
+/* === Strategy explainer table (index "RAG Strategies in this study") === */
+.strategy-list {
+    margin: 18px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+.strategy-row {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-top: 1px solid var(--paper-edge);
+}
+.strategy-row:last-child { border-bottom: 1px solid var(--paper-edge); }
+.strategy-name {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.08em;
+    color: var(--ink);
+    position: relative;
+    padding-left: 14px;
+}
+.strategy-name::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.45em;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--c-blue);
+}
+.strategy-row:nth-child(2) .strategy-name::before { background: var(--c-purple); }
+.strategy-row:nth-child(3) .strategy-name::before { background: var(--c-magenta); }
+.strategy-row:nth-child(4) .strategy-name::before { background: var(--c-orange); }
+.strategy-row:nth-child(5) .strategy-name::before { background: var(--c-teal); }
+.strategy-desc { color: var(--ink-2); font-size: 0.96em; line-height: 1.55; }
+.strategy-desc strong { color: var(--ink); }
+.strategy-meta {
+    margin-top: 6px;
+    font-family: var(--mono);
+    font-size: 0.78em;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+}
+
+/* === Worked example callout (one annotated row from the data) === */
+.worked-example {
+    background: var(--paper);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    margin-top: 26px;
+    position: relative;
+}
+.worked-example::before {
+    content: "EXAMPLE";
+    position: absolute;
+    top: -8px;
+    left: 22px;
+    background: var(--paper-2);
+    padding: 0 8px;
+    font-family: var(--mono);
+    font-size: 0.66em;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+}
+.worked-example h3 {
+    margin-top: 0;
+    color: var(--ink);
+    font-size: 1.18em;
+}
+.worked-example__lede {
+    font-size: 0.92em;
+    color: var(--ink-3);
+    margin: 6px 0 18px;
+}
+.worked-example__rows {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 18px;
+    font-size: 0.95em;
+    line-height: 1.6;
+    margin: 0;
+}
+.worked-example__rows dt { margin: 0; }
+.worked-example__rows dd { margin: 0; color: var(--ink-2); }
+.worked-example__label {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--ink);
+}
+.worked-example__label[data-accent="question"] { color: var(--c-purple); }
+.worked-example__label[data-accent="gold"]     { color: var(--c-gold); }
+.worked-example__label[data-accent="rag"]      { color: var(--c-orange); }
+.worked-example__rag { font-style: italic; }
+.worked-example code {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.92em;
+}
+
+.worked-example__section {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--paper-edge);
+}
+.worked-example__section-label {
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 12px;
+}
+.worked-example__section-label[data-accent="metrics"] { color: var(--c-teal); }
+.worked-example__section-label[data-accent="judges"]  { color: var(--c-purple); }
+
+.worked-example__metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+.worked-example__metric {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 12px 14px;
+}
+.worked-example__metric-label {
+    font-size: 0.78em;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.worked-example__metric-value {
+    font-family: var(--serif);
+    font-size: 1.55em;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 4px 0;
+    font-variant-numeric: tabular-nums;
+}
+.worked-example__metric-value--good { color: var(--c-teal); }
+.worked-example__metric-value--warn { color: var(--c-orange); }
+.worked-example__metric-note {
+    font-size: 0.82em;
+    color: var(--ink-3);
+    line-height: 1.4;
+}
+
+.worked-example__judges {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px 14px;
+    font-size: 0.91em;
+    color: var(--ink-2);
+}
+.worked-example__judges strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.worked-example__note {
+    font-size: 0.88em;
+    color: var(--ink-3);
+    margin-top: 12px;
+    line-height: 1.55;
+}
+
+/* === Captions === */
+.caption {
+    font-family: var(--serif);
+    font-size: 0.94em;
+    color: var(--ink-3);
+    font-style: italic;
+    max-width: 72ch;
+    margin: 8px auto 30px;
+    line-height: 1.5;
+    padding: 0 12px;
+    text-align: center;
+}
+
+/* === Placeholder === */
+.placeholder { text-align: center; padding: 80px 24px; }
+.placeholder h2 {
+    border: none;
+    color: var(--ink-3);
+    font-style: italic;
+    font-weight: 500;
+}
+.placeholder p {
+    color: var(--ink-3);
+    max-width: 600px;
+    margin: 16px auto;
+}
+
+/* === Data tables — Tufte-style rules === */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.92em;
+    margin: 20px 0;
+    font-variant-numeric: tabular-nums;
+}
+.data-table th, .data-table td {
+    padding: 10px 14px;
+    text-align: left;
+    vertical-align: top;
+    border: none;
+    border-bottom: 1px solid var(--paper-edge);
+}
+.data-table thead th {
+    background: transparent;
+    border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    font-weight: 600;
+    font-size: 0.76em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-2);
+    font-family: var(--sans);
+}
+.data-table tbody tr:last-child td { border-bottom: 2px solid var(--ink); }
+.data-table tbody tr:hover { background: rgba(100,143,255,0.05); }
+
+/* === Footer === */
+.footer {
+    text-align: center;
+    padding: 40px 24px 32px;
+    color: var(--ink-3);
+    font-size: 0.88em;
+    border-top: 1px solid var(--paper-edge);
+    margin-top: 60px;
+    font-family: var(--serif);
+    font-style: italic;
+}
+.footer a {
+    color: var(--ink);
+    text-decoration-color: var(--c-blue);
+}
+.footer a:hover { text-decoration-color: var(--c-magenta); }
+
+/* === Hero (index landing) — oversized serif, editorial kicker === */
+.hero {
+    background: transparent;
+    color: var(--ink);
+    text-align: left;
+    padding: 16px 0 56px;
+    margin: -16px 0 48px;
+    border-bottom: 1px solid var(--paper-edge);
+    position: relative;
+}
+.hero::before {
+    content: "Findings Gallery · 2026";
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 22px;
+}
+.hero h1 {
+    color: var(--ink);
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 18px;
+    font-size: 4.6em;
+    font-weight: 600;
+    letter-spacing: -0.038em;
+    line-height: 0.96;
+    font-family: var(--serif);
+}
+.hero h1::after { display: none; }
+.hero .tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.4em;
+    color: var(--ink-2);
+    margin: 0 0 24px 0;
+    max-width: 36ch;
+    line-height: 1.32;
+}
+.hero .description {
+    max-width: 64ch;
+    margin: 0 0 30px 0;
+    color: var(--ink-2);
+    line-height: 1.7;
+    font-size: 1.02em;
+}
+.hero .cta-btn {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 26px;
+    border-radius: 2px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.82em;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-family: var(--sans);
+    transition: background 0.18s, transform 0.18s;
+    border: 1px solid var(--ink);
+}
+.hero .cta-btn:hover {
+    background: var(--c-blue);
+    border-color: var(--c-blue);
+    color: var(--paper-2);
+    transform: translateY(-1px);
+}
+
+/* === Key findings cards === */
+.findings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    margin: 28px 0;
+}
+.finding-card {
+    background: var(--paper-2);
+    border: 1px solid var(--paper-edge);
+    border-radius: 3px;
+    padding: 22px 26px;
+    border-left: 3px solid var(--c-blue);
+    transition: transform 0.18s, border-left-color 0.18s, box-shadow 0.18s;
+}
+.finding-card:nth-child(2) { border-left-color: var(--c-purple); }
+.finding-card:nth-child(3) { border-left-color: var(--c-magenta); }
+.finding-card:nth-child(4) { border-left-color: var(--c-orange); }
+.finding-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -14px rgba(24,24,27,0.18);
+}
+.finding-card h4 {
+    color: var(--ink);
+    margin-bottom: 8px;
+    font-size: 1.02em;
+    font-family: var(--serif);
+    line-height: 1.3;
+}
+.finding-card p {
+    color: var(--ink-3);
+    font-size: 0.91em;
+    margin: 0;
+    max-width: none;
+}
+
+/* === Methodology page — readable prose column === */
+.methodology-content {
+    max-width: 72ch;
+    margin: 0 auto;
+}
+.methodology-content h2 { margin-top: 56px; }
+.methodology-content p {
+    margin: 16px 0;
+    color: var(--ink-2);
+    max-width: none;
+}
+.methodology-content pre {
+    background: var(--ink);
+    color: #e8e4d6;
+    padding: 22px 24px;
+    border-radius: 3px;
+    overflow-x: auto;
+    font-size: 0.86em;
+    line-height: 1.7;
+    font-family: var(--mono);
+    margin: 22px 0;
+}
+.methodology-content code {
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.9em;
+    border: 1px solid var(--paper-edge);
+    color: var(--ink);
+}
+.methodology-content pre code {
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+}
+
+/* === Responsive === */
+@media (max-width: 768px) {
+    body { font-size: 16px; }
+    .content { padding: 36px 20px 56px; }
+    .hero { padding: 12px 0 36px; margin: -12px 0 32px; }
+    .hero h1 { font-size: 2.5em; }
+    .hero .tagline { font-size: 1.12em; }
+    .hero::before { font-size: 0.68em; margin-bottom: 16px; }
+    .experiment-grid { grid-template-columns: 1fr; }
+    .findings-grid { grid-template-columns: 1fr; }
+    .nav { flex-wrap: wrap; gap: 4px; padding: 14px 18px; }
+    .nav a { font-size: 0.7em; padding: 6px 8px; }
+    .nav .brand { font-size: 1.25em; width: 100%; margin-right: 0; margin-bottom: 8px; }
+    .version-nav { padding: 8px 18px; flex-wrap: wrap; }
+    .card { padding: 24px 22px; }
+    .card::before { left: 22px; }
+    h1 { font-size: 1.9em; }
+    h2 { font-size: 1.32em; }
+    .axis-grid { grid-template-columns: 1fr; }
+    .strategy-row { grid-template-columns: 1fr; gap: 6px; }
+    .strategy-name { padding-left: 14px; }
+    .worked-example__rows { grid-template-columns: 1fr; gap: 4px 0; }
+    .worked-example__rows dd { margin-bottom: 8px; }
+    .worked-example__metrics { grid-template-columns: 1fr; }
+    .worked-example__judges  { grid-template-columns: repeat(2, 1fr); }
+    .feature-card { padding-left: 22px; }
+}
+
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <span class="brand">RAGBench</span>
+        <a href="index.html">Home</a>
+    <a href="experiment_0_v3.html">Exp 0v3: Scorer Validation</a>
+    <a href="experiment_1.html">Exp 1: Strategy × Model</a>
+    <a href="experiment_2.html">Exp 2: Chunking × Model</a>
+    <a href="methodology.html">Methodology</a>
+    <a href="writeup.html">Writeup</a>
+    <a href="data.html">Data</a>
+        <a class="nav__source" href="https://github.com/nono638/2026Project"
+           target="_blank" rel="noopener" aria-label="RAGBench source code on GitHub">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            <span>Source</span>
+        </a>
+    </nav>
+    <div class="content">
+        <h1>Engineering Notes</h1>
+        
+    <div class="methodology-content">
+
+        <p class="kicker-mono" style="color: var(--ink-muted);">Engineering notes &middot; the technical detail</p>
+        <p class="lede">
+            This is the full account of the hardware-stability problems
+            that nearly stopped Experiments 1 and 2, and the
+            engineering layers that eventually made the matrix
+            complete. It&rsquo;s the technical companion to the
+            plain-English summary on
+            <a href="writeup.html#bsods">Writeup&rsquo;s &ldquo;The
+            technical reality&rdquo;</a>. Skip it unless you care
+            about Windows kernel bugcheck codes, Ollama internals, or
+            unattended-experiment supervision patterns.
+        </p>
+
+        <h2 id="bsods">Six BSODs in eleven days</h2>
+        <p>
+            The hardware was an RTX 5090 Laptop GPU on Windows 11.
+            Between 2026-05-17 and 2026-05-19 the machine crashed six
+            times under sustained Ollama batch load. Five distinct
+            bugcheck codes appeared, all rooted in the NVIDIA display
+            driver (<code>nvlddmkm</code>).
+        </p>
+        <table class="data-table">
+            <thead>
+                <tr><th>Date / time</th><th>Bugcheck</th><th>Symptom &amp; phase of run</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2026-05-17 22:32</td>
+                    <td><code>0x00000133</code> DPC_WATCHDOG_VIOLATION</td>
+                    <td>nvlddmkm DPC stayed in a single CPU for too
+                        long. First crash &mdash; surfaced the pattern.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 02:14</td>
+                    <td><code>0x0000003B</code> SYSTEM_SERVICE_EXCEPTION</td>
+                    <td>Resumed Exp 1 ~32 min after restart.
+                        nvlddmkm stack again.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 09:21</td>
+                    <td><code>0x0000000A</code> IRQL_NOT_LESS_OR_EQUAL</td>
+                    <td>Standard hardware-driver fault. Resumed run.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 11:53</td>
+                    <td><code>0x00000116</code> VIDEO_TDR_ERROR</td>
+                    <td>Windows&rsquo; Timeout Detection &amp; Recovery
+                        fired when the GPU stopped responding inside an
+                        LLM kernel. Config 18/30
+                        (multi_query &times; qwen3.5:9b @ query 69).</td>
+                </tr>
+                <tr>
+                    <td>2026-05-18 ??:??</td>
+                    <td><em>bugcheck not preserved</em></td>
+                    <td>BSOD #5 &mdash; minidump was rolled out before
+                        triage.</td>
+                </tr>
+                <tr>
+                    <td>2026-05-19 03:29</td>
+                    <td><em>silent kill</em></td>
+                    <td>No Python traceback, log just stops mid-row_rest
+                        sleep. Config 29/30
+                        (corrective &times; gemma4:e4b @ query 100).
+                        Classic BSOD silhouette.</td>
+                </tr>
+            </tbody>
+        </table>
+        <p>
+            The NVIDIA developer forum has a long thread documenting
+            similar behaviour on the 5090 family under Ollama load:
+            <a href="https://forums.developer.nvidia.com/t/rtx-5090-total-failure-hang-unload-in-ollama-after-couple-of-minutes/341659"
+               target="_blank" rel="noopener">RTX 5090 total failure /
+            hang / unload in Ollama after a couple of minutes</a>. The
+            consensus across that thread is that this is a driver
+            and firmware-level instability cluster on the 5090 SKU,
+            triggered (not caused) by sustained mixed embed / chat
+            workloads.
+        </p>
+
+        <h2 id="software-pacing">Layer 1: software pacing inside the experiment runner</h2>
+        <p>
+            None of these eliminated the BSODs but they cut frequency
+            enough to make progress between crashes. All live in
+            <code>scripts/run_experiment_1.py</code>.
+        </p>
+        <ul>
+            <li><strong>Row pace:</strong> 0.5&nbsp;s sleep between
+                every completed (generate&nbsp;+&nbsp;score) row,
+                configurable via <code>--row-pace-s</code>. Inserted
+                between bursts so the GPU could drain its DPC queue
+                before the next embed/chat hit.</li>
+            <li><strong>Periodic mid-config rest:</strong> originally
+                a single 10&nbsp;s sleep every 50 rows. Cut to
+                3&nbsp;&times;&nbsp;1&nbsp;s ticks (with an fsynced
+                <code>row_rest_tick</code> heartbeat each second) after
+                BSOD #6 hit mid-sleep &mdash; the 10&nbsp;s monolithic
+                idle was a fat window for ASPM downshift to occur and
+                wasn&rsquo;t earning anything (GPU sat at 51&ndash;56&nbsp;&deg;C
+                throughout).</li>
+            <li><strong>Inter-config cooldown:</strong> 30&nbsp;s
+                between configs. Gave the driver clean unload time
+                before the next model loaded.</li>
+            <li><strong>Per-row CSV flush + fsync:</strong> the runner
+                writes a single row to <code>raw_scores.csv</code>
+                and forces it to disk before moving on. A power loss
+                costs at most one row instead of one config (~25
+                minutes of work).</li>
+            <li><strong>Per-row JSONL heartbeat:</strong>
+                <code>events.jsonl</code> gets a <code>row_done</code>
+                record with the running <code>calls_total</code> and
+                the last in-flight call descriptor. Post-mortem can
+                identify the row and call type the BSOD interrupted.</li>
+            <li><strong>Periodic GPU snapshot:</strong> every 10 rows
+                a <code>gpu_snapshot</code> event records temp /
+                utilization / VRAM / power so thermal-correlated
+                crashes can be reconstructed from the trail.</li>
+        </ul>
+
+        <h2 id="ollama-tuning">Layer 2: Ollama server tuning</h2>
+        <p>
+            The default Ollama install on Windows runs as a tray app
+            with <code>OLLAMA_MAX_LOADED_MODELS=3</code> and
+            <code>OLLAMA_NUM_PARALLEL</code> set by the server&rsquo;s
+            heuristics. The concurrent embedder/chat residency was the
+            allocator-churn regime that correlated with the worst
+            BSOD cluster. The fix is to stop the tray-spawned server
+            and re-launch <code>ollama serve</code> with explicit env
+            vars &mdash; the tray ignores env vars set after launch.
+        </p>
+        <p>
+            <code>scripts/start_ollama_safe.ps1</code> does this. The
+            vars it sets:
+        </p>
+        <ul>
+            <li><code>OLLAMA_MAX_LOADED_MODELS=1</code> &mdash; forces
+                a clean unload/reload between embedder and chat
+                instead of keeping both resident.</li>
+            <li><code>OLLAMA_NUM_PARALLEL=1</code> &mdash; our
+                pipeline is serial; this disables Ollama&rsquo;s
+                per-slot KV duplication.</li>
+            <li><code>OLLAMA_KEEP_ALIVE=24h</code> &mdash; well past
+                any single experiment config; eviction still happens
+                on model-switch (Ollama&rsquo;s
+                <code>MAX_LOADED_MODELS=1</code> rule supersedes
+                keep_alive when slots are full).</li>
+            <li><code>OLLAMA_MAX_QUEUE=512</code> &mdash; explicit so
+                it survives a default change.</li>
+            <li><code>OLLAMA_MODELS=D:\OllamaModels</code> &mdash;
+                the tray app reads this from its own config, not from
+                env vars; passing it explicitly to the replacement
+                <code>ollama serve</code> avoids the fallback to
+                <code>%USERPROFILE%\.ollama\models</code> that
+                otherwise reports every model as 404.</li>
+        </ul>
+        <p>
+            Two settings deliberately <em>not</em> set:
+            <code>OLLAMA_FLASH_ATTENTION</code> (auto-disabled when an
+            embed model is loaded, so a mixed pipeline ignores it
+            anyway) and <code>OLLAMA_KV_CACHE_TYPE</code> (q8_0 KV
+            silently falls back to f16 on archs that don&rsquo;t
+            support it, masking what&rsquo;s actually running).
+        </p>
+
+        <h2 id="client-tuning">Layer 3: Ollama client tuning</h2>
+        <p>
+            In <code>src/llms/ollama.py</code>:
+        </p>
+        <ul>
+            <li><strong><code>keep_alive=&quot;30m&quot;</code> per
+                call.</strong> Ollama&rsquo;s default of 5 minutes
+                let the timer expire mid-config when a slow
+                generation (or judge-side stall) ran long; that
+                forced a full reload on the next call. 30&nbsp;m
+                safely spans worst-case config duration without
+                locking the GPU when the experiment moves to the
+                next model.</li>
+            <li><strong><code>num_predict=1024</code></strong> cap on
+                tokens per generation. Without this, qwen3.5:9b was
+                observed generating runaway responses of 8&ndash;17+
+                minutes on single queries (the regime that drove
+                BSOD #3). Sized from analysis of completed Exp 1 rows
+                across all 5 strategies &mdash; 1024 covers
+                &gt;95% of non-degenerate answers while keeping
+                worst-case generation well under the 180&nbsp;s
+                client timeout.</li>
+            <li><strong>180&nbsp;s per-call httpx timeout.</strong>
+                The Ollama Python client defaults to no timeout,
+                which is how an 8&ndash;17-minute hung
+                <code>chat()</code> happened before BSOD #3. 180&nbsp;s
+                is 3&times; the expected worst-case for a 9B model
+                on the 5090 Laptop.</li>
+            <li><strong>Runner-crash recovery wait.</strong>
+                <code>experiment_utils.py</code> recognises Ollama&rsquo;s
+                &ldquo;model runner has unexpectedly stopped&rdquo;
+                error and waits 60&nbsp;s before retrying (the runner
+                process needs ~30&ndash;90&nbsp;s to come back up
+                cleanly after a crash). Normal 2&ndash;8&nbsp;s
+                backoff hits a dead runner and hangs again.</li>
+        </ul>
+
+        <h2 id="system-tuning">Layer 4: Windows / NVIDIA driver settings</h2>
+        <p>
+            <code>scripts/apply_5090_stability.ps1</code> (run as
+            Administrator, then reboot):
+        </p>
+        <ul>
+            <li><strong>TDR registry keys raised.</strong>
+                <code>TdrDelay=60</code>,
+                <code>TdrDdiDelay=60</code>,
+                <code>TdrLevel=3</code> under
+                <code>HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers</code>.
+                Default is 2&nbsp;s / 5&nbsp;s, which is too short for
+                LLM kernels that legitimately hold the GPU through
+                long generations &mdash; was triggering 0x116
+                VIDEO_TDR_ERROR (BSOD #4). Raised to 60&nbsp;s with
+                full recovery enabled (don&rsquo;t set
+                <code>TdrLevel=0</code>; that masks bugs instead of
+                surviving them).</li>
+            <li><strong>Hardware-Accelerated GPU Scheduling off.</strong>
+                <code>HwSchMode=1</code>. Implicated in 5090
+                nvlddmkm DPC instability and in the NVIDIA dev forum
+                thread cited above. NVIDIA driver re-installs
+                sometimes flip this back on &mdash; check after any
+                driver update.</li>
+            <li><strong>PCIe ASPM disabled.</strong>
+                <code>powercfg /setacvalueindex SCHEME_CURRENT
+                501a4d13-... ee12f906-... 0</code>. ASPM transitions
+                on dGPU laptops are a documented trigger for
+                nvlddmkm stalls, and our per-row pacing was creating
+                idle windows where ASPM could downshift. Plus a
+                forced high-performance power plan so the GPU
+                isn&rsquo;t throttled mid-call.</li>
+        </ul>
+        <p>
+            Things that <em>didn&rsquo;t</em> help: a clean NVIDIA
+            driver reinstall (the issue is cross-driver-version), and
+            chasing &ldquo;cooler temperatures&rdquo; (the GPU sat at
+            51&ndash;56&nbsp;&deg;C through the crashed runs &mdash;
+            thermal headroom wasn&rsquo;t the issue).
+        </p>
+
+        <h2 id="watchdog">Layer 5: unattended supervision</h2>
+        <p>
+            The lower four layers reduced BSOD <em>frequency</em>.
+            Layer 5 reduced BSOD <em>cost</em>: when a crash did
+            happen, the run resumed itself rather than waiting for a
+            human to notice and re-launch.
+        </p>
+        <ul>
+            <li><strong>Watchdog wrapper.</strong>
+                <code>scripts/run_experiment_1_watchdog.py</code>
+                supervises the experiment as a subprocess. On any
+                non-zero exit it re-launches with
+                <code>--resume</code>; the runner&rsquo;s row-level
+                CSV checkpoint means at most one row is repeated.
+                Exponential backoff caps at 120&nbsp;s. A zero-progress
+                abort guard stops the loop if two consecutive
+                attempts add no rows &mdash; protects against a
+                deterministic Python bug burning through the restart
+                budget. Clean exit at 6,000 rows.</li>
+            <li><strong>Auto-resume after reboot.</strong>
+                <code>scripts/install_auto_resume_task.ps1</code>
+                registers a Windows Task Scheduler entry
+                (<code>RagBench-Experiment1-AutoResume</code>) that
+                fires the watchdog at logon with a 30&nbsp;s delay.
+                Closes the human-in-loop gap entirely: after a BSOD,
+                log back in, wait ~30&nbsp;s, the experiment resumes
+                from the last checkpointed row.</li>
+        </ul>
+        <p>
+            With all five layers in place, the final 300 rows of
+            Experiment 1 completed in 46 minutes on a single
+            watchdog attempt, no BSOD, no human intervention &mdash;
+            after weeks of fighting that section of the matrix.
+        </p>
+
+        <h2 id="lessons">Lessons that generalise</h2>
+        <ol>
+            <li><strong>Own the unattended-execution loop.</strong>
+                Don&rsquo;t assume the machine will be reliable for the
+                wall-clock duration of an experiment. For multi-day
+                workloads, a watchdog plus auto-resume after reboot
+                is the difference between &ldquo;completes overnight&rdquo;
+                and &ldquo;needs daily intervention.&rdquo;</li>
+            <li><strong>Shrink the BSOD blast radius.</strong> Per-row
+                fsynced CSV checkpoints + per-row JSONL heartbeats
+                let any post-mortem answer &ldquo;what was the process
+                doing at the second of death?&rdquo; This is cheap to
+                add and pays back hugely on every crash.</li>
+            <li><strong>System-level fixes and software pacing are
+                complements, not substitutes.</strong> Either alone
+                was insufficient on this hardware; together they
+                made the run viable.</li>
+            <li><strong>Default settings on consumer hardware are
+                tuned for desktop interactivity, not batch ML.</strong>
+                Windows TDR, GPU scheduling, PCIe ASPM, and Ollama&rsquo;s
+                tray-app defaults all needed override before a
+                multi-hour Ollama batch could finish reliably.</li>
+            <li><strong>Forum threads are diagnostic data.</strong>
+                The NVIDIA dev forum thread on the 5090 + Ollama
+                pattern was more useful for narrowing the bug
+                hypothesis than any single official source. When
+                bugcheck codes look unfamiliar, search the
+                workload + hardware combination on the appropriate
+                vendor forum before deeper triage.</li>
+        </ol>
+
+        <p class="muted-note" style="margin-top: 28px;">
+            All five layers above are in the source tree and can be
+            re-applied to a future run: pacing constants in
+            <code>scripts/run_experiment_1.py</code>; Ollama wrapper
+            in <code>src/llms/ollama.py</code>; system mitigations in
+            <code>scripts/apply_5090_stability.ps1</code> and
+            <code>scripts/start_ollama_safe.ps1</code>; supervisor in
+            <code>scripts/run_experiment_1_watchdog.py</code> +
+            <code>scripts/install_auto_resume_task.ps1</code>. Back
+            to <a href="writeup.html#bsods">the Writeup summary</a> or
+            on to the rest of the
+            <a href="writeup.html">project writeup</a>.
+        </p>
+
+    </div>
+    
+    </div>
+    <div class="footer">
+        Built by Noah &middot; CUNY SPS, Spring 2026 &middot;
+        <a href="methodology.html">Methodology</a> &middot;
+        <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">Source on GitHub</a>
+    </div>
+</body>
+</html>
