@@ -30,8 +30,10 @@ class MockLLM:
     def name(self) -> str:
         return "mock:llm"
 
-    def generate(self, model: str, prompt: str) -> str:
-        self.calls.append((model, prompt))
+    def generate(self, model: str, prompt: str, intent: str | None = None) -> str:
+        # Track intent alongside (model, prompt) so strategy tests can
+        # assert that each call was labeled with the expected step.
+        self.calls.append((model, prompt, intent))
         return self._response
 
 
@@ -226,9 +228,11 @@ class TestStrategyDelegatesToLLM:
 
         assert result == "Python is a language"
         assert len(llm.calls) == 1
-        model, prompt = llm.calls[0]
+        model, prompt, intent = llm.calls[0]
         assert model == "qwen3:4b"
         assert "What is Python?" in prompt
+        # NaiveRAG's single LLM call is the answer generation.
+        assert intent == "generate_answer"
 
     def test_multi_query_delegates_to_llm(self):
         """MultiQueryRAG.run() should call llm.generate() at least twice."""
@@ -239,11 +243,15 @@ class TestStrategyDelegatesToLLM:
 
         strategy.run("What is Python?", retriever, "qwen3:4b")
 
-        # MultiQuery: at least 1 call for rephrasing + 1 for answer
+        # MultiQuery: 1 call for rephrasing + 1 for answer.
         assert len(llm.calls) >= 2
-        # All calls should use the same model
-        for model, _ in llm.calls:
+        # All calls should use the same model.
+        for model, _, _ in llm.calls:
             assert model == "qwen3:4b"
+        # The recorded intents must match the strategy's pipeline steps.
+        intents = [intent for _, _, intent in llm.calls]
+        assert intents[0] == "rephrase_queries"
+        assert intents[-1] == "generate_answer"
 
     def test_no_ollama_import_in_strategies(self):
         """Strategy modules should not import ollama.Client directly."""

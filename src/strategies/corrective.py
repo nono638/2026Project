@@ -64,7 +64,9 @@ class CorrectiveRAG:
         relevant: list[str] = []
         for r in retrieved:
             rating = self._llm.generate(
-                model, RELEVANCE_PROMPT.format(query=query, chunk=r["text"])
+                model,
+                RELEVANCE_PROMPT.format(query=query, chunk=r["text"]),
+                intent="rate_relevance",
             ).strip().lower()
 
             # Keep anything that isn't explicitly "irrelevant"
@@ -101,7 +103,9 @@ class CorrectiveRAG:
         # Step 4: If fewer than 2 chunks survive, reformulate and retry
         if len(relevant_chunks) < 2:
             reformulated = self._llm.generate(
-                model, REFORMULATE_PROMPT.format(query=query)
+                model,
+                REFORMULATE_PROMPT.format(query=query),
+                intent="reformulate_query",
             ).strip()
             queries_used.append(reformulated)
 
@@ -134,4 +138,4 @@ class CorrectiveRAG:
             f"Answer:"
         )
 
-        return self._llm.generate(model, prompt)
+        return self._llm.generate(model, prompt, intent="generate_answer")

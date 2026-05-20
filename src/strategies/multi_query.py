@@ -65,7 +65,9 @@ class MultiQueryRAG:
         """
         # Step 1: Generate alternative phrasings
         rephrase_response = self._llm.generate(
-            model, REPHRASE_PROMPT.format(query=query)
+            model,
+            REPHRASE_PROMPT.format(query=query),
+            intent="rephrase_queries",
         )
 
         alt_queries = [
@@ -108,4 +110,4 @@ class MultiQueryRAG:
             f"Answer:"
         )
 
-        return self._llm.generate(model, prompt)
+        return self._llm.generate(model, prompt, intent="generate_answer")

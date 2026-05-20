@@ -6,6 +6,8 @@ Default host: http://localhost:11434 (Ollama default).
 
 from __future__ import annotations
 
+import time
+
 from ollama import Client
 
 from src.monitoring import call_tracker
@@ -83,12 +85,20 @@ class OllamaLLM:
         """Return backend identifier."""
         return "ollama"
 
-    def generate(self, model: str, prompt: str) -> str:
+    def generate(self, model: str, prompt: str, intent: str | None = None) -> str:
         """Generate via Ollama chat API.
 
         Args:
             model: Ollama model name (e.g., 'qwen3:4b').
             prompt: The complete prompt text.
+            intent: Optional semantic label for what this call is *for* in
+                the surrounding strategy (e.g., ``"generate_answer"``,
+                ``"rate_relevance"``, ``"reformulate_query"``,
+                ``"classify_complexity"``, ``"retrieval_decision"``,
+                ``"critique"``, ``"rephrase_queries"``). The label is
+                pushed into the per-row trace so downstream analysis can
+                tell which strategy step a given LLM call corresponds to.
+                When ``None``, the trace records it as ``"unknown"``.
 
         Returns:
             The model's generated text response.
@@ -103,6 +113,7 @@ class OllamaLLM:
         # report what was happening if a BSOD strikes mid-call. record_end
         # is in a finally so an exception still clears the in_flight flag.
         call_tracker.record_start("chat", model)
+        t0 = time.perf_counter()
         try:
             response = self._client.chat(
                 model=model,
@@ -116,4 +127,16 @@ class OllamaLLM:
         # Ollama can return None content when the model emits no visible tokens
         # (e.g., thinking-only output even with think=False, or refusal).
         # Strategies call .strip() on the result, so a None would crash them.
-        return response.message.content or ""
+        text = response.message.content or ""
+        # Per-row trace: only fires when a row is currently open (i.e.,
+        # the experiment runner has called ``begin_row``). For one-off
+        # CLI scripts that don't open a row, this is a silent no-op.
+        call_tracker.record_complete(
+            call_type="chat",
+            model=model,
+            prompt=prompt,
+            response=text,
+            latency_s=time.perf_counter() - t0,
+            intent=intent,
+        )
+        return text

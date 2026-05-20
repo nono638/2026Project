@@ -94,7 +94,9 @@ class SelfRAG:
         """
         # Step 1: Does the model think it needs retrieval?
         decision = self._llm.generate(
-            model, RETRIEVAL_DECISION_PROMPT.format(query=query)
+            model,
+            RETRIEVAL_DECISION_PROMPT.format(query=query),
+            intent="retrieval_decision",
         ).strip().lower()
 
         if "no" in decision:
@@ -107,7 +109,9 @@ class SelfRAG:
                 diagnostics["skipped_retrieval"] = True
 
             return self._llm.generate(
-                model, f"Answer this question:\n{query}\n\nAnswer:"
+                model,
+                f"Answer this question:\n{query}\n\nAnswer:",
+                intent="generate_answer_no_context",
             )
 
         # Step 2: Retrieve
@@ -117,7 +121,9 @@ class SelfRAG:
         relevant_chunks: list[str] = []
         for r in retrieved:
             rating = self._llm.generate(
-                model, RELEVANCE_PROMPT.format(query=query, chunk=r["text"])
+                model,
+                RELEVANCE_PROMPT.format(query=query, chunk=r["text"]),
+                intent="rate_relevance",
             ).strip().lower()
 
             if "irrelevant" not in rating:
@@ -138,12 +144,16 @@ class SelfRAG:
 
         # Step 4: Generate
         answer = self._llm.generate(
-            model, GENERATE_PROMPT.format(context=context, query=query)
+            model,
+            GENERATE_PROMPT.format(context=context, query=query),
+            intent="generate_answer",
         )
 
         # Step 5: Self-critique
         final = self._llm.generate(
-            model, CRITIQUE_PROMPT.format(query=query, context=context, answer=answer)
+            model,
+            CRITIQUE_PROMPT.format(query=query, context=context, answer=answer),
+            intent="critique",
         )
 
         return final

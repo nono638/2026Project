@@ -60,7 +60,9 @@ class AdaptiveRAG:
             One of "simple", "moderate", "complex".
         """
         response = self._llm.generate(
-            model, CLASSIFY_PROMPT.format(query=query)
+            model,
+            CLASSIFY_PROMPT.format(query=query),
+            intent="classify_complexity",
         ).strip().lower()
 
         # Parse classification, default to moderate if unparseable
@@ -90,7 +92,9 @@ class AdaptiveRAG:
             diagnostics["skipped_retrieval"] = True
 
         return self._llm.generate(
-            model, f"Answer this question:\n{query}\n\nAnswer:"
+            model,
+            f"Answer this question:\n{query}\n\nAnswer:",
+            intent="generate_answer_simple_path",
         )
 
     def _moderate_path(
@@ -128,7 +132,7 @@ class AdaptiveRAG:
             f"Answer:"
         )
 
-        return self._llm.generate(model, prompt)
+        return self._llm.generate(model, prompt, intent="generate_answer_moderate_path")
 
     def _complex_path(
         self,
@@ -162,6 +166,7 @@ class AdaptiveRAG:
             f"Context:\n{context1}\n\n"
             f"Question: {query}\n\n"
             f"Preliminary answer:",
+            intent="preliminary_answer",
         )
 
         # Second pass: use intermediate answer to formulate follow-up
@@ -172,6 +177,7 @@ class AdaptiveRAG:
             f"Original question: {query}\n"
             f"Preliminary answer: {intermediate}\n\n"
             f"Follow-up question:",
+            intent="formulate_followup",
         ).strip()
 
         # Empty/whitespace followup → retrieving "" returns degenerate results
@@ -200,6 +206,7 @@ class AdaptiveRAG:
             f"Context:\n{combined_context}\n\n"
             f"Question: {query}\n\n"
             f"Answer:",
+            intent="generate_answer_complex_path",
         )
 
     def run(

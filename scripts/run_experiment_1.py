@@ -500,6 +500,13 @@ def main() -> None:
 
     raw_scores_path = output_dir / "raw_scores.csv"
     report_path = output_dir / "report.md"
+    # Per-row LLM-call trace sidecar — one JSON object per row carrying the
+    # full ordered list of (intent, prompt, response, latency) records the
+    # strategy emitted. This is the per-row provenance the website's
+    # Methodology page calls out as Phase 1 of the logging-gap fix; CSV
+    # carries only the compact summary (n_llm_calls, llm_call_intents,
+    # final_prompt) for queryability without parsing JSON.
+    traces_path = output_dir / "traces.jsonl"
 
     # Structured event log — written alongside raw_scores.csv. The plaintext
     # run log is dominated by per-HTTP-request lines (useful for live tail,
@@ -841,7 +848,39 @@ def main() -> None:
                     "llm_quantization": result.get("llm_quantization", "unknown"),
                     "dataset_name": "hotpotqa",
                     "dataset_sample_seed": args.seed,
+                    # Per-row LLM-call provenance (going forward — Phase 1
+                    # of the logging-gap fix announced on the Methodology
+                    # page). The full per-call trace is sidecarred to
+                    # traces.jsonl; CSV carries only the summary so it
+                    # stays queryable without parsing JSON.
+                    "n_llm_calls": result.get("n_llm_calls", 0),
+                    "llm_call_intents": result.get("llm_call_intents", ""),
+                    "final_prompt": result.get("final_prompt", ""),
+                    "prompts_source": result.get("prompts_source", "recorded"),
+                    "code_sha": result.get("code_sha", ""),
+                    "llm_num_predict": llm.DEFAULT_NUM_PREDICT,
+                    "llm_keep_alive": llm.DEFAULT_KEEP_ALIVE,
                 }
+                # Sidecar the full per-call trace — keyed by (strategy,
+                # model, question) so it can be joined back to a CSV row.
+                # Skipping this on empty trace (failure rows) avoids
+                # bloating the file with placeholders.
+                _trace = result.get("llm_call_trace") or []
+                if _trace:
+                    try:
+                        with traces_path.open("a", encoding="utf-8") as _tf:
+                            _tf.write(json.dumps({
+                                "strategy": strat_name,
+                                "model": model_name,
+                                "question": query.text,
+                                "code_sha": result.get("code_sha", ""),
+                                "trace": _trace,
+                            }, default=str) + "\n")
+                            _tf.flush()
+                            os.fsync(_tf.fileno())
+                    except OSError as _exc:
+                        logger.warning("traces.jsonl write failed (continuing): %s",
+                                       _exc)
                 # Per-row checkpoint: flush+fsync immediately so a power loss
                 # mid-config loses at most this single row, not the whole
                 # ~25-min config. Resume picks up by question text.

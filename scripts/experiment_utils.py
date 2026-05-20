@@ -29,6 +29,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.retriever import Retriever
 from src.diagnostics import detect_failure_stage, _gold_in_text
+from src.monitoring import call_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -484,11 +485,24 @@ def generate_answer(
             # Diagnostics dict captures pipeline internals from inside the strategy
             diagnostics: dict = {}
 
+            # Open a per-row LLM call trace before the strategy fires. Every
+            # OllamaLLM.generate inside the strategy will append a record;
+            # end_row returns the list. The trace is what addresses the
+            # "we don't know what prompts were sent" gap acknowledged in
+            # the website's Logging Gaps section (Methodology page).
+            call_tracker.begin_row()
+
             # Time the strategy run
             start = time.perf_counter()
-            answer = strategy.run(
-                query.text, retriever, model, diagnostics=diagnostics,
-            )
+            try:
+                answer = strategy.run(
+                    query.text, retriever, model, diagnostics=diagnostics,
+                )
+            finally:
+                # Pull the trace regardless of whether strategy raised — a
+                # partial trace is still diagnostically useful, and an
+                # un-closed row would leak into the next iteration.
+                llm_call_trace = call_tracker.end_row()
             strategy_latency_ms = (time.perf_counter() - start) * 1000
             break  # success
         except Exception as exc:
@@ -538,6 +552,14 @@ def generate_answer(
                 "llm_quantization": (
                     (model_details or {}).get("quantization_level") or "unknown"
                 ),
+                # Per-row provenance — empty/zero on failure, but present so
+                # the row dict shape is stable for the CSV writer.
+                "n_llm_calls": 0,
+                "llm_call_intents": "",
+                "final_prompt": "",
+                "llm_call_trace": [],
+                "prompts_source": "recorded",
+                "code_sha": call_tracker.code_sha().get("short") or "",
             }
 
     gold_answer = query.reference_answer or ""
@@ -569,6 +591,14 @@ def generate_answer(
         _gold_in_text(gold_answer, context_sent) if gold_answer else False
     )
 
+    # Per-row LLM-call provenance — addresses the logging gap acknowledged
+    # on the website. Distinguishes "recorded" (from this code path,
+    # going forward) from "reconstructed_*" rows written by the backfill
+    # script. The trace list is *not* CSV-bound — it's returned for the
+    # runner to write to a sidecar traces.jsonl alongside events.jsonl.
+    intents = [c.get("intent", "unknown") for c in llm_call_trace]
+    final_prompt = llm_call_trace[-1]["prompt"] if llm_call_trace else ""
+
     return {
         "answer": answer,
         "strategy_latency_ms": strategy_latency_ms,
@@ -591,6 +621,17 @@ def generate_answer(
         "llm_quantization": (
             (model_details or {}).get("quantization_level") or "unknown"
         ),
+        # Per-row LLM provenance (going-forward fields). For columns in the
+        # CSV, see runner.append_rows; the trace list is consumed by the
+        # runner to write traces.jsonl and NOT persisted in raw_scores.csv
+        # (full prompt + response per call would inflate the CSV by orders
+        # of magnitude with little query benefit).
+        "n_llm_calls": len(llm_call_trace),
+        "llm_call_intents": "|".join(intents),
+        "final_prompt": final_prompt,
+        "llm_call_trace": llm_call_trace,
+        "prompts_source": "recorded",
+        "code_sha": call_tracker.code_sha().get("short") or "",
     }
 
 

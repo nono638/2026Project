@@ -72,4 +72,4 @@ class NaiveRAG:
             f"Answer:"
         )
 
-        return self._llm.generate(model, prompt)
+        return self._llm.generate(model, prompt, intent="generate_answer")

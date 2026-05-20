@@ -141,13 +141,20 @@ class LLM(Protocol):
         """Backend identifier (e.g., 'ollama', 'openai-compat:localhost:1234')."""
         ...
 
-    def generate(self, model: str, prompt: str) -> str:
+    def generate(self, model: str, prompt: str, intent: str | None = None) -> str:
         """Generate a text response for the given prompt.
 
         Args:
             model: Model identifier (e.g., 'qwen3:4b' for Ollama,
                    'local-model' for LM Studio).
             prompt: The complete prompt text.
+            intent: Optional semantic label for what this call is *for* in
+                the surrounding strategy (e.g., ``"rate_relevance"``,
+                ``"reformulate_query"``, ``"generate_answer"``).
+                Backends that integrate with ``src.monitoring.call_tracker``
+                push this into the per-row trace so analysis can tell which
+                strategy step a given call corresponds to. Backends that
+                don't trace may ignore it.
 
         Returns:
             The model's generated text response.

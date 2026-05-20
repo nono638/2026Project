@@ -180,6 +180,21 @@ body {
     height: 2px;
     background: var(--c-blue);
 }
+.nav__source {
+    margin-left: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-2);
+    border: 1px solid var(--paper-edge);
+    background: var(--paper-2);
+}
+.nav__source:hover {
+    color: var(--ink);
+    background: var(--paper);
+    border-color: var(--ink-muted);
+}
+.nav__source svg { display: inline-block; vertical-align: middle; }
 
 /* === Version sub-nav === */
 .version-nav {
@@ -1012,14 +1027,22 @@ def _build_page_template(
     <nav class="nav">
         <span class="brand">RAGBench</span>
         {nav_html}
+        <a class="nav__source" href="https://github.com/nono638/2026Project"
+           target="_blank" rel="noopener" aria-label="RAGBench source code on GitHub">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+            </svg>
+            <span>Source</span>
+        </a>
     </nav>{version_nav_html}
     <div class="content">
         <h1>{title}</h1>
         {content_html}
     </div>
     <div class="footer">
-        Built by Noah | CUNY SPS Spring 2026 | Powered by RAGBench
-        <br><a href="methodology.html">Methodology</a>
+        Built by Noah &middot; CUNY SPS, Spring 2026 &middot;
+        <a href="methodology.html">Methodology</a> &middot;
+        <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">Source on GitHub</a>
     </div>
 </body>
 </html>"""
@@ -1257,10 +1280,17 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             </div>
         </div>
         <p class="further-reading">
-            Per-row prompt text and exact LLM-call counts are not yet recorded in the
-            CSV for the strategies above &mdash; a logging gap being addressed in a
-            follow-up. The figures shown are derived from each strategy&rsquo;s control
-            flow, not measured per row.
+            Per-row prompt text, branch path, and exact LLM-call counts
+            were <em>not</em> recorded for the strategy runs that produced
+            Experiments 1 and 2 &mdash; an experimental-design oversight
+            we&rsquo;re owning rather than hiding. The historical CSVs
+            have been backfilled where possible (NaiveRAG prompts are
+            byte-deterministic and have been reconstructed; multi-step
+            strategies are tagged but not fabricated). New runs from now
+            on capture the full trace per row. See
+            <a href="methodology.html#logging-gaps">Methodology &raquo;
+            Logging Gaps &amp; What We&rsquo;re Fixing</a> for the audit
+            and the fix.
         </p>
     </div>
 
@@ -3393,6 +3423,89 @@ def _generate_methodology() -> str:
            medium, hard). Multi-hop questions require reasoning across multiple passages,
            making them a rigorous test of retrieval and generation quality.</p>
         <p>Secondary: SQuAD 2.0 (simple factoid Q&amp;A for easy-baseline calibration).</p>
+
+        <h2 id="logging-gaps">Logging Gaps &amp; What We&rsquo;re Fixing</h2>
+        <p>
+            Experiments 0 through 2 ran before RAGBench captured per-row LLM
+            provenance &mdash; a real instrumentation oversight that matters
+            most for the branchy strategies (CorrectiveRAG, AdaptiveRAG,
+            Self-RAG). What we recorded per row was the
+            <em>final answer text</em>, the <em>final context sent to the
+            LLM</em>, total strategy latency, and gold-vs-RAG metrics &mdash;
+            plenty for headline results. What we did <em>not</em> record:
+        </p>
+        <ul>
+            <li>The literal <strong>prompt strings</strong> sent to the
+                LLM for each call within a strategy (e.g., the per-chunk
+                relevance prompts inside CorrectiveRAG, or the reformulated
+                query Multi-Query produced).</li>
+            <li>The number of <strong>LLM calls per row</strong> &mdash;
+                only the process-wide running total was snapshotted into
+                the heartbeat log.</li>
+            <li>The <strong>branch path taken</strong> &mdash; for
+                Corrective, whether reformulation fired; for Adaptive,
+                which sub-path the classifier chose; for Self-RAG,
+                whether the critique pass changed the answer.</li>
+            <li>The <strong>intermediate LLM outputs</strong> &mdash; the
+                &ldquo;relevant&rdquo;/&ldquo;irrelevant&rdquo; ratings,
+                the reformulated query text, the classifier&rsquo;s output.</li>
+            <li>The <strong>code SHA</strong> at generation time, so a
+                later analyst can pin down which version of
+                <code>src/strategies/</code> produced a given row.</li>
+        </ul>
+        <p>
+            For NaiveRAG those omissions don&rsquo;t much matter
+            &mdash; the strategy has one fixed template, one chat call,
+            and a deterministic prompt. For the other four they matter
+            quite a bit. CorrectiveRAG conditions a second retrieval pass
+            on the outcome of N intermediate LLM ratings; without
+            recording those ratings we can&rsquo;t tell from a row
+            whether it took the one-pass branch or the two-pass branch,
+            which makes the cell unsuitable for the kind of fine-grained
+            error analysis that distinguishes &ldquo;strategy didn&rsquo;t
+            help&rdquo; from &ldquo;strategy helped on the rows where
+            its second pass fired.&rdquo; That&rsquo;s the kind of gap
+            that distinguishes a publishable experiment from a working
+            demo, and we should own it openly rather than hide it behind
+            a polished dashboard.
+        </p>
+        <p>
+            <strong>Going forward (Phase 1, shipped):</strong> the runner
+            now opens a per-row trace before each strategy run; every
+            <code>OllamaLLM.generate</code> records its
+            <em>intent</em>, full prompt, response, and latency into that
+            trace; at row end the trace is written to a sidecar
+            <code>traces.jsonl</code> alongside <code>raw_scores.csv</code>
+            and a compact summary is written to seven new CSV columns
+            (<code>n_llm_calls</code>, <code>llm_call_intents</code>,
+            <code>final_prompt</code>, <code>prompts_source</code>,
+            <code>code_sha</code>, <code>llm_num_predict</code>,
+            <code>llm_keep_alive</code>). New rows produced from this
+            commit forward carry <code>prompts_source = "recorded"</code>.
+        </p>
+        <p>
+            <strong>Backfill (shipped):</strong> historical rows have been
+            tagged <code>prompts_source =
+            "reconstructed_minimal_2026-05-20"</code>. NaiveRAG rows have
+            their <code>final_prompt</code> reconstructed deterministically
+            from the byte-identical template + the recorded
+            <code>context_sent_to_llm</code>. Multi-step strategy rows
+            were <em>not</em> filled with fabricated prompts &mdash; the
+            backfill stops at what we can prove. Anyone joining historical
+            with new data should filter on <code>prompts_source</code>
+            to keep the two regimes distinguishable.
+        </p>
+        <p>
+            <strong>Phase 2 (next):</strong> the strategies themselves
+            should expose a hyperparameter dict (CorrectiveRAG&rsquo;s
+            &ldquo;reformulate if fewer than 2 pass&rdquo; threshold,
+            Multi-Query&rsquo;s &ldquo;3 sub-queries&rdquo; count),
+            stamped per row. Per-call token counts via Ollama&rsquo;s
+            <code>/api/chat</code> stats would let us answer
+            cost-vs-quality questions without estimating token counts
+            from string length. Embedder calls deserve their own
+            counter, separate from chat calls.
+        </p>
 
     </div>
     """
