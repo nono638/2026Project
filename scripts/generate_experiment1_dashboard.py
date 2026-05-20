@@ -372,7 +372,14 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
     """Per-metric breakdown for top-10 and bottom-5 configs.
 
     Shows faithfulness, relevance, conciseness separately to reveal
-    which dimension drives quality differences.
+    which dimension drives quality differences. Per-judge columns
+    (e.g. ``anthropic_claude_haiku_4_5_20251001_faithfulness``,
+    ``openai_gpt_5_4_mini_faithfulness``) are averaged into a single
+    per-metric series before grouping; this preserves the original
+    "what aspect of quality breaks down" comparison while working with
+    the multi-judge schema rolled out in task-052. Before the fix the
+    chart rendered empty because it looked for bare metric columns
+    that no longer exist in the panel-style CSV.
 
     Args:
         df: Experiment 1 raw scores DataFrame.
@@ -381,11 +388,47 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
         Tuple of (title, Plotly figure).
     """
     metrics = ["faithfulness", "relevance", "conciseness"]
-    available = [m for m in metrics if _safe_col(df, m)]
-    if not available:
-        return ("Per-Metric Breakdown", go.Figure())
+    # Discover per-judge columns of the form ``<safe_judge>_<metric>``
+    # and average them into a single per-metric column for plotting.
+    # Skip metrics with no columns at all so the legend doesn't carry a
+    # phantom "Faithfulness" trace at zero.
+    df = df.copy()
+    available: list[str] = []
+    for m in metrics:
+        # Per-judge suffixes — exclude the consensus_* / answer_* names.
+        cols = [
+            c for c in df.columns
+            if c.endswith(f"_{m}")
+            and c not in (f"answer_{m}", f"consensus_{m}")
+        ]
+        if not cols:
+            # Older single-judge CSVs may still expose the bare column.
+            if _safe_col(df, m):
+                df[f"_avg_{m}"] = df[m]
+                available.append(m)
+            continue
+        df[f"_avg_{m}"] = df[cols].mean(axis=1, skipna=True)
+        available.append(m)
 
-    config_means = df.groupby(["strategy", "model"])[["consensus_quality"] + available].mean().reset_index()
+    if not available:
+        # Annotate the empty chart so it doesn't look like a render bug.
+        fig = go.Figure()
+        fig.add_annotation(
+            text=("No per-metric judge columns found in the CSV — "
+                  "this chart needs faithfulness / relevance / "
+                  "conciseness per judge."),
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=14),
+        )
+        fig.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="white")
+        return ("Per-Metric Breakdown", fig)
+
+    avg_cols = [f"_avg_{m}" for m in available]
+    config_means = (
+        df.groupby(["strategy", "model"])[["consensus_quality"] + avg_cols]
+        .mean()
+        .reset_index()
+    )
     config_means["config"] = config_means["strategy"] + " + " + config_means["model"]
     config_means = config_means.sort_values("consensus_quality", ascending=False)
 
@@ -397,17 +440,18 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
     fig = go.Figure()
     for i, metric in enumerate(available):
         fig.add_trace(go.Bar(
-            x=selected["config"], y=selected[metric],
+            x=selected["config"], y=selected[f"_avg_{metric}"],
             name=metric.capitalize(),
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
 
     fig.update_layout(
         barmode="group",
-        title="Per-Metric Breakdown (Top 10 + Bottom 5 Configs)",
-        xaxis_title="Configuration", yaxis_title="Score",
+        title="Per-Metric Breakdown (Top 10 + Bottom 5 Configs, averaged across judges)",
+        xaxis_title="Configuration", yaxis_title="Score (1–5)",
         xaxis_tickangle=-45, height=500,
         margin=dict(b=150),
+        plot_bgcolor="white", paper_bgcolor="white",
     )
     return ("Per-Metric Breakdown", fig)
 
@@ -571,29 +615,62 @@ def _chart_per_query_detail(df: pd.DataFrame) -> tuple[str, go.Figure]:
     best = sorted_df.tail(10)
     selected = pd.concat([worst, best])
 
-    question_col = selected["question"].str[:50] if _safe_col(df, "question") else [""] * len(selected)
-    gold_f1_col = selected["gold_f1"].round(3) if _safe_col(df, "gold_f1") else ["N/A"] * len(selected)
+    def _clip(series: pd.Series, n: int) -> list[str]:
+        """Truncate strings to ``n`` chars with an ellipsis marker.
+
+        Plotly Table cells don't wrap horizontally usefully — long
+        prose either pushes column widths off-screen or gets cut off
+        in browser-dependent ways. A hard clip with a visible ``…``
+        keeps the table scannable while preserving enough text for a
+        reader to understand the row at a glance.
+        """
+        return [
+            (str(v)[:n] + "…") if isinstance(v, str) and len(v) > n else (str(v) if v is not None else "")
+            for v in series
+        ]
+
+    question_col = _clip(selected["question"], 70) if _safe_col(df, "question") else [""] * len(selected)
+    gold_answer_col = _clip(selected["gold_answer"], 80) if _safe_col(df, "gold_answer") else [""] * len(selected)
+    rag_answer_col  = _clip(selected["rag_answer"],  140) if _safe_col(df, "rag_answer") else [""] * len(selected)
+    gold_f1_col = (
+        selected["gold_f1"].round(3).astype(str).tolist()
+        if _safe_col(df, "gold_f1") else ["N/A"] * len(selected)
+    )
 
     fig = go.Figure(data=[go.Table(
+        columnwidth=[60, 80, 220, 200, 320, 55, 55],
         header=dict(
-            values=["Strategy", "Model", "Question", "Quality", "Gold F1"],
-            fill_color="#648FFF", font=dict(color="white", size=12), align="left",
+            values=["Strategy", "Model", "Question",
+                    "Gold answer", "RAG answer (truncated)",
+                    "Quality", "Gold F1"],
+            fill_color="#648FFF",
+            font=dict(color="white", size=12),
+            align="left",
+            height=30,
         ),
         cells=dict(
             values=[
                 selected["strategy"],
                 selected["model"],
                 question_col,
+                gold_answer_col,
+                rag_answer_col,
                 selected["consensus_quality"].round(3),
                 gold_f1_col,
             ],
-            fill_color=[["#ffe0e0"] * 10 + ["#e0ffe0"] * 10],
-            font=dict(size=11), align="left", height=25,
+            # Worst 10 on top in soft magenta, best 10 below in soft teal,
+            # matching the IBM palette used elsewhere on the site.
+            fill_color=[["#fde6ef"] * 10 + ["#e0f5ec"] * 10],
+            font=dict(size=11),
+            align="left",
+            height=42,
         ),
     )])
     fig.update_layout(
-        title="Per-Query Detail: Worst 10 + Best 10",
-        height=600, margin=dict(l=0, r=0, t=40, b=0),
+        title="Per-Query Detail: Worst 10 + Best 10 (RAG answers truncated to ~140 chars)",
+        height=850,
+        margin=dict(l=0, r=0, t=44, b=0),
+        plot_bgcolor="white", paper_bgcolor="white",
     )
     return ("Per-Query Detail", fig)
 

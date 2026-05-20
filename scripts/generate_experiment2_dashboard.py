@@ -326,7 +326,12 @@ def _chart_chunking_impact(df: pd.DataFrame) -> tuple[str, go.Figure]:
 def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
     """Per-metric breakdown for all configs (16 is manageable).
 
-    Shows faithfulness, relevance, conciseness separately.
+    Shows faithfulness, relevance, conciseness separately. Per-judge
+    columns (e.g. ``anthropic_claude_haiku_4_5_20251001_faithfulness``,
+    ``openai_gpt_5_4_mini_faithfulness``) are averaged into one
+    per-metric series before grouping, matching the multi-judge schema
+    rolled out in task-052. Before the fix the chart rendered empty
+    because it looked for bare metric columns that no longer exist.
 
     Args:
         df: Experiment 2 raw scores DataFrame.
@@ -335,28 +340,58 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
         Tuple of (title, Plotly figure).
     """
     metrics = ["faithfulness", "relevance", "conciseness"]
-    available = [m for m in metrics if _safe_col(df, m)]
-    if not available:
-        return ("Per-Metric Breakdown", go.Figure())
+    df = df.copy()
+    available: list[str] = []
+    for m in metrics:
+        cols = [
+            c for c in df.columns
+            if c.endswith(f"_{m}")
+            and c not in (f"answer_{m}", f"consensus_{m}")
+        ]
+        if not cols:
+            if _safe_col(df, m):
+                df[f"_avg_{m}"] = df[m]
+                available.append(m)
+            continue
+        df[f"_avg_{m}"] = df[cols].mean(axis=1, skipna=True)
+        available.append(m)
 
-    config_means = df.groupby(["chunker", "model"])[["consensus_quality"] + available].mean().reset_index()
+    if not available:
+        fig = go.Figure()
+        fig.add_annotation(
+            text=("No per-metric judge columns found in the CSV — "
+                  "this chart needs faithfulness / relevance / "
+                  "conciseness per judge."),
+            xref="paper", yref="paper", x=0.5, y=0.5,
+            showarrow=False, font=dict(size=14),
+        )
+        fig.update_layout(height=300, plot_bgcolor="white", paper_bgcolor="white")
+        return ("Per-Metric Breakdown", fig)
+
+    avg_cols = [f"_avg_{m}" for m in available]
+    config_means = (
+        df.groupby(["chunker", "model"])[["consensus_quality"] + avg_cols]
+        .mean()
+        .reset_index()
+    )
     config_means["config"] = config_means["chunker"] + " + " + config_means["model"]
     config_means = config_means.sort_values("consensus_quality", ascending=False)
 
     fig = go.Figure()
     for i, metric in enumerate(available):
         fig.add_trace(go.Bar(
-            x=config_means["config"], y=config_means[metric],
+            x=config_means["config"], y=config_means[f"_avg_{metric}"],
             name=metric.capitalize(),
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
 
     fig.update_layout(
         barmode="group",
-        title="Per-Metric Breakdown (All Configs)",
-        xaxis_title="Configuration", yaxis_title="Score",
+        title="Per-Metric Breakdown (All Configs, averaged across judges)",
+        xaxis_title="Configuration", yaxis_title="Score (1–5)",
         xaxis_tickangle=-45, height=500,
         margin=dict(b=150),
+        plot_bgcolor="white", paper_bgcolor="white",
     )
     return ("Per-Metric Breakdown", fig)
 

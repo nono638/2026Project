@@ -420,6 +420,16 @@ a:hover { text-decoration-color: var(--c-magenta); }
     font-family: var(--serif);
 }
 
+/* Mono-caps label that sits above an h2 ("HEADLINE FINDINGS" etc.) */
+.kicker-mono {
+    font-family: var(--mono);
+    font-size: 0.74em;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--c-magenta);
+    margin-bottom: 0;
+}
+
 /* Inline "Further reading" / footnote-style paragraph */
 .further-reading {
     font-size: 0.9em;
@@ -3088,6 +3098,53 @@ def _generate_experiment_1(csv_path: Path) -> str:
 
     parts = []
     parts.append("""
+    <div class="card feature-card">
+        <div class="kicker-mono">Headline findings</div>
+        <h2 style="margin-top:6px;">Smart strategies don&rsquo;t beat plain RAG here &mdash; and 4B is the sweet spot</h2>
+        <div class="findings-grid">
+            <div class="finding-card">
+                <h4>Strategy effects are small at best, hurtful at worst</h4>
+                <p>Naive (4.34), Multi-Query (4.33), and Corrective (4.27)
+                cluster within ~0.07 quality points &mdash; statistically and
+                practically indistinguishable on this benchmark.
+                Adaptive (3.59) and Self-RAG (2.99) <em>hurt</em> every
+                model they touched, dropping quality by 0.7&ndash;1.4
+                points. The cost of strategy complexity didn&rsquo;t pay off.</p>
+            </div>
+            <div class="finding-card">
+                <h4>Model size helps, but not as much as you&rsquo;d expect</h4>
+                <p>Across 11&times; parameter count
+                (qwen3.5:0.8B &rarr; 9B) mean quality moves only 3.27 &rarr; 4.03
+                &mdash; about 0.76 points. The smallest model is meaningfully
+                weaker; everything 2B and up is in the same band, and
+                <strong>qwen3.5:4B (4.05) slightly outscores qwen3.5:9B
+                (4.03)</strong>, suggesting a sweet spot rather than a
+                monotonic &ldquo;bigger is better.&rdquo;</p>
+            </div>
+            <div class="finding-card">
+                <h4>The winner is the simplest combination</h4>
+                <p>Best config: <strong>NaiveRAG &times; qwen3.5:4B</strong>
+                at 4.59 quality &middot; 59% exact match &middot;
+                0.21 mean gold F1 &middot; 0.86 BERTScore F1. No clever
+                strategy on a smaller model beats it by more than
+                ~0.10 points; see &ldquo;Strategy Beats Size&rdquo;
+                below for the upset cases that do exist.</p>
+            </div>
+            <div class="finding-card">
+                <h4>Caveat: row-level results aren&rsquo;t reproducible</h4>
+                <p>Generation ran at Ollama&rsquo;s default
+                <code>temperature&nbsp;&asymp;&nbsp;0.8</code> with no
+                seed, so a given row re-run today would produce a
+                different answer. Aggregate rankings are stable in
+                expectation but the small inter-strategy gaps above
+                are within the noise that a temperature-0 + fixed-seed
+                regime would eliminate. See
+                <a href="methodology.html#retrospective">Methodology
+                &raquo; Retrospective</a>.</p>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <h2>What This Experiment Tests</h2>
         <p>
@@ -3270,6 +3327,51 @@ def _generate_experiment_2(csv_path: Path) -> str:
 
     parts = []
     parts.append("""
+    <div class="card feature-card">
+        <div class="kicker-mono">Headline findings</div>
+        <h2 style="margin-top:6px;">Chunker choice barely moves the needle &mdash; model size is the dominant lever</h2>
+        <div class="findings-grid">
+            <div class="finding-card">
+                <h4>Chunker effects are small</h4>
+                <p>Mean quality by chunker spans only 0.20 points:
+                fixed (4.32), semantic (4.27), recursive (4.23),
+                sentence (4.11). Within any single model the chunker
+                spread is 0.16&ndash;0.27 quality points &mdash; about
+                the same order as the noise from stochastic generation.
+                This is a meaningful <em>negative</em> result: spending
+                effort on chunker tuning is unlikely to pay back vs
+                spending it on model selection.</p>
+            </div>
+            <div class="finding-card">
+                <h4>Model size matters about 3&times; more than chunker</h4>
+                <p>Mean quality by model spans 0.79 points
+                (qwen3.5:0.8B = 3.79 &rarr; qwen3.5:4B = 4.58) &mdash;
+                roughly four times the largest chunker effect. As in
+                Experiment 1, <strong>qwen3.5:4B (4.58) edges out
+                qwen3.5:9B (4.45)</strong>: the 4B mark is the
+                quality sweet spot for this benchmark.</p>
+            </div>
+            <div class="finding-card">
+                <h4>The winner: fixed-size chunking on 4B</h4>
+                <p>Best config: <strong>fixed-size chunker &times;
+                qwen3.5:4B</strong> at 4.65 quality &middot; 74% exact
+                match &middot; 0.27 mean gold F1. Plain fixed-size
+                chunking outperformed the more elaborate sentence- and
+                semantic-aware approaches at every model size we tested.</p>
+            </div>
+            <div class="finding-card">
+                <h4>Same reproducibility caveat as Experiment 1</h4>
+                <p>This run also used Ollama&rsquo;s default
+                <code>temperature&nbsp;&asymp;&nbsp;0.8</code> with no
+                seed. The chunker rankings are stable in expectation
+                but the 0.16&ndash;0.27-point within-model spreads are
+                comparable to the stochastic-generation noise band.
+                See <a href="methodology.html#retrospective">Methodology
+                &raquo; Retrospective</a>.</p>
+            </div>
+        </div>
+    </div>
+
     <div class="card">
         <h2>What This Experiment Tests</h2>
         <p>
