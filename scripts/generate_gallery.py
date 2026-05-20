@@ -1355,17 +1355,24 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             </div>
         </div>
         <p class="further-reading">
-            Per-row prompt text, branch path, and exact LLM-call counts
-            were <em>not</em> recorded for the strategy runs that produced
-            Experiments 1 and 2 &mdash; an experimental-design oversight
-            we&rsquo;re owning rather than hiding. The historical CSVs
-            have been backfilled where possible (NaiveRAG prompts are
-            byte-deterministic and have been reconstructed; multi-step
-            strategies are tagged but not fabricated). New runs from now
-            on capture the full trace per row. See
+            The per-row substituted prompts as actually sent, the branch
+            path taken, and the exact LLM-call count were <em>not</em>
+            stamped on the rows that produced Experiments 1 and 2
+            &mdash; an experimental-design oversight we&rsquo;re owning
+            rather than hiding. The prompt <em>templates</em> themselves
+            are version-controlled in
+            <code>src/strategies/*.py</code>, so the prompt shape is
+            recoverable; what isn&rsquo;t recoverable per row is the
+            substituted content for any call whose input came from a
+            prior LLM output. Historical CSVs have been backfilled
+            where possible (NaiveRAG&rsquo;s substituted prompt is
+            byte-deterministic and has been reconstructed from the
+            recorded context + question; multi-step strategies are
+            schema-tagged but not fabricated). New runs from now on
+            capture the full trace per row. See
             <a href="methodology.html#logging-gaps">Methodology &raquo;
-            Logging Gaps &amp; What We&rsquo;re Fixing</a> for the audit
-            and the fix.
+            Logging Gaps &amp; What We&rsquo;re Fixing</a> for the
+            audit and the fix.
         </p>
     </div>
 
@@ -3501,19 +3508,37 @@ def _generate_methodology() -> str:
 
         <h2 id="logging-gaps">Logging Gaps &amp; What We&rsquo;re Fixing</h2>
         <p>
-            Experiments 0 through 2 ran before RAGBench captured per-row LLM
-            provenance &mdash; a real instrumentation oversight that matters
-            most for the branchy strategies (CorrectiveRAG, AdaptiveRAG,
-            Self-RAG). What we recorded per row was the
-            <em>final answer text</em>, the <em>final context sent to the
-            LLM</em>, total strategy latency, and gold-vs-RAG metrics &mdash;
-            plenty for headline results. What we did <em>not</em> record:
+            Experiments 0 through 2 ran before RAGBench stamped per-row
+            LLM provenance onto the dataset &mdash; a real instrumentation
+            oversight that matters most for the branchy strategies
+            (CorrectiveRAG, AdaptiveRAG, Self-RAG). What we recorded per
+            row was the <em>final answer text</em>, the <em>final context
+            sent to the LLM</em>, total strategy latency, and gold-vs-RAG
+            metrics &mdash; plenty for headline results. What we did
+            <em>not</em> record:
+        </p>
+        <p class="muted-note">
+            One thing that <em>isn&rsquo;t</em> on the list below: the
+            prompt <em>templates</em>. Those live in
+            <code>src/strategies/*.py</code> (e.g.&nbsp;
+            <code>RELEVANCE_PROMPT</code>, <code>REPHRASE_PROMPT</code>,
+            <code>CLASSIFY_PROMPT</code>, <code>CRITIQUE_PROMPT</code>),
+            are version-controlled in git, and have not changed since
+            the runs. So the prompt <em>shape</em> for every call is
+            recoverable from the source. What&rsquo;s missing per row
+            is laid out below.
         </p>
         <ul>
-            <li>The literal <strong>prompt strings</strong> sent to the
-                LLM for each call within a strategy (e.g., the per-chunk
-                relevance prompts inside CorrectiveRAG, or the reformulated
-                query Multi-Query produced).</li>
+            <li>The <strong>literal substituted prompt strings as actually
+                sent</strong> &mdash; including content that came from
+                prior LLM outputs (the specific reformulated query
+                Multi-Query produced for this row, the specific classifier
+                verdict Adaptive returned, the per-chunk relevance ratings
+                Corrective applied). For first-call-in-strategy prompts the
+                substitution is deterministic given (template, retrieved
+                chunks, query) and partially reconstructable; for any
+                subsequent call whose input was a prior call&rsquo;s
+                <em>output</em>, the substituted string is gone.</li>
             <li>The number of <strong>LLM calls per row</strong> &mdash;
                 only the process-wide running total was snapshotted into
                 the heartbeat log.</li>
@@ -3523,7 +3548,10 @@ def _generate_methodology() -> str:
                 whether the critique pass changed the answer.</li>
             <li>The <strong>intermediate LLM outputs</strong> &mdash; the
                 &ldquo;relevant&rdquo;/&ldquo;irrelevant&rdquo; ratings,
-                the reformulated query text, the classifier&rsquo;s output.</li>
+                the reformulated query text, the classifier&rsquo;s output.
+                These drive the branch decisions and become the next
+                call&rsquo;s prompt content, which is why item&nbsp;1 lists
+                them as the unrecoverable part of the substituted prompts.</li>
             <li>The <strong>code SHA</strong> at generation time, so a
                 later analyst can pin down which version of
                 <code>src/strategies/</code> produced a given row.</li>
@@ -3531,18 +3559,18 @@ def _generate_methodology() -> str:
         <p>
             For NaiveRAG those omissions don&rsquo;t much matter
             &mdash; the strategy has one fixed template, one chat call,
-            and a deterministic prompt. For the other four they matter
-            quite a bit. CorrectiveRAG conditions a second retrieval pass
-            on the outcome of N intermediate LLM ratings; without
-            recording those ratings we can&rsquo;t tell from a row
-            whether it took the one-pass branch or the two-pass branch,
-            which makes the cell unsuitable for the kind of fine-grained
-            error analysis that distinguishes &ldquo;strategy didn&rsquo;t
-            help&rdquo; from &ldquo;strategy helped on the rows where
-            its second pass fired.&rdquo; That&rsquo;s the kind of gap
-            that distinguishes a publishable experiment from a working
-            demo, and we should own it openly rather than hide it behind
-            a polished dashboard.
+            and a fully deterministic substituted prompt. For the other
+            four they matter quite a bit. CorrectiveRAG conditions a
+            second retrieval pass on the outcome of N intermediate LLM
+            ratings; without recording those ratings we can&rsquo;t tell
+            from a row whether it took the one-pass branch or the
+            two-pass branch, which makes the cell unsuitable for the
+            kind of fine-grained error analysis that distinguishes
+            &ldquo;strategy didn&rsquo;t help&rdquo; from &ldquo;strategy
+            helped on the rows where its second pass fired.&rdquo;
+            That&rsquo;s the kind of gap that distinguishes a publishable
+            experiment from a working demo, and we should own it openly
+            rather than hide it behind a polished dashboard.
         </p>
         <p>
             <strong>Going forward (Phase 1, shipped):</strong> the runner
