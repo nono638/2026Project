@@ -4715,6 +4715,22 @@ def _generate_writeup() -> str:
 
         <h2 id="motivation">Why RAGBench</h2>
         <p>
+            <em>In plain language:</em> a Retrieval-Augmented Generation
+            system is a chatbot that <em>looks things up</em> in a
+            corpus before answering, instead of relying purely on what
+            its language model memorised during training. A dozen design
+            choices go into one &mdash; how the corpus is split into
+            passages, which model retrieves them, which model writes the
+            answer, how the prompt is structured, whether the system
+            tries a second pass if the first looks bad. Small changes in
+            any single component can swing answer quality by tens of
+            percent, but published claims about which choices matter
+            usually compare apples to oranges across studies. The hard
+            part isn&rsquo;t running one configuration; it&rsquo;s
+            comparing many fairly enough that the differences mean
+            something.
+        </p>
+        <p>
             The RAG literature is loud about strategy choice. Every few
             weeks a new paper or blog post argues that some flavour of
             self-critique, query reformulation, or adaptive routing
@@ -4733,14 +4749,35 @@ def _generate_writeup() -> str:
             question for one shared question set (<a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>), one held-
             constant embedder per experiment, one chunker per
             experiment, and a panel of LLM judges that we first
-            validated against gold-standard metrics. It runs the full
-            cartesian product of (chunker &times; embedder &times;
-            strategy &times; LLM) configurations specified on the
-            command line and writes per-row results to a CSV that
-            downstream analysis reads. The codebase is on
+            validated against gold-standard metrics. <em>What&rsquo;s
+            new isn&rsquo;t the strategies themselves &mdash; each is
+            from a published 2024&ndash;2025 paper &mdash; it&rsquo;s
+            the comparison protocol</em>: every strategy run on every
+            model on the same questions, with the same chunker and
+            embedder, scored by judges validated against ground truth
+            on a separate set first. The approach should work because
+            the only thing varying inside one experiment is the axis
+            the experiment names. It runs the full cartesian product of
+            (chunker &times; embedder &times; strategy &times; LLM)
+            configurations specified on the command line and writes
+            per-row results to a CSV that downstream analysis reads.
+            The codebase is on
             <a href="https://github.com/nono638/2026Project" target="_blank" rel="noopener">GitHub</a>;
             it&rsquo;s very much a personal research project, not yet
             something I&rsquo;d ask a stranger to install and trust.
+        </p>
+        <p>
+            <em>Who benefits from this:</em> developers picking a RAG
+            architecture under a fixed compute or money budget,
+            researchers needing a sanity check before citing
+            LLM-as-judge correlations, and students trying to
+            understand which RAG knobs actually move the needle versus
+            which sound clever but don&rsquo;t. <em>If the findings
+            replicate elsewhere</em>, the practical consequence is
+            permission to default to the boring choice &mdash; plain
+            retrieval on a mid-size model &mdash; and to spend the
+            saved engineering effort somewhere it&rsquo;s actually
+            measurable, like prompt design or the choice of dataset.
         </p>
 
         <h2 id="hypotheses">What we set out to test</h2>
@@ -4800,6 +4837,28 @@ def _generate_writeup() -> str:
                 See the prominent caveat at the top of the
                 <a href="experiment_2.html">Experiment 2 page</a>.</span></li>
         </ol>
+
+        <p>
+            <em>How we&rsquo;d know if this is working</em> (the
+            midterm-vs-final-exam question): a successful version of
+            this project would clear three bars. <strong>(1) Effects
+            survive replication on at least one second dataset</strong>
+            beyond HotpotQA &mdash; SQuAD 2.0 is wired up but unused,
+            and a long-form domain corpus would be a stronger second
+            test. <strong>(2) Confidence intervals are tight enough to
+            distinguish the small inter-strategy gaps observed
+            here</strong> &mdash; we have CIs at the headline level now,
+            but the Naive&nbsp;/&nbsp;Multi-Query&nbsp;/&nbsp;Corrective
+            tie isn&rsquo;t something we can crack open without either
+            many more questions per cell or deterministic generation.
+            <strong>(3) Per-row provenance is complete enough that an
+            external reader can reproduce the analysis from the
+            CSVs alone</strong> &mdash; phase 1 of that work shipped
+            (prompts, intent labels, call counts going forward); the
+            audit table below names the rest. Today we have a partial
+            (2) and a partial (3); (1) is on the backlog. That&rsquo;s
+            the rubric.
+        </p>
 
         <h2 id="headline">Headline findings, cross-experiment</h2>
         <p>
