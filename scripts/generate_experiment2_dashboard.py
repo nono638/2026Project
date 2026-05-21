@@ -61,6 +61,59 @@ def _safe_col(df: pd.DataFrame, col: str) -> bool:
     return col in df.columns and df[col].notna().any()
 
 
+# Bootstrap settings — duplicated from generate_experiment1_dashboard.py
+# rather than imported because both modules are run-once render scripts
+# and a shared utils module would only marginally reduce coupling. The
+# fixed seed makes CIs stable across re-renders (CIs are an analysis
+# artefact, not a measurement, so a moving seed would silently shift
+# error bars between regenerations).
+_BOOT_N = 2000
+_BOOT_RNG = np.random.default_rng(20260520)
+
+
+def _bootstrap_mean_ci(values: np.ndarray, level: float = 0.95) -> tuple[float, float, float]:
+    """Return (mean, lower, upper) 95% bootstrap CI on the mean.
+
+    Percentile method. Returns ``(nan, nan, nan)`` for inputs with
+    fewer than 2 finite values so callers can render a point marker
+    instead of an error bar.
+    """
+    v = np.asarray(values, dtype=float)
+    v = v[np.isfinite(v)]
+    if v.size < 2:
+        return (float(v.mean()) if v.size == 1 else float("nan"),
+                float("nan"), float("nan"))
+    idx = _BOOT_RNG.integers(0, v.size, size=(_BOOT_N, v.size))
+    boot_means = v[idx].mean(axis=1)
+    lo = (1.0 - level) / 2.0
+    hi = 1.0 - lo
+    return (float(v.mean()),
+            float(np.quantile(boot_means, lo)),
+            float(np.quantile(boot_means, hi)))
+
+
+def _ci_table(df: pd.DataFrame, group_col: str, value_col: str) -> pd.DataFrame:
+    """Per-group mean + 95% bootstrap CI as a tidy DataFrame.
+
+    Columns: group_col, mean, ci_lo, ci_hi, err_minus, err_plus, n.
+    err_minus / err_plus are half-widths for direct use as Plotly
+    ``error_y`` arrays.
+    """
+    rows: list[dict] = []
+    for key, sub in df.groupby(group_col, dropna=True):
+        mean, lo, hi = _bootstrap_mean_ci(sub[value_col].to_numpy())
+        rows.append({
+            group_col: key,
+            "mean": mean,
+            "ci_lo": lo,
+            "ci_hi": hi,
+            "err_minus": (mean - lo) if np.isfinite(lo) else 0.0,
+            "err_plus":  (hi - mean) if np.isfinite(hi) else 0.0,
+            "n": int(sub[value_col].notna().sum()),
+        })
+    return pd.DataFrame(rows)
+
+
 def _order_models(models: list[str]) -> list[str]:
     """Sort model names by parameter count."""
     known = [m for m in MODEL_ORDER if m in models]
@@ -127,6 +180,101 @@ def _chart_summary_card(df: pd.DataFrame) -> tuple[str, go.Figure]:
     )])
     fig.update_layout(margin=dict(l=0, r=0, t=10, b=0), height=220)
     return ("Summary", fig)
+
+
+def _chart_chunker_ranking_ci(df: pd.DataFrame) -> tuple[str, go.Figure]:
+    """Per-chunker mean quality with 95% bootstrap CI error bars.
+
+    Headline visual for &ldquo;does chunker choice actually matter?&rdquo;
+    Ordered by mean (descending) so the visual rank is immediate. If
+    error bars overlap, the chunker means are not significantly
+    different at the 95% level.
+
+    Args:
+        df: Experiment 2 raw scores DataFrame.
+
+    Returns:
+        Tuple of (title, Plotly figure).
+    """
+    stats = _ci_table(df, "chunker", "consensus_quality")
+    stats = stats.sort_values("mean", ascending=False).reset_index(drop=True)
+    colors = [IBM_COLORS[i % len(IBM_COLORS)] for i in range(len(stats))]
+    fig = go.Figure(data=go.Bar(
+        x=stats["chunker"], y=stats["mean"],
+        error_y=dict(
+            type="data",
+            array=stats["err_plus"],
+            arrayminus=stats["err_minus"],
+            visible=True, thickness=1.6, width=8,
+        ),
+        marker_color=colors,
+        text=[f"{m:.3f}" for m in stats["mean"]],
+        textposition="outside",
+        customdata=np.column_stack([stats["ci_lo"], stats["ci_hi"], stats["n"]]),
+        hovertemplate=(
+            "<b>%{x}</b><br>Mean quality: %{y:.3f}<br>"
+            "95% CI: [%{customdata[0]:.3f}, %{customdata[1]:.3f}]<br>"
+            "n = %{customdata[2]}<extra></extra>"
+        ),
+    ))
+    ymin = max(0.0, stats["ci_lo"].min() - 0.15)
+    ymax = min(5.0, stats["ci_hi"].max() + 0.20)
+    fig.update_layout(
+        title="Per-Chunker Ranking with 95% Bootstrap CI",
+        xaxis_title="Chunker",
+        yaxis_title="Mean Quality (1–5 scale)",
+        yaxis=dict(range=[ymin, ymax]),
+        height=420,
+        plot_bgcolor="white", paper_bgcolor="white",
+    )
+    return ("Per-Chunker Ranking (with CIs)", fig)
+
+
+def _chart_model_ranking_ci(df: pd.DataFrame) -> tuple[str, go.Figure]:
+    """Per-model mean quality with 95% bootstrap CI error bars.
+
+    Models ordered by parameter count so the size-vs-quality trend
+    reads left-to-right. Companion to ``_chart_chunker_ranking_ci``.
+
+    Args:
+        df: Experiment 2 raw scores DataFrame.
+
+    Returns:
+        Tuple of (title, Plotly figure).
+    """
+    stats = _ci_table(df, "model", "consensus_quality")
+    ordered = _order_models(stats["model"].tolist())
+    stats = stats.set_index("model").loc[ordered].reset_index()
+
+    fig = go.Figure(data=go.Bar(
+        x=stats["model"], y=stats["mean"],
+        error_y=dict(
+            type="data",
+            array=stats["err_plus"],
+            arrayminus=stats["err_minus"],
+            visible=True, thickness=1.6, width=8,
+        ),
+        marker_color=IBM_COLORS[0],
+        text=[f"{m:.3f}" for m in stats["mean"]],
+        textposition="outside",
+        customdata=np.column_stack([stats["ci_lo"], stats["ci_hi"], stats["n"]]),
+        hovertemplate=(
+            "<b>%{x}</b><br>Mean quality: %{y:.3f}<br>"
+            "95% CI: [%{customdata[0]:.3f}, %{customdata[1]:.3f}]<br>"
+            "n = %{customdata[2]}<extra></extra>"
+        ),
+    ))
+    ymin = max(0.0, stats["ci_lo"].min() - 0.15)
+    ymax = min(5.0, stats["ci_hi"].max() + 0.20)
+    fig.update_layout(
+        title="Per-Model Ranking with 95% Bootstrap CI (ordered by size)",
+        xaxis_title="Model (ordered by parameter count)",
+        yaxis_title="Mean Quality (1–5 scale)",
+        yaxis=dict(range=[ymin, ymax]),
+        height=420,
+        plot_bgcolor="white", paper_bgcolor="white",
+    )
+    return ("Per-Model Ranking (with CIs)", fig)
 
 
 def _chart_quality_heatmap(df: pd.DataFrame) -> tuple[str, go.Figure]:
@@ -197,7 +345,13 @@ def _chart_latency_heatmap(df: pd.DataFrame) -> tuple[str, go.Figure]:
 
 
 def _chart_quality_vs_model_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
-    """Quality vs model size: one line per chunker with error bars.
+    """Quality vs model size: one line per chunker with 95% bootstrap CI.
+
+    Error bars are 95% percentile bootstrap CIs on the mean for each
+    (chunker, model) cell &mdash; not per-row standard deviations. See
+    the matching docstring in generate_experiment1_dashboard.py for the
+    rationale (std-of-individuals overstates the uncertainty in a
+    well-sampled mean; CI is what the reader is actually asking about).
 
     Args:
         df: Experiment 2 raw scores DataFrame.
@@ -213,24 +367,43 @@ def _chart_quality_vs_model_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
         cdf = df[df["chunker"] == chunker].copy()
         cdf["model_size"] = cdf["model"].map(MODEL_SIZES)
         cdf = cdf.dropna(subset=["model_size"])
-        stats = cdf.groupby(["model", "model_size"])["consensus_quality"].agg(["mean", "std"]).reset_index()
-        stats = stats.sort_values("model_size")
+        rows: list[dict] = []
+        for (model, size), cell in cdf.groupby(["model", "model_size"]):
+            mean, lo, hi = _bootstrap_mean_ci(cell["consensus_quality"].to_numpy())
+            rows.append({
+                "model": model, "model_size": size, "mean": mean,
+                "err_minus": (mean - lo) if np.isfinite(lo) else 0.0,
+                "err_plus":  (hi - mean) if np.isfinite(hi) else 0.0,
+                "n": int(cell["consensus_quality"].notna().sum()),
+            })
+        stats = pd.DataFrame(rows).sort_values("model_size")
 
         fig.add_trace(go.Scatter(
             x=stats["model_size"], y=stats["mean"],
-            error_y=dict(type="data", array=stats["std"].fillna(0), visible=True),
+            error_y=dict(
+                type="data",
+                array=stats["err_plus"],
+                arrayminus=stats["err_minus"],
+                visible=True, thickness=1.4, width=4,
+            ),
             mode="lines+markers", name=chunker,
             marker=dict(color=IBM_COLORS[i % len(IBM_COLORS)],
                         symbol=markers[i % len(markers)], size=9),
             line=dict(color=IBM_COLORS[i % len(IBM_COLORS)]),
             text=stats["model"],
-            hovertemplate="<b>%{text}</b><br>Size: %{x}B<br>Quality: %{y:.3f}<extra>%{fullData.name}</extra>",
+            customdata=stats["n"],
+            hovertemplate=(
+                "<b>%{text}</b><br>Size: %{x}B<br>"
+                "Mean quality: %{y:.3f}<br>n = %{customdata}"
+                "<extra>%{fullData.name}</extra>"
+            ),
         ))
 
     fig.update_layout(
-        title="Quality vs Model Size by Chunker",
+        title="Quality vs Model Size by Chunker (error bars = 95% bootstrap CI on the mean)",
         xaxis_title="Model Size (B params)", yaxis_title="Mean Quality",
         height=500, legend_title="Chunker",
+        plot_bgcolor="white", paper_bgcolor="white",
     )
     return ("Quality vs Model Size", fig)
 
@@ -377,19 +550,37 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
     config_means["config"] = config_means["chunker"] + " + " + config_means["model"]
     config_means = config_means.sort_values("consensus_quality", ascending=False)
 
+    selected_keys = list(zip(config_means["chunker"], config_means["model"]))
+    config_list = config_means["config"].tolist()
+
     fig = go.Figure()
     for i, metric in enumerate(available):
+        means: list[float] = []
+        err_minus: list[float] = []
+        err_plus: list[float] = []
+        for chunker, mdl in selected_keys:
+            cell = df[(df["chunker"] == chunker) & (df["model"] == mdl)]
+            mean, lo, hi = _bootstrap_mean_ci(cell[f"_avg_{metric}"].to_numpy())
+            means.append(mean)
+            err_minus.append((mean - lo) if np.isfinite(lo) else 0.0)
+            err_plus.append((hi - mean) if np.isfinite(hi) else 0.0)
         fig.add_trace(go.Bar(
-            x=config_means["config"], y=config_means[f"_avg_{metric}"],
+            x=config_list, y=means,
+            error_y=dict(
+                type="data",
+                array=err_plus, arrayminus=err_minus,
+                visible=True, thickness=1.2, width=3,
+            ),
             name=metric.capitalize(),
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
 
     fig.update_layout(
         barmode="group",
-        title="Per-Metric Breakdown (All Configs, averaged across judges)",
-        xaxis_title="Configuration", yaxis_title="Score (1–5)",
-        xaxis_tickangle=-45, height=500,
+        title="Per-Metric Breakdown — all configs (error bars = 95% CI on judge-averaged score)",
+        xaxis_title="Configuration",
+        yaxis_title="Score (1–5)",
+        xaxis_tickangle=-45, height=520,
         margin=dict(b=150),
         plot_bgcolor="white", paper_bgcolor="white",
     )
@@ -618,7 +809,12 @@ def build_experiment2_figures(
 
     # 1. Summary card
     figures.append(_chart_summary_card(df))
-    # 2. Quality heatmap
+    # 2. CI-ranked headline charts — answer "is the chunker effect real?"
+    # and "does model size matter here?" before any heatmaps or
+    # drill-downs. Error-bar overlap = means not distinguishable at 95%.
+    figures.append(_chart_chunker_ranking_ci(df))
+    figures.append(_chart_model_ranking_ci(df))
+    # 3. Quality heatmap
     figures.append(_chart_quality_heatmap(df))
     # 3. Latency heatmap
     if _safe_col(df, "strategy_latency_ms"):

@@ -73,6 +73,71 @@ def _safe_col(df: pd.DataFrame, col: str) -> bool:
     return col in df.columns and df[col].notna().any()
 
 
+# Bootstrap settings used across every chart in this dashboard. 2000
+# resamples is enough to stabilise the 2.5 / 97.5 percentiles for the
+# 200-questions-per-cell sample sizes (cell SE on a 1-5 scale is well
+# below 0.1, so the percentile estimate stabilises by ~1000 resamples).
+# A fixed seed makes the rendered CIs identical across re-runs — the
+# CIs are an analysis artefact, not a measurement, and a moving seed
+# would silently shift the error bars between gallery regenerations.
+_BOOT_N = 2000
+_BOOT_RNG = np.random.default_rng(20260520)
+
+
+def _bootstrap_mean_ci(values: np.ndarray, level: float = 0.95) -> tuple[float, float, float]:
+    """Return (mean, lower, upper) bootstrap CI on the mean of ``values``.
+
+    Uses the percentile method (no BCa correction) — good enough for the
+    well-behaved continuous quality scores in the 1-5 range. Returns
+    ``(nan, nan, nan)`` for inputs with fewer than 2 finite values so
+    callers can render a single-point marker instead of an error bar.
+
+    Args:
+        values: 1D array-like of metric values, NaNs already dropped.
+        level: Confidence level. Default 95%.
+
+    Returns:
+        Three floats: (point estimate, lower bound, upper bound).
+    """
+    v = np.asarray(values, dtype=float)
+    v = v[np.isfinite(v)]
+    if v.size < 2:
+        return (float(v.mean()) if v.size == 1 else float("nan"),
+                float("nan"), float("nan"))
+    # Resample row-indices with replacement, take the mean of each
+    # resample, then take percentiles. vectorised in numpy.
+    idx = _BOOT_RNG.integers(0, v.size, size=(_BOOT_N, v.size))
+    boot_means = v[idx].mean(axis=1)
+    lo = (1.0 - level) / 2.0
+    hi = 1.0 - lo
+    return (float(v.mean()),
+            float(np.quantile(boot_means, lo)),
+            float(np.quantile(boot_means, hi)))
+
+
+def _ci_table(df: pd.DataFrame, group_col: str, value_col: str) -> pd.DataFrame:
+    """Return a DataFrame with mean + bootstrap CI for each group.
+
+    Columns: ``group_col``, ``mean``, ``ci_lo``, ``ci_hi``,
+    ``err_minus``, ``err_plus``, ``n``. The two ``err_*`` columns are
+    half-widths suitable for direct use as Plotly's
+    ``error_y=dict(type="data", arrayminus=..., array=...)``.
+    """
+    rows: list[dict] = []
+    for key, sub in df.groupby(group_col, dropna=True):
+        mean, lo, hi = _bootstrap_mean_ci(sub[value_col].to_numpy())
+        rows.append({
+            group_col: key,
+            "mean": mean,
+            "ci_lo": lo,
+            "ci_hi": hi,
+            "err_minus": (mean - lo) if np.isfinite(lo) else 0.0,
+            "err_plus":  (hi - mean) if np.isfinite(hi) else 0.0,
+            "n": int(sub[value_col].notna().sum()),
+        })
+    return pd.DataFrame(rows)
+
+
 def _order_models(models: list[str]) -> list[str]:
     """Sort model names by parameter count, preserving unknown models at end."""
     known = [m for m in MODEL_ORDER if m in models]
@@ -139,6 +204,114 @@ def _chart_summary_card(df: pd.DataFrame) -> tuple[str, go.Figure]:
     )])
     fig.update_layout(margin=dict(l=0, r=0, t=10, b=0), height=220)
     return ("Summary", fig)
+
+
+def _chart_strategy_ranking_ci(df: pd.DataFrame) -> tuple[str, go.Figure]:
+    """Per-strategy mean quality with 95% bootstrap CI error bars.
+
+    The headline visual for &ldquo;are these strategies actually
+    distinguishable?&rdquo; A vertical bar chart with error bars whose
+    *overlap* answers that question directly: if a pair of CIs overlap,
+    the means are not significantly different at the 95% level.
+
+    Strategies are ordered by mean (descending) so the eye can scan
+    left-to-right from best to worst. The reader walks away knowing,
+    e.g., that Naive / Multi-Query / Corrective overlap (a 3-way tie)
+    and that Self-RAG / Adaptive sit well below them.
+
+    Args:
+        df: Experiment 1 raw scores DataFrame.
+
+    Returns:
+        Tuple of (title, Plotly figure).
+    """
+    stats = _ci_table(df, "strategy", "consensus_quality")
+    stats = stats.sort_values("mean", ascending=False).reset_index(drop=True)
+
+    # Colour each bar from the IBM palette in rank order so the visual
+    # rank also tracks colour gradient.
+    colors = [IBM_COLORS[i % len(IBM_COLORS)] for i in range(len(stats))]
+    fig = go.Figure(data=go.Bar(
+        x=stats["strategy"], y=stats["mean"],
+        error_y=dict(
+            type="data",
+            array=stats["err_plus"],
+            arrayminus=stats["err_minus"],
+            visible=True, thickness=1.6, width=8,
+        ),
+        marker_color=colors,
+        text=[f"{m:.3f}" for m in stats["mean"]],
+        textposition="outside",
+        customdata=np.column_stack([stats["ci_lo"], stats["ci_hi"], stats["n"]]),
+        hovertemplate=(
+            "<b>%{x}</b><br>Mean quality: %{y:.3f}<br>"
+            "95% CI: [%{customdata[0]:.3f}, %{customdata[1]:.3f}]<br>"
+            "n = %{customdata[2]}<extra></extra>"
+        ),
+    ))
+    # Tight y-axis from a fraction below the lowest CI to a fraction
+    # above the highest so the error-bar overlap is easy to see.
+    ymin = max(0.0, stats["ci_lo"].min() - 0.15)
+    ymax = min(5.0, stats["ci_hi"].max() + 0.20)
+    fig.update_layout(
+        title="Per-Strategy Ranking with 95% Bootstrap CI",
+        xaxis_title="Strategy",
+        yaxis_title="Mean Quality (1–5 scale)",
+        yaxis=dict(range=[ymin, ymax]),
+        height=420,
+        plot_bgcolor="white", paper_bgcolor="white",
+    )
+    return ("Per-Strategy Ranking (with CIs)", fig)
+
+
+def _chart_model_ranking_ci(df: pd.DataFrame) -> tuple[str, go.Figure]:
+    """Per-model mean quality with 95% bootstrap CI error bars.
+
+    Companion to ``_chart_strategy_ranking_ci``. Models ordered by
+    parameter count (not by mean) so the size-vs-quality trend is
+    visible and the eye can see where adjacent sizes are
+    indistinguishable (e.g.&nbsp;qwen3.5:4b vs qwen3.5:9b in Exp 1).
+
+    Args:
+        df: Experiment 1 raw scores DataFrame.
+
+    Returns:
+        Tuple of (title, Plotly figure).
+    """
+    stats = _ci_table(df, "model", "consensus_quality")
+    # Keep size order so the chart reads as a scale curve.
+    ordered = _order_models(stats["model"].tolist())
+    stats = stats.set_index("model").loc[ordered].reset_index()
+
+    fig = go.Figure(data=go.Bar(
+        x=stats["model"], y=stats["mean"],
+        error_y=dict(
+            type="data",
+            array=stats["err_plus"],
+            arrayminus=stats["err_minus"],
+            visible=True, thickness=1.6, width=8,
+        ),
+        marker_color=IBM_COLORS[0],
+        text=[f"{m:.3f}" for m in stats["mean"]],
+        textposition="outside",
+        customdata=np.column_stack([stats["ci_lo"], stats["ci_hi"], stats["n"]]),
+        hovertemplate=(
+            "<b>%{x}</b><br>Mean quality: %{y:.3f}<br>"
+            "95% CI: [%{customdata[0]:.3f}, %{customdata[1]:.3f}]<br>"
+            "n = %{customdata[2]}<extra></extra>"
+        ),
+    ))
+    ymin = max(0.0, stats["ci_lo"].min() - 0.15)
+    ymax = min(5.0, stats["ci_hi"].max() + 0.20)
+    fig.update_layout(
+        title="Per-Model Ranking with 95% Bootstrap CI (ordered by size)",
+        xaxis_title="Model (ordered by parameter count)",
+        yaxis_title="Mean Quality (1–5 scale)",
+        yaxis=dict(range=[ymin, ymax]),
+        height=420,
+        plot_bgcolor="white", paper_bgcolor="white",
+    )
+    return ("Per-Model Ranking (with CIs)", fig)
 
 
 def _chart_quality_heatmap(df: pd.DataFrame) -> tuple[str, go.Figure]:
@@ -220,7 +393,16 @@ def _chart_latency_heatmap(df: pd.DataFrame) -> tuple[str, go.Figure]:
 
 
 def _chart_quality_vs_model_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
-    """Quality vs model size: one line per strategy with error bars.
+    """Quality vs model size: one line per strategy with 95% bootstrap CI.
+
+    The error bars are 95% percentile bootstrap CIs on the *mean* for
+    each (strategy, model) cell — not standard deviations of individual
+    scores. Pre-CI versions of this chart showed per-row std, which is
+    the spread of single-question quality (around 1.0 on a 1-5 scale)
+    rather than the uncertainty in the cell mean (typically 0.05-0.15
+    at n=200). Per-row std is huge and visually noisy; the CI tells
+    you whether two cells are distinguishable, which is the actual
+    question the reader is bringing to this chart.
 
     Args:
         df: Experiment 1 raw scores DataFrame.
@@ -235,30 +417,51 @@ def _chart_quality_vs_model_size(df: pd.DataFrame) -> tuple[str, go.Figure]:
     markers = ["circle", "square", "diamond", "cross", "triangle-up", "star", "hexagon"]
 
     for i, strat in enumerate(strategies):
-        sdf = df[df["strategy"] == strat]
-        # Map models to sizes and compute stats
-        sdf = sdf.copy()
+        sdf = df[df["strategy"] == strat].copy()
         sdf["model_size"] = sdf["model"].map(MODEL_SIZES)
         sdf = sdf.dropna(subset=["model_size"])
-        stats = sdf.groupby(["model", "model_size"])["consensus_quality"].agg(["mean", "std"]).reset_index()
-        stats = stats.sort_values("model_size")
+        # Per-cell bootstrap CI: groupby (model, model_size), compute
+        # CI on the consensus_quality vector inside each cell.
+        rows: list[dict] = []
+        for (model, size), cell in sdf.groupby(["model", "model_size"]):
+            mean, lo, hi = _bootstrap_mean_ci(cell["consensus_quality"].to_numpy())
+            rows.append({
+                "model": model, "model_size": size, "mean": mean,
+                "err_minus": (mean - lo) if np.isfinite(lo) else 0.0,
+                "err_plus":  (hi - mean) if np.isfinite(hi) else 0.0,
+                "n": int(cell["consensus_quality"].notna().sum()),
+            })
+        stats = pd.DataFrame(rows).sort_values("model_size")
 
         fig.add_trace(go.Scatter(
             x=stats["model_size"], y=stats["mean"],
-            error_y=dict(type="data", array=stats["std"].fillna(0), visible=True),
+            error_y=dict(
+                type="data",
+                array=stats["err_plus"],
+                arrayminus=stats["err_minus"],
+                visible=True,
+                thickness=1.4,
+                width=4,
+            ),
             mode="lines+markers",
             name=strat,
             marker=dict(color=IBM_COLORS[i % len(IBM_COLORS)],
                         symbol=markers[i % len(markers)], size=9),
             line=dict(color=IBM_COLORS[i % len(IBM_COLORS)]),
             text=stats["model"],
-            hovertemplate="<b>%{text}</b><br>Size: %{x}B<br>Quality: %{y:.3f}<extra>%{fullData.name}</extra>",
+            customdata=stats["n"],
+            hovertemplate=(
+                "<b>%{text}</b><br>Size: %{x}B<br>"
+                "Mean quality: %{y:.3f}<br>n = %{customdata}"
+                "<extra>%{fullData.name}</extra>"
+            ),
         ))
 
     fig.update_layout(
-        title="Quality vs Model Size by Strategy",
+        title="Quality vs Model Size by Strategy (error bars = 95% bootstrap CI on the mean)",
         xaxis_title="Model Size (B params)", yaxis_title="Mean Quality",
         height=500, legend_title="Strategy",
+        plot_bgcolor="white", paper_bgcolor="white",
     )
     return ("Quality vs Model Size", fig)
 
@@ -432,24 +635,46 @@ def _chart_per_metric_breakdown(df: pd.DataFrame) -> tuple[str, go.Figure]:
     config_means["config"] = config_means["strategy"] + " + " + config_means["model"]
     config_means = config_means.sort_values("consensus_quality", ascending=False)
 
-    # Top 10 and bottom 5
+    # Top 10 and bottom 5 — same selection rule as before.
     top = config_means.head(10)
     bottom = config_means.tail(5)
     selected = pd.concat([top, bottom]).drop_duplicates(subset=["config"])
 
+    # Per-cell bootstrap CI for each (strategy, model, metric). Pre-CI
+    # versions of this chart drew bare means and so couldn't show
+    # whether the metric gaps within a single config were
+    # distinguishable from sampling noise.
+    selected_keys = list(zip(selected["strategy"], selected["model"]))
+    config_list = selected["config"].tolist()
+
     fig = go.Figure()
     for i, metric in enumerate(available):
+        means: list[float] = []
+        err_minus: list[float] = []
+        err_plus: list[float] = []
+        for strat, mdl in selected_keys:
+            cell = df[(df["strategy"] == strat) & (df["model"] == mdl)]
+            mean, lo, hi = _bootstrap_mean_ci(cell[f"_avg_{metric}"].to_numpy())
+            means.append(mean)
+            err_minus.append((mean - lo) if np.isfinite(lo) else 0.0)
+            err_plus.append((hi - mean) if np.isfinite(hi) else 0.0)
         fig.add_trace(go.Bar(
-            x=selected["config"], y=selected[f"_avg_{metric}"],
+            x=config_list, y=means,
+            error_y=dict(
+                type="data",
+                array=err_plus, arrayminus=err_minus,
+                visible=True, thickness=1.2, width=3,
+            ),
             name=metric.capitalize(),
             marker_color=IBM_COLORS[i % len(IBM_COLORS)],
         ))
 
     fig.update_layout(
         barmode="group",
-        title="Per-Metric Breakdown (Top 10 + Bottom 5 Configs, averaged across judges)",
-        xaxis_title="Configuration", yaxis_title="Score (1–5)",
-        xaxis_tickangle=-45, height=500,
+        title="Per-Metric Breakdown — top 10 + bottom 5 configs (error bars = 95% CI on judge-averaged score)",
+        xaxis_title="Configuration",
+        yaxis_title="Score (1–5)",
+        xaxis_tickangle=-45, height=520,
         margin=dict(b=150),
         plot_bgcolor="white", paper_bgcolor="white",
     )
@@ -713,7 +938,11 @@ def build_experiment1_figures(
 
     # 1. Summary card
     figures.append(_chart_summary_card(df))
-    # 2. Quality heatmap
+    # 2. CI-ranked headline charts — answer "are these means actually
+    # distinguishable?" before any heatmaps or per-cell drill-downs.
+    figures.append(_chart_strategy_ranking_ci(df))
+    figures.append(_chart_model_ranking_ci(df))
+    # 3. Quality heatmap
     figures.append(_chart_quality_heatmap(df))
     # 3. Latency heatmap
     if _safe_col(df, "strategy_latency_ms"):

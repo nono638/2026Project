@@ -2994,6 +2994,30 @@ _EXP1_EXPLANATIONS: dict[str, str] = {
         total configurations tested, best and worst performing config, and overall
         mean quality.
     """,
+    "Per-Strategy Ranking (with CIs)": """
+        <strong>What this shows:</strong> Mean quality per strategy across all
+        models and questions, with 95% bootstrap CIs on each mean.
+        <br><br>
+        <strong>How to read it:</strong> The error bars are the question
+        you came to this chart with: <em>are these strategies actually
+        distinguishable?</em> If two bars&rsquo; error intervals overlap,
+        the means aren&rsquo;t significantly different at the 95% level.
+        Naive / Multi-Query / Corrective all overlap heavily &mdash;
+        a 3-way tie on this dataset. Adaptive and Self-RAG sit well
+        below them, with no overlap.
+    """,
+    "Per-Model Ranking (with CIs)": """
+        <strong>What this shows:</strong> Mean quality per model across
+        all strategies and questions, with 95% bootstrap CIs. Models are
+        ordered by parameter count so the size-vs-quality trend reads
+        left-to-right.
+        <br><br>
+        <strong>How to read it:</strong> The 0.8B model is clearly worse
+        than everything else. From qwen3.5:2b onward, adjacent sizes
+        have overlapping CIs &mdash; including qwen3.5:4B vs qwen3.5:9B.
+        In other words, doubling parameters at the top end didn&rsquo;t
+        produce a measurable quality gain on this benchmark.
+    """,
     "Quality Heatmap": """
         <strong>What this shows:</strong> Mean quality score for every strategy-model
         combination. Rows are RAG strategies, columns are models ordered by parameter
@@ -3113,46 +3137,53 @@ def _generate_experiment_1(csv_path: Path) -> str:
     parts = []
     parts.append("""
     <div class="card feature-card">
-        <div class="kicker-mono">Headline findings</div>
-        <h2 style="margin-top:6px;">Smart strategies don&rsquo;t beat plain RAG here &mdash; and 4B is the sweet spot</h2>
+        <div class="kicker-mono">Headline findings &middot; 95% bootstrap CIs on the means</div>
+        <h2 style="margin-top:6px;">Strategy choice barely matters &mdash; and the 4B/9B difference doesn&rsquo;t survive a CI test</h2>
         <div class="findings-grid">
             <div class="finding-card">
-                <h4>Strategy effects are small at best, hurtful at worst</h4>
-                <p>Naive (4.34), Multi-Query (4.33), and Corrective (4.27)
-                cluster within ~0.07 quality points &mdash; statistically and
-                practically indistinguishable on this benchmark.
-                Adaptive (3.59) and Self-RAG (2.99) <em>hurt</em> every
-                model they touched, dropping quality by 0.7&ndash;1.4
-                points. The cost of strategy complexity didn&rsquo;t pay off.</p>
+                <h4>Naive, Multi-Query, and Corrective are a 3-way tie</h4>
+                <p>Naive 4.340 [4.30,&nbsp;4.39], Multi-Query 4.334
+                [4.29,&nbsp;4.38], Corrective 4.268 [4.22,&nbsp;4.32].
+                All three CIs overlap &mdash; the means are
+                <em>not</em> distinguishable at 95%. Self-RAG (2.99
+                [2.93,&nbsp;3.06]) and Adaptive (3.59 [3.53,&nbsp;3.66])
+                sit well below them with no overlap: those two
+                strategies <em>actively hurt</em> quality on this
+                benchmark. The cost of strategy complexity didn&rsquo;t
+                pay off.</p>
             </div>
             <div class="finding-card">
-                <h4>Model size helps, but not as much as you&rsquo;d expect</h4>
-                <p>Across 11&times; parameter count
-                (qwen3.5:0.8B &rarr; 9B) mean quality moves only 3.27 &rarr; 4.03
-                &mdash; about 0.76 points. The smallest model is meaningfully
-                weaker; everything 2B and up is in the same band, and
-                <strong>qwen3.5:4B (4.05) slightly outscores qwen3.5:9B
-                (4.03)</strong>, suggesting a sweet spot rather than a
-                monotonic &ldquo;bigger is better.&rdquo;</p>
+                <h4>Model size helps, but the 4B / 9B gap is within noise</h4>
+                <p>qwen3.5:0.8B (3.27 [3.20,&nbsp;3.35]) is clearly
+                weaker than everything else. From 2B upward, adjacent
+                sizes start overlapping &mdash; and
+                <strong>qwen3.5:4B (4.05 [3.98,&nbsp;4.12]) vs
+                qwen3.5:9B (4.03 [3.96,&nbsp;4.09]) overlap
+                heavily</strong>. The earlier &ldquo;4B beats 9B&rdquo;
+                claim doesn&rsquo;t survive a CI test on Exp 1; they&rsquo;re
+                indistinguishable here. (Exp 2 tells a different story
+                where 4B does beat 9B with non-overlapping CIs.)</p>
             </div>
             <div class="finding-card">
                 <h4>The winner is the simplest combination</h4>
                 <p>Best config: <strong>NaiveRAG &times; qwen3.5:4B</strong>
-                at 4.59 quality &middot; 59% exact match &middot;
-                0.21 mean gold F1 &middot; 0.86 BERTScore F1. No clever
-                strategy on a smaller model beats it by more than
-                ~0.10 points; see &ldquo;Strategy Beats Size&rdquo;
-                below for the upset cases that do exist.</p>
+                at 4.589 [4.49,&nbsp;4.68] mean quality &middot;
+                59% exact match &middot; 0.21 mean gold F1 &middot;
+                0.86 BERTScore F1. No clever strategy on a smaller
+                model beats it cleanly; see &ldquo;Strategy Beats
+                Size&rdquo; below for the small upset cases that exist
+                (mean delta only +0.08 to +0.10, within their own CIs).</p>
             </div>
             <div class="finding-card">
                 <h4>Caveat: row-level results aren&rsquo;t reproducible</h4>
                 <p>Generation ran at Ollama&rsquo;s default
                 <code>temperature&nbsp;&asymp;&nbsp;0.8</code> with no
                 seed, so a given row re-run today would produce a
-                different answer. Aggregate rankings are stable in
-                expectation but the small inter-strategy gaps above
-                are within the noise that a temperature-0 + fixed-seed
-                regime would eliminate. See
+                different answer. The CIs above quantify sampling
+                uncertainty over questions; they don&rsquo;t
+                separately account for stochastic-generation variance.
+                A <code>temperature&nbsp;=&nbsp;0</code> + fixed-seed
+                regime would shrink the noise further. See
                 <a href="writeup.html#reproducibility">Writeup
                 &raquo; Stochastic generation</a>.</p>
             </div>
@@ -3230,6 +3261,27 @@ _EXP2_EXPLANATIONS: dict[str, str] = {
         <strong>What this shows:</strong> Key statistics for the experiment &mdash;
         total configurations tested, best and worst performing config, and overall
         mean quality.
+    """,
+    "Per-Chunker Ranking (with CIs)": """
+        <strong>What this shows:</strong> Mean quality per chunker
+        across all models and questions, with 95% bootstrap CIs.
+        <br><br>
+        <strong>How to read it:</strong> If two bars&rsquo; error
+        intervals overlap, the means aren&rsquo;t significantly
+        different at the 95% level. Fixed (top) and sentence (bottom)
+        don&rsquo;t overlap &mdash; that&rsquo;s a real chunker effect.
+        Fixed, recursive, and semantic overlap heavily &mdash; on this
+        dataset the three of them are a tie.
+    """,
+    "Per-Model Ranking (with CIs)": """
+        <strong>What this shows:</strong> Mean quality per model with
+        95% bootstrap CIs, ordered by parameter count.
+        <br><br>
+        <strong>How to read it:</strong> Unlike Experiment 1, here
+        qwen3.5:4B and qwen3.5:9B do <em>not</em> overlap &mdash; the 4B
+        advantage in Exp 2 (where the strategy is held constant at
+        NaiveRAG) is statistically supported, while the same comparison
+        in Exp 1 (varying strategy) was within noise.
     """,
     "Quality Heatmap": """
         <strong>What this shows:</strong> Mean quality score for every chunker-model
@@ -3342,46 +3394,54 @@ def _generate_experiment_2(csv_path: Path) -> str:
     parts = []
     parts.append("""
     <div class="card feature-card">
-        <div class="kicker-mono">Headline findings</div>
-        <h2 style="margin-top:6px;">Chunker choice barely moves the needle &mdash; model size is the dominant lever</h2>
+        <div class="kicker-mono">Headline findings &middot; 95% bootstrap CIs on the means</div>
+        <h2 style="margin-top:6px;">Fixed clearly beats sentence; other chunkers tie &mdash; and 4B > 9B is real here</h2>
         <div class="findings-grid">
             <div class="finding-card">
-                <h4>Chunker effects are small</h4>
-                <p>Mean quality by chunker spans only 0.20 points:
-                fixed (4.32), semantic (4.27), recursive (4.23),
-                sentence (4.11). Within any single model the chunker
-                spread is 0.16&ndash;0.27 quality points &mdash; about
-                the same order as the noise from stochastic generation.
-                This is a meaningful <em>negative</em> result: spending
-                effort on chunker tuning is unlikely to pay back vs
-                spending it on model selection.</p>
+                <h4>Fixed beats sentence; fixed / recursive / semantic are a tie</h4>
+                <p>Mean quality by chunker, with 95% CIs: fixed 4.318
+                [4.26,&nbsp;4.38], semantic 4.268 [4.21,&nbsp;4.33],
+                recursive 4.228 [4.16,&nbsp;4.29], sentence 4.113
+                [4.04,&nbsp;4.18]. <em>Fixed vs sentence</em> is the
+                only chunker pair whose CIs don&rsquo;t overlap &mdash;
+                a real ~0.20 effect. Fixed / recursive / semantic
+                overlap heavily and are indistinguishable. So
+                &ldquo;chunker barely matters&rdquo; isn&rsquo;t quite
+                right; better framing: <em>sentence chunking is worse,
+                the other three are interchangeable</em>.</p>
             </div>
             <div class="finding-card">
-                <h4>Model size matters about 3&times; more than chunker</h4>
-                <p>Mean quality by model spans 0.79 points
-                (qwen3.5:0.8B = 3.79 &rarr; qwen3.5:4B = 4.58) &mdash;
-                roughly four times the largest chunker effect. As in
-                Experiment 1, <strong>qwen3.5:4B (4.58) edges out
-                qwen3.5:9B (4.45)</strong>: the 4B mark is the
-                quality sweet spot for this benchmark.</p>
+                <h4>Model size matters more than chunker, and 4B > 9B is real here</h4>
+                <p>Per-model CIs: qwen3.5:4B (4.577 [4.53,&nbsp;4.62])
+                does <em>not</em> overlap qwen3.5:9B (4.446
+                [4.40,&nbsp;4.49]). Unlike Experiment 1, where the
+                same comparison was within noise, here the 4B win is
+                statistically supported &mdash; likely because Exp 2
+                holds strategy constant at NaiveRAG and so the only
+                variation is the model itself. 0.8B (3.79) is well
+                below everything else; 2B (4.12) and 4B/9B form two
+                cleanly separated tiers above it.</p>
             </div>
             <div class="finding-card">
                 <h4>The winner: fixed-size chunking on 4B</h4>
                 <p>Best config: <strong>fixed-size chunker &times;
-                qwen3.5:4B</strong> at 4.65 quality &middot; 74% exact
-                match &middot; 0.27 mean gold F1. Plain fixed-size
-                chunking outperformed the more elaborate sentence- and
-                semantic-aware approaches at every model size we tested.</p>
+                qwen3.5:4B</strong> at 4.649 [4.55,&nbsp;4.73] mean
+                quality &middot; 74% exact match &middot; 0.27 mean
+                gold F1. Plain fixed-size chunking outperforms the
+                more elaborate sentence-aware approach at every model
+                size, and ties the other two chunkers within CI.</p>
             </div>
             <div class="finding-card">
                 <h4>Same reproducibility caveat as Experiment 1</h4>
                 <p>This run also used Ollama&rsquo;s default
                 <code>temperature&nbsp;&asymp;&nbsp;0.8</code> with no
-                seed. The chunker rankings are stable in expectation
-                but the 0.16&ndash;0.27-point within-model spreads are
-                comparable to the stochastic-generation noise band.
-                See <a href="methodology.html#retrospective">Methodology
-                &raquo; Retrospective</a>.</p>
+                seed. The CIs above quantify sampling uncertainty
+                over questions; they don&rsquo;t separately account
+                for stochastic-generation variance. A
+                <code>temperature&nbsp;=&nbsp;0</code> + fixed-seed
+                regime would shrink the noise further. See
+                <a href="writeup.html#reproducibility">Writeup
+                &raquo; Stochastic generation</a>.</p>
             </div>
         </div>
     </div>
@@ -4620,66 +4680,84 @@ def _generate_writeup() -> str:
         <h2 id="hypotheses">What we set out to test</h2>
         <p>
             Three working hypotheses going in. I&rsquo;ll mark each
-            with what the data eventually said.
+            with what the data eventually said. The results below now
+            reference 95% bootstrap CIs on the means (2,000 resamples,
+            percentile method) rather than bare point estimates &mdash;
+            see the dashboards for the corresponding error-bar charts.
         </p>
         <ol>
             <li><strong>H1.</strong> A clever RAG strategy on a small
                 language model will frequently beat plain NaiveRAG on
                 a larger model. <span class="muted-note">&mdash; Result:
-                <em>mostly false</em>. The &ldquo;Strategy Beats Size&rdquo;
-                chart in Experiment 1 finds upset cases, but the
-                average delta is +0.08 to +0.10 quality points and
-                the strategies that produce them (Corrective,
-                Multi-Query) sit essentially flat with Naive on
-                average. Self-RAG and Adaptive actively hurt every
-                model they touched.</span></li>
+                <em>mostly false, and within noise where it&rsquo;s
+                not</em>. Naive (4.34 [4.30,&nbsp;4.39]), Multi-Query
+                (4.33 [4.29,&nbsp;4.38]), and Corrective (4.27
+                [4.22,&nbsp;4.32]) have overlapping 95% CIs &mdash;
+                they&rsquo;re a 3-way tie, not three distinct ranks.
+                The &ldquo;Strategy Beats Size&rdquo; chart finds upset
+                cases but the average delta (+0.08 to +0.10) is
+                comparable to the CI half-widths it&rsquo;s claiming
+                to exceed. Self-RAG (2.99) and Adaptive (3.59)
+                actively hurt every model with no CI overlap with the
+                top cluster &mdash; those effects are real.</span></li>
             <li><strong>H2.</strong> Quality will scale roughly
                 monotonically with model size. <span class="muted-note">
-                &mdash; Result: <em>directionally true but flat in the
-                middle</em>. Going from 0.8B to 9B parameters
-                moved mean quality 3.27 &rarr; 4.03 &mdash; meaningful
-                at the bottom, but qwen3.5:4B (4.05) edged out
-                qwen3.5:9B (4.03) in both Experiment 1 and Experiment 2.
-                The 4B mark is the quality sweet spot for this
-                workload.</span></li>
+                &mdash; Result: <em>monotonic at the bottom; flat
+                with overlapping CIs at the top</em>. qwen3.5:0.8B
+                (3.27 [3.20,&nbsp;3.35]) is clearly weakest. From 2B
+                upward, adjacent sizes start overlapping. The earlier
+                claim that &ldquo;4B beats 9B in both experiments&rdquo;
+                doesn&rsquo;t survive a CI test in Experiment 1
+                (qwen3.5:4B 4.05 [3.98,&nbsp;4.12] vs qwen3.5:9B 4.03
+                [3.96,&nbsp;4.09] overlap heavily). In Experiment 2
+                the comparison flips and 4B (4.58 [4.53,&nbsp;4.62])
+                does cleanly beat 9B (4.45 [4.40,&nbsp;4.49]) &mdash;
+                likely because Exp 2 holds strategy constant at
+                NaiveRAG and so the comparison is less noisy.</span></li>
             <li><strong>H3.</strong> Chunker choice will interact
                 meaningfully with model size &mdash; better chunking
                 will rescue smaller models. <span class="muted-note">
-                &mdash; Result: <em>false</em>. Within any one model the
-                chunker spread is 0.16&ndash;0.27 quality points,
-                roughly at the noise floor of stochastic generation
-                (see below). Across chunkers the headline differences
-                are smaller than the smallest model-size step.</span></li>
+                &mdash; Result: <em>mostly false, with one real
+                effect</em>. Fixed (4.32 [4.26,&nbsp;4.38]) vs
+                sentence (4.11 [4.04,&nbsp;4.18]) is the only chunker
+                pair with non-overlapping CIs &mdash; a real ~0.20
+                effect. Fixed / recursive / semantic CIs all overlap;
+                those three are a tie. So &ldquo;chunker barely
+                matters&rdquo; isn&rsquo;t quite right; better
+                framing: <em>sentence chunking is genuinely worse,
+                the other three are interchangeable</em>.</span></li>
         </ol>
 
         <h2 id="headline">Headline findings, cross-experiment</h2>
         <p>
-            Pulled together from the two experiment dashboards:
+            All means below carry 95% bootstrap CIs. The interesting
+            content is in which gaps survive a CI test and which
+            don&rsquo;t.
         </p>
         <ul>
-            <li><strong>Strategy effects are small at best, hurtful at
-                worst.</strong> The three strategies that didn&rsquo;t
-                fight the model (Naive, Multi-Query, Corrective)
-                cluster within 0.07 quality points across 1,200 rows
-                each. The two that tried to be clever in
-                under-instrumented ways (Self-RAG&rsquo;s
-                self-critique loop, Adaptive&rsquo;s complexity
-                router) cost 0.7&ndash;1.4 quality points on every
-                model. Those negative results are the most
-                publishable thing in the dataset.</li>
-            <li><strong>Model size matters less than expected, and
-                non-monotonically.</strong> qwen3.5:4B beat
-                qwen3.5:9B in <em>both</em> experiments. Either the
-                9B variant is poorly calibrated for HotpotQA, or
-                we&rsquo;re into the regime where more parameters
-                hurt as much as they help on simple factoid Q&amp;A.</li>
-            <li><strong>Chunker choice barely moves the needle on
-                HotpotQA.</strong> The best chunker (fixed) and the
-                worst (sentence) differ by 0.20 quality points
-                aggregate. Spending engineering effort on chunker
-                tuning is unlikely to pay back vs spending it on
-                model selection or, frankly, on writing better
-                prompts.</li>
+            <li><strong>Strategy effects are mostly within CI; two
+                strategies clearly hurt.</strong> Naive / Multi-Query /
+                Corrective are a 3-way tie at 95% (CIs overlap by
+                0.02&ndash;0.10 points). Self-RAG and Adaptive sit
+                0.7&ndash;1.4 points lower with no CI overlap &mdash;
+                those negative results are the most defensible
+                findings in the dataset.</li>
+            <li><strong>Model size effects are largest at the bottom
+                of the range.</strong> 0.8B is cleanly below
+                everything else in both experiments. Above 2B the
+                CIs start overlapping, and whether 4B cleanly beats
+                9B depends on which experiment&rsquo;s holding-
+                constant assumptions you trust more (Exp 2 says yes
+                with non-overlapping CIs; Exp 1 says they&rsquo;re
+                indistinguishable).</li>
+            <li><strong>Chunker choice has one real signal.</strong>
+                Sentence chunking is genuinely worse (~0.20 quality
+                points below fixed, CIs don&rsquo;t overlap). The
+                other three chunkers (fixed, recursive, semantic) are
+                indistinguishable. Spending engineering effort on
+                picking between the latter three is unlikely to pay
+                back; <em>avoiding</em> sentence chunking is worth
+                doing.</li>
             <li><strong>LLM judges agree when they&rsquo;re
                 contemporaneous.</strong> Experiment 0 v3 ran 9 judges
                 on 500 questions; cross-provider Pearson against gold
@@ -4691,12 +4769,12 @@ def _generate_writeup() -> str:
                 LLM-as-judge approach.</li>
             <li><strong>The winning configurations are boring.</strong>
                 Experiment 1 winner: NaiveRAG &times; qwen3.5:4B
-                (4.59 quality, 59% exact match). Experiment 2
-                winner: fixed-size chunker &times; qwen3.5:4B
-                (4.65 quality, 74% exact match). No clever strategy,
-                no clever chunker, mid-size model. The interesting
-                content is in the absence of the expected effects,
-                not in the rankings themselves.</li>
+                (4.59 [4.49,&nbsp;4.68], 59% exact match). Experiment 2
+                winner: fixed-size chunker &times; qwen3.5:4B (4.65
+                [4.55,&nbsp;4.73], 74% exact match). No clever
+                strategy, no clever chunker, mid-size model. The
+                interesting content is in the absence of the expected
+                effects, not in the rankings themselves.</li>
         </ul>
 
         <h2 id="bsods">The technical reality: the laptop kept crashing</h2>
@@ -5170,10 +5248,18 @@ def _generate_writeup() -> str:
                 stamp library + Ollama versions per row. Without this
                 no number can be exactly replicated.</li>
             <li><strong>Confidence intervals on the headline numbers.</strong>
-                The dashboards show point estimates of means. There
-                are no error bars or significance tests. With 200
-                questions per cell that&rsquo;s perfectly tractable
-                bootstrap territory; just not done yet.</li>
+                <span style="color: var(--c-teal); font-weight: 600;">[shipped]</span>
+                Dashboards now render 95% bootstrap CIs on the per-strategy,
+                per-model, per-chunker means, and on the per-cell points
+                in the Quality-vs-Model-Size and Per-Metric Breakdown
+                charts. The Headline Findings cards on Exp 1 + Exp 2
+                quote intervals instead of bare means and call out which
+                comparisons survive a CI test (Naive&nbsp;&approx;&nbsp;Multi-Query&nbsp;&approx;&nbsp;Corrective
+                is a 3-way tie; the Exp 1 &ldquo;4B beats 9B&rdquo; claim
+                does not survive, but the Exp 2 version does). Still
+                missing: ANOVA / regression for formal significance
+                testing across the full factorial &mdash; see the next
+                bullet but one.</li>
             <li><strong>More than one dataset.</strong> Everything
                 here is HotpotQA. The conclusions need to be
                 replicated on at least one factoid dataset (SQuAD 2.0
@@ -5244,9 +5330,17 @@ def _generate_writeup() -> str:
                 so a clean apples-to-apples comparison exists between
                 &ldquo;reconstructed-minimal&rdquo; and
                 &ldquo;recorded&rdquo; regimes.</li>
-            <li>Add bootstrap confidence intervals to the headline
-                charts. Probably the highest-leverage analysis
-                upgrade.</li>
+            <li><span style="color: var(--c-teal); font-weight: 600;">[done]</span>
+                Add bootstrap confidence intervals to the headline
+                charts. Shipped: 95% percentile bootstrap (2,000
+                resamples, fixed seed) on Per-Strategy, Per-Model,
+                Per-Chunker, Quality-vs-Model-Size, and Per-Metric
+                Breakdown charts. Two of the earlier claims got
+                corrected by it &mdash; the Exp 1 &ldquo;4B beats
+                9B&rdquo; doesn&rsquo;t survive a CI test, and the
+                Naive/Multi-Query/Corrective ranking turned out to
+                be a 3-way tie. The Headline Findings cards now use
+                CI-aware language.</li>
             <li>Decide whether to publish at all, or to leave RAGBench
                 as a personal infrastructure project and use the
                 lessons (logging-first instrumentation, BSOD-resilient
