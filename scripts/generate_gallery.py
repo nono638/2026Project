@@ -3151,7 +3151,7 @@ def _generate_experiment_1(csv_path: Path) -> str:
     parts = []
     parts.append("""
     <div class="card feature-card">
-        <div class="kicker-mono">Headline findings &middot; 95% bootstrap CIs on the means</div>
+        <div class="kicker-mono">Headline findings</div>
         <h2 style="margin-top:6px;">Strategy choice barely matters &mdash; and the 4B/9B difference doesn&rsquo;t survive a CI test</h2>
         <div class="findings-grid">
             <div class="finding-card">
@@ -3408,7 +3408,7 @@ def _generate_experiment_2(csv_path: Path) -> str:
     parts = []
     parts.append("""
     <div class="card feature-card">
-        <div class="kicker-mono">Headline findings &middot; 95% bootstrap CIs on the means</div>
+        <div class="kicker-mono">Headline findings</div>
         <h2 style="margin-top:6px;">Fixed clearly beats sentence; other chunkers tie &mdash; and 4B > 9B is real here</h2>
         <div class="findings-grid">
             <div class="finding-card">
