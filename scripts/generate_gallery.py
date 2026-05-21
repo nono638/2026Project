@@ -244,6 +244,15 @@ h1, h2, h3, h4 {
     font-weight: 600;
     letter-spacing: -0.012em;
     line-height: 1.22;
+    /* Force lining + tabular figures. Charter, Sitka Text and a few
+       other serif system fonts default to *old-style* (lowercase-height)
+       digits — that&rsquo;s the rendering where "Experiment 0" looks
+       indistinguishable from "Experiment o" in headings. Lining figures
+       sit on the baseline at uppercase height and read unambiguously
+       as numerals. font-feature-settings is the wider-supported
+       equivalent. */
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
 }
 h1 {
     font-size: 2.4em;
@@ -439,6 +448,11 @@ a:hover { text-decoration-color: var(--c-magenta); }
     color: var(--ink);
     margin: 8px 0 28px;
     max-width: 72ch;
+    /* Same lining-figures fix as headings — Charter / Sitka Text
+       default to old-style digits, which made body-size "0" / "6" /
+       "9" descend below the baseline and read as letters. */
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" 1, "tnum" 1;
 }
 .lede em { font-style: italic; color: var(--ink); }
 
