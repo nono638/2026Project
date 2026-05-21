@@ -1050,7 +1050,7 @@ li.muted-note {
         </p>
         <p>
             RAGBench is a configurable harness that tries to answer that
-            question for one shared question set (HotpotQA), one held-
+            question for one shared question set (<a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>), one held-
             constant embedder per experiment, one chunker per
             experiment, and a panel of LLM judges that we first
             validated against gold-standard metrics. It runs the full
@@ -1066,10 +1066,7 @@ li.muted-note {
         <h2 id="hypotheses">What we set out to test</h2>
         <p>
             Three working hypotheses going in. I&rsquo;ll mark each
-            with what the data eventually said. The results below now
-            reference 95% bootstrap CIs on the means (2,000 resamples,
-            percentile method) rather than bare point estimates &mdash;
-            see the dashboards for the corresponding error-bar charts.
+            with what the data eventually said.
         </p>
         <ol>
             <li><strong>H1.</strong> A clever RAG strategy on a small
@@ -1103,22 +1100,30 @@ li.muted-note {
             <li><strong>H3.</strong> Chunker choice will interact
                 meaningfully with model size &mdash; better chunking
                 will rescue smaller models. <span class="muted-note">
-                &mdash; Result: <em>mostly false, with one real
-                effect</em>. Fixed (4.32 [4.26,&nbsp;4.38]) vs
-                sentence (4.11 [4.04,&nbsp;4.18]) is the only chunker
-                pair with non-overlapping CIs &mdash; a real ~0.20
-                effect. Fixed / recursive / semantic CIs all overlap;
-                those three are a tie. So &ldquo;chunker barely
-                matters&rdquo; isn&rsquo;t quite right; better
-                framing: <em>sentence chunking is genuinely worse,
-                the other three are interchangeable</em>.</span></li>
+                &mdash; Result: <em>partially false, but with a
+                major asterisk</em>. Fixed (4.32 [4.26,&nbsp;4.38])
+                vs sentence (4.11 [4.04,&nbsp;4.18]) is the only
+                chunker pair with non-overlapping CIs. Fixed /
+                recursive / semantic CIs all overlap. Crucially,
+                Experiment 2 ran against <code>mxbai-embed-large</code>
+                (512-token window), and two of the four chunkers
+                (fixed and semantic) routinely produce chunks larger
+                than that &mdash; their content was silently
+                truncated to 512 tokens before embedding. So the
+                rankings above describe behaviour <em>under
+                client-side truncation</em>, not the chunkers as
+                designed. &ldquo;Sentence is worse&rdquo; survives
+                that caveat (sentence chunks fit cleanly, so the
+                comparison favours truncation-free chunkers and
+                sentence still lost); the 3-way tie at the top is
+                genuinely unknown without an un-truncated re-run.
+                See the prominent caveat at the top of the
+                <a href="experiment_2.html">Experiment 2 page</a>.</span></li>
         </ol>
 
         <h2 id="headline">Headline findings, cross-experiment</h2>
         <p>
-            All means below carry 95% bootstrap CIs. The interesting
-            content is in which gaps survive a CI test and which
-            don&rsquo;t.
+            Pulled together from the two experiment dashboards.
         </p>
         <ul>
             <li><strong>Strategy effects are mostly within CI; two
@@ -1136,14 +1141,21 @@ li.muted-note {
                 constant assumptions you trust more (Exp 2 says yes
                 with non-overlapping CIs; Exp 1 says they&rsquo;re
                 indistinguishable).</li>
-            <li><strong>Chunker choice has one real signal.</strong>
-                Sentence chunking is genuinely worse (~0.20 quality
-                points below fixed, CIs don&rsquo;t overlap). The
-                other three chunkers (fixed, recursive, semantic) are
-                indistinguishable. Spending engineering effort on
-                picking between the latter three is unlikely to pay
-                back; <em>avoiding</em> sentence chunking is worth
-                doing.</li>
+            <li><strong>Chunker choice has one real signal &mdash;
+                under a major caveat.</strong> Sentence chunking is
+                genuinely worse than fixed (~0.20 quality points
+                below, CIs don&rsquo;t overlap). The other three
+                chunkers (fixed, recursive, semantic) are
+                indistinguishable. But Experiment 2 ran against
+                <code>mxbai-embed-large</code> (512-token window) and
+                two of the four chunkers (fixed and semantic) had
+                their chunks silently truncated to fit, so the
+                rankings describe behaviour under truncation rather
+                than the chunkers as designed. The
+                &ldquo;avoid&nbsp;sentence&rdquo; finding survives
+                that caveat; the 3-way tie at the top doesn&rsquo;t.
+                See the <a href="experiment_2.html">Experiment 2
+                page</a>&rsquo;s caveat callout for the details.</li>
             <li><strong>LLM judges agree when they&rsquo;re
                 contemporaneous.</strong> Experiment 0 v3 ran 9 judges
                 on 500 questions; cross-provider Pearson against gold
@@ -1224,7 +1236,7 @@ li.muted-note {
         </p>
         <h3>v1: the first end-to-end run</h3>
         <p>
-            50 HotpotQA questions sampled proportionally across
+            50 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions sampled proportionally across
             difficulties, scored by 6 LLM judges. Headline conclusion:
             use Claude Sonnet as the primary scorer. The five
             oversights:
@@ -1633,21 +1645,8 @@ li.muted-note {
                 temperature=0 + seed, pin every dependency version,
                 stamp library + Ollama versions per row. Without this
                 no number can be exactly replicated.</li>
-            <li><strong>Confidence intervals on the headline numbers.</strong>
-                <span style="color: var(--c-teal); font-weight: 600;">[shipped]</span>
-                Dashboards now render 95% bootstrap CIs on the per-strategy,
-                per-model, per-chunker means, and on the per-cell points
-                in the Quality-vs-Model-Size and Per-Metric Breakdown
-                charts. The Headline Findings cards on Exp 1 + Exp 2
-                quote intervals instead of bare means and call out which
-                comparisons survive a CI test (Naive&nbsp;&approx;&nbsp;Multi-Query&nbsp;&approx;&nbsp;Corrective
-                is a 3-way tie; the Exp 1 &ldquo;4B beats 9B&rdquo; claim
-                does not survive, but the Exp 2 version does). Still
-                missing: ANOVA / regression for formal significance
-                testing across the full factorial &mdash; see the next
-                bullet but one.</li>
             <li><strong>More than one dataset.</strong> Everything
-                here is HotpotQA. The conclusions need to be
+                here is <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>. The conclusions need to be
                 replicated on at least one factoid dataset (SQuAD 2.0
                 is wired up but unused) and one long-form / domain-
                 specific corpus before they generalise.</li>
@@ -1716,17 +1715,6 @@ li.muted-note {
                 so a clean apples-to-apples comparison exists between
                 &ldquo;reconstructed-minimal&rdquo; and
                 &ldquo;recorded&rdquo; regimes.</li>
-            <li><span style="color: var(--c-teal); font-weight: 600;">[done]</span>
-                Add bootstrap confidence intervals to the headline
-                charts. Shipped: 95% percentile bootstrap (2,000
-                resamples, fixed seed) on Per-Strategy, Per-Model,
-                Per-Chunker, Quality-vs-Model-Size, and Per-Metric
-                Breakdown charts. Two of the earlier claims got
-                corrected by it &mdash; the Exp 1 &ldquo;4B beats
-                9B&rdquo; doesn&rsquo;t survive a CI test, and the
-                Naive/Multi-Query/Corrective ranking turned out to
-                be a 3-way tie. The Headline Findings cards now use
-                CI-aware language.</li>
             <li>Decide whether to publish at all, or to leave RAGBench
                 as a personal infrastructure project and use the
                 lessons (logging-first instrumentation, BSOD-resilient

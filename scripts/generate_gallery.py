@@ -1418,7 +1418,7 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
         <h2>Experiment 0: Which LLM Judge Tracks Truth?</h2>
         <p class="kicker-italic">Frontier-class judges converge &mdash; version matters more than provider.</p>
         <p>
-            500 HotpotQA questions. 9 LLM judges. <strong>GPT-5.4</strong> leads at
+            500 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions. 9 LLM judges. <strong>GPT-5.4</strong> leads at
             r&nbsp;=&nbsp;0.605, with <strong>Claude Sonnet 4.6</strong> (0.575) and
             <strong>GPT-5.4 Mini</strong> (0.553) close behind. Older Claude versions
             (Sonnet 4, Opus 4) score ~30% lower than current Sonnet 4.6 &mdash; model
@@ -1430,7 +1430,7 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
     </div>
 
     <h2>Key Findings</h2>
-    <p>From Experiment 0v3 — 500 HotpotQA questions scored by 9 LLM judges (3 Gemini + 4 Claude + 2 OpenAI).</p>
+    <p>From Experiment 0v3 — 500 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions scored by 9 LLM judges (3 Gemini + 4 Claude + 2 OpenAI).</p>
     <div class="findings-grid">
         <div class="finding-card">
             <h4>GPT-5.4 is the most accurate LLM judge</h4>
@@ -1445,7 +1445,7 @@ def _generate_index(experiments_info: list[dict[str, Any]]) -> str:
             <p>r=0.553 at $0.0015/call — most accurate among cheap judges, and cross-validates with Sonnet 4.6 (r=0.720).</p>
         </div>
         <div class="finding-card">
-            <h4>76% exact match on HotpotQA — answer quality is solid</h4>
+            <h4>76% exact match on <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> — answer quality is solid</h4>
             <p>Retrieval failures at 14%, generation failures at 10%. Pipeline works well out of the box.</p>
         </div>
     </div>
@@ -2174,7 +2174,7 @@ def _generate_experiment_0_v2(csv_path: Path) -> str:
     <div class="card feature-card">
         <h2>Key Findings</h2>
         <p class="section-intro">
-            v2 — 150 medium+hard HotpotQA questions, 7 LLM judges
+            v2 — 150 medium+hard <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions, 7 LLM judges
         </p>
         <ul style="list-style: none; padding: 0; margin: 0;">
             <li style="margin: 8px 0;"><strong>Best judge by BERTScore correlation:</strong> Claude Haiku (r=0.640)</li>
@@ -2407,7 +2407,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
     <div class="card feature-card">
         <h2>Key Findings</h2>
         <p class="section-intro">
-            v3 — 500 medium+hard HotpotQA questions, 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI)
+            v3 — 500 medium+hard <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions, 8 LLM judges (3 Gemini + 3 Claude + 2 OpenAI)
         </p>
         <ul style="list-style: none; padding: 0; margin: 0;">
             <li style="margin: 8px 0;"><strong>Best judge:</strong> GPT-5.4 (r=0.605 gold F1), Claude Sonnet 4.6 (0.575) close behind</li>
@@ -2486,7 +2486,7 @@ def _generate_experiment_0_v3(csv_path: Path) -> str:
     <div class="card">
         <h2>Summary</h2>
         <p>
-            Across 500 medium+hard HotpotQA questions, <strong>GPT-5.4</strong> tracked the
+            Across 500 medium+hard <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions, <strong>GPT-5.4</strong> tracked the
             gold-standard word-overlap F1 most reliably (Pearson r=0.605), with <strong>Claude
             Sonnet 4.6</strong> (0.575) and <strong>GPT-5.4 Mini</strong> (0.553) close behind.
             All three substantially outperformed Haiku 4.5 (0.450), Sonnet 4 (0.397), Opus 4
@@ -2945,7 +2945,7 @@ def _generate_experiment_0(csv_path: Path) -> str:
 
         <h3 style="margin-top: 20px;">4. Ceiling effect &mdash; too many easy questions</h3>
         <p>
-            With 50 HotpotQA questions sampled proportionally across difficulties,
+            With 50 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions sampled proportionally across difficulties,
             74% of answers were correct (exact match). Most judges rated most answers
             5/5 &mdash; Flash-Lite gave a perfect 5.0 on 78% of examples, Opus on 78%.
             With only ~13 wrong answers, there wasn't enough signal to meaningfully
@@ -3209,7 +3209,7 @@ def _generate_experiment_1(csv_path: Path) -> str:
         <p>
             <strong>Does a smarter RAG strategy compensate for a smaller language model?</strong>
             A two-axis factorial design: every one of 5 RAG strategies is run against
-            every one of 6 models, giving 30 configurations &times; 200 HotpotQA
+            every one of 6 models, giving 30 configurations &times; 200 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>
             questions = 6,000 scored answers. With both axes varied we can measure
             main effects (does Corrective beat Naive on average? does 9B beat 4B?)
             <em>and</em> their interaction (does Corrective help small models
@@ -3237,7 +3237,7 @@ def _generate_experiment_1(csv_path: Path) -> str:
                 <div class="axis-title">Pipeline scaffolding</div>
                 <div class="axis-detail">RecursiveChunker (500 / 100) &middot;
                 embeddinggemma:300m &middot; hybrid retrieval, top-k 5 &middot;
-                no reranker &middot; 200 HotpotQA questions (seed 42) &middot;
+                no reranker &middot; 200 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions (seed 42) &middot;
                 judges: Claude Haiku 4.5 + GPT-5.4 mini</div>
             </div>
         </div>
@@ -3460,13 +3460,63 @@ def _generate_experiment_2(csv_path: Path) -> str:
         </div>
     </div>
 
+    <div class="callout callout--critical">
+        <div class="callout__label">Major methodological caveat &middot; read before interpreting any chunker comparison below</div>
+        <h3 class="callout__title">The embedder truncated two of the four chunkers&rsquo; output</h3>
+        <p>
+            Experiment 2 ran against <code>mxbai-embed-large</code>,
+            which has a 512-token context window. Two of the four
+            chunkers routinely produce chunks larger than that:
+        </p>
+        <ul>
+            <li><strong>FixedSizeChunker(500 words)</strong> &asymp;
+                700+ tokens &mdash; every chunk silently truncated
+                to 512 tokens before embedding (~30% of content
+                discarded).</li>
+            <li><strong>SemanticChunker</strong> &mdash; variable-size,
+                many chunks truncated.</li>
+            <li><strong>RecursiveChunker(500 chars / 100 overlap)</strong>
+                &asymp; 100 tokens &mdash; safely under the limit, no
+                truncation.</li>
+            <li><strong>SentenceChunker</strong> &mdash; usually small,
+                no truncation.</li>
+        </ul>
+        <p>
+            So the chunker rankings above describe behaviour
+            <em>under client-side truncation</em>, not the chunkers
+            as designed. Two consequences worth being clear about:
+        </p>
+        <ul>
+            <li>The &ldquo;Fixed beats sentence&rdquo; finding is
+                <em>conservative</em> &mdash; fixed is being penalised
+                by truncation, so the true gap is at least as large
+                as observed, possibly larger.</li>
+            <li>The &ldquo;Fixed&nbsp;/&nbsp;recursive&nbsp;/&nbsp;semantic
+                are a tie&rdquo; finding is <em>tainted</em> &mdash; we&rsquo;re
+                comparing (truncated&nbsp;fixed) &approx; (untruncated&nbsp;recursive)
+                &approx; (truncated&nbsp;semantic). The untruncated
+                ranking is genuinely unknown.</li>
+        </ul>
+        <p>
+            This was the <em>reason</em> the project-wide embedder was
+            switched to <code>embeddinggemma:300m</code> (2K-token
+            window) on 2026-05-13 &mdash; but that switch happened
+            <em>after</em> Experiment 2 was run, and Experiment 2 has
+            not been re-run. So this dashboard reports what was
+            measured under the truncated regime; an un-truncated
+            re-run is on the Phase 2 backlog. See the
+            <a href="methodology.html">Methodology page</a>
+            &rsquo;Embedder&rsquo; section for the full history.
+        </p>
+    </div>
+
     <div class="card">
         <h2>What This Experiment Tests</h2>
         <p>
             <strong>Does how you split documents into chunks affect answer quality,
             and does it interact with model size?</strong> A two-axis factorial
             design: 4 chunking strategies &times; 4 Qwen 3.5 models = 16
-            configurations &times; 200 HotpotQA questions = 3,200 scored answers.
+            configurations &times; 200 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions = 3,200 scored answers.
             RAG strategy is held constant at NaiveRAG to isolate the chunking
             variable from the strategy effects measured in Experiment 1.
         </p>
@@ -3492,7 +3542,7 @@ def _generate_experiment_2(csv_path: Path) -> str:
                 <div class="axis-title">Pipeline scaffolding</div>
                 <div class="axis-detail">NaiveRAG strategy &middot;
                 mxbai-embed-large embedder &middot; hybrid retrieval, top-k 5 &middot;
-                no reranker &middot; 200 HotpotQA questions (seed 42) &middot;
+                no reranker &middot; 200 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions (seed 42) &middot;
                 judges: Claude Haiku 4.5 + GPT-5.4 mini</div>
             </div>
         </div>
@@ -3626,7 +3676,7 @@ def _generate_methodology() -> str:
 
         <h2>Scorer Selection</h2>
         <p>
-            Experiment 0 ran 500 HotpotQA questions through ten LLM judges (3 Gemini, 5
+            Experiment 0 ran 500 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions through ten LLM judges (3 Gemini, 5
             Claude, 2 OpenAI) and correlated each judge's quality scores against the gold
             metrics (BERTScore F1, token-level F1). The headline result: <strong>GPT-5.4</strong>
             led at r=0.605, with <strong>Claude Sonnet 4.6</strong> (0.575) and
@@ -3670,7 +3720,7 @@ def _generate_methodology() -> str:
                 <tr>
                     <td>0 (Scorer Validation)</td>
                     <td>Which LLM judge is most accurate?</td>
-                    <td>500 medium+hard HotpotQA &times; 10 judges (v3)</td>
+                    <td>500 medium+hard <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> &times; 10 judges (v3)</td>
                     <td>Qwen3-4B, NaiveRAG + BGE reranker</td>
                 </tr>
                 <tr>
@@ -3690,7 +3740,7 @@ def _generate_methodology() -> str:
         </table>
 
         <h2>Dataset</h2>
-        <p>The primary corpus is <strong>HotpotQA</strong> — 113K multi-hop Wikipedia
+        <p>The primary corpus is <strong><a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a></strong> — 113K multi-hop Wikipedia
            question-answer pairs with gold-standard answers and difficulty labels (easy,
            medium, hard). Multi-hop questions require reasoning across multiple passages,
            making them a rigorous test of retrieval and generation quality.</p>
@@ -3851,7 +3901,7 @@ def _generate_data() -> str:
                     <td>50 questions &times; 6 judges = 300 scores</td>
                     <td>~25&nbsp;KB</td>
                     <td>First scorer-validation pass. Proportionally
-                        sampled HotpotQA; ceiling effect, no
+                        sampled <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>; ceiling effect, no
                         reranker. Superseded by v3 but preserved for
                         the methodological-evolution narrative.</td>
                     <td><a href="raw_scores.csv">raw_scores.csv</a></td>
@@ -3880,7 +3930,7 @@ def _generate_data() -> str:
                     <td>5 strategies &times; 6 models &times; 200 = 6,000 rows</td>
                     <td>~20&nbsp;MB</td>
                     <td>Strategy &times; Model Size factorial.
-                        HotpotQA, RecursiveChunker(500/100),
+                        <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>, RecursiveChunker(500/100),
                         embeddinggemma:300m, hybrid retrieval.</td>
                     <td><a href="experiment_1_raw_scores.csv">experiment_1_raw_scores.csv</a></td>
                 </tr>
@@ -3889,7 +3939,7 @@ def _generate_data() -> str:
                     <td>4 chunkers &times; 4 models &times; 200 = 3,200 rows</td>
                     <td>~30&nbsp;MB</td>
                     <td>Chunking &times; Model Size factorial.
-                        HotpotQA, NaiveRAG, mxbai-embed-large, hybrid
+                        <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>, NaiveRAG, mxbai-embed-large, hybrid
                         retrieval.</td>
                     <td><a href="experiment_2_raw_scores.csv">experiment_2_raw_scores.csv</a></td>
                 </tr>
@@ -3965,7 +4015,7 @@ def _generate_data() -> str:
                 <tr><td><code>model</code></td><td>string</td>
                     <td>Ollama model tag used for generation.</td></tr>
                 <tr><td><code>question</code></td><td>string</td>
-                    <td>HotpotQA question text. Joins back to the
+                    <td><a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> question text. Joins back to the
                         original dataset via exact match.</td></tr>
                 <tr><td><code>dataset_name</code></td><td>string</td>
                     <td>Source dataset (always <code>hotpotqa</code>
@@ -3983,7 +4033,7 @@ def _generate_data() -> str:
             </thead>
             <tbody>
                 <tr><td><code>gold_answer</code></td><td>string</td>
-                    <td>Reference answer from HotpotQA.</td></tr>
+                    <td>Reference answer from <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>.</td></tr>
                 <tr><td><code>rag_answer</code></td><td>string</td>
                     <td>The model&rsquo;s generated answer.</td></tr>
                 <tr><td><code>gold_f1</code></td><td>float [0,1]</td>
@@ -4279,8 +4329,10 @@ print(by_model)</code></pre>
 
         <h2 id="licensing">Licensing &amp; attribution</h2>
         <p>
-            The CSVs are derivatives of HotpotQA, which is
-            <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">CC-BY-SA 4.0</a>;
+            The CSVs are derivatives of
+            <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>,
+            which is
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC-BY-SA 4.0</a>;
             the derived data is shared under the same license.
             Generated answers are model outputs &mdash; treat them as
             you would any LLM output. The pipeline code that produced
@@ -4678,7 +4730,7 @@ def _generate_writeup() -> str:
         </p>
         <p>
             RAGBench is a configurable harness that tries to answer that
-            question for one shared question set (HotpotQA), one held-
+            question for one shared question set (<a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>), one held-
             constant embedder per experiment, one chunker per
             experiment, and a panel of LLM judges that we first
             validated against gold-standard metrics. It runs the full
@@ -4694,10 +4746,7 @@ def _generate_writeup() -> str:
         <h2 id="hypotheses">What we set out to test</h2>
         <p>
             Three working hypotheses going in. I&rsquo;ll mark each
-            with what the data eventually said. The results below now
-            reference 95% bootstrap CIs on the means (2,000 resamples,
-            percentile method) rather than bare point estimates &mdash;
-            see the dashboards for the corresponding error-bar charts.
+            with what the data eventually said.
         </p>
         <ol>
             <li><strong>H1.</strong> A clever RAG strategy on a small
@@ -4731,22 +4780,30 @@ def _generate_writeup() -> str:
             <li><strong>H3.</strong> Chunker choice will interact
                 meaningfully with model size &mdash; better chunking
                 will rescue smaller models. <span class="muted-note">
-                &mdash; Result: <em>mostly false, with one real
-                effect</em>. Fixed (4.32 [4.26,&nbsp;4.38]) vs
-                sentence (4.11 [4.04,&nbsp;4.18]) is the only chunker
-                pair with non-overlapping CIs &mdash; a real ~0.20
-                effect. Fixed / recursive / semantic CIs all overlap;
-                those three are a tie. So &ldquo;chunker barely
-                matters&rdquo; isn&rsquo;t quite right; better
-                framing: <em>sentence chunking is genuinely worse,
-                the other three are interchangeable</em>.</span></li>
+                &mdash; Result: <em>partially false, but with a
+                major asterisk</em>. Fixed (4.32 [4.26,&nbsp;4.38])
+                vs sentence (4.11 [4.04,&nbsp;4.18]) is the only
+                chunker pair with non-overlapping CIs. Fixed /
+                recursive / semantic CIs all overlap. Crucially,
+                Experiment 2 ran against <code>mxbai-embed-large</code>
+                (512-token window), and two of the four chunkers
+                (fixed and semantic) routinely produce chunks larger
+                than that &mdash; their content was silently
+                truncated to 512 tokens before embedding. So the
+                rankings above describe behaviour <em>under
+                client-side truncation</em>, not the chunkers as
+                designed. &ldquo;Sentence is worse&rdquo; survives
+                that caveat (sentence chunks fit cleanly, so the
+                comparison favours truncation-free chunkers and
+                sentence still lost); the 3-way tie at the top is
+                genuinely unknown without an un-truncated re-run.
+                See the prominent caveat at the top of the
+                <a href="experiment_2.html">Experiment 2 page</a>.</span></li>
         </ol>
 
         <h2 id="headline">Headline findings, cross-experiment</h2>
         <p>
-            All means below carry 95% bootstrap CIs. The interesting
-            content is in which gaps survive a CI test and which
-            don&rsquo;t.
+            Pulled together from the two experiment dashboards.
         </p>
         <ul>
             <li><strong>Strategy effects are mostly within CI; two
@@ -4764,14 +4821,21 @@ def _generate_writeup() -> str:
                 constant assumptions you trust more (Exp 2 says yes
                 with non-overlapping CIs; Exp 1 says they&rsquo;re
                 indistinguishable).</li>
-            <li><strong>Chunker choice has one real signal.</strong>
-                Sentence chunking is genuinely worse (~0.20 quality
-                points below fixed, CIs don&rsquo;t overlap). The
-                other three chunkers (fixed, recursive, semantic) are
-                indistinguishable. Spending engineering effort on
-                picking between the latter three is unlikely to pay
-                back; <em>avoiding</em> sentence chunking is worth
-                doing.</li>
+            <li><strong>Chunker choice has one real signal &mdash;
+                under a major caveat.</strong> Sentence chunking is
+                genuinely worse than fixed (~0.20 quality points
+                below, CIs don&rsquo;t overlap). The other three
+                chunkers (fixed, recursive, semantic) are
+                indistinguishable. But Experiment 2 ran against
+                <code>mxbai-embed-large</code> (512-token window) and
+                two of the four chunkers (fixed and semantic) had
+                their chunks silently truncated to fit, so the
+                rankings describe behaviour under truncation rather
+                than the chunkers as designed. The
+                &ldquo;avoid&nbsp;sentence&rdquo; finding survives
+                that caveat; the 3-way tie at the top doesn&rsquo;t.
+                See the <a href="experiment_2.html">Experiment 2
+                page</a>&rsquo;s caveat callout for the details.</li>
             <li><strong>LLM judges agree when they&rsquo;re
                 contemporaneous.</strong> Experiment 0 v3 ran 9 judges
                 on 500 questions; cross-provider Pearson against gold
@@ -4852,7 +4916,7 @@ def _generate_writeup() -> str:
         </p>
         <h3>v1: the first end-to-end run</h3>
         <p>
-            50 HotpotQA questions sampled proportionally across
+            50 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> questions sampled proportionally across
             difficulties, scored by 6 LLM judges. Headline conclusion:
             use Claude Sonnet as the primary scorer. The five
             oversights:
@@ -5261,21 +5325,8 @@ def _generate_writeup() -> str:
                 temperature=0 + seed, pin every dependency version,
                 stamp library + Ollama versions per row. Without this
                 no number can be exactly replicated.</li>
-            <li><strong>Confidence intervals on the headline numbers.</strong>
-                <span style="color: var(--c-teal); font-weight: 600;">[shipped]</span>
-                Dashboards now render 95% bootstrap CIs on the per-strategy,
-                per-model, per-chunker means, and on the per-cell points
-                in the Quality-vs-Model-Size and Per-Metric Breakdown
-                charts. The Headline Findings cards on Exp 1 + Exp 2
-                quote intervals instead of bare means and call out which
-                comparisons survive a CI test (Naive&nbsp;&approx;&nbsp;Multi-Query&nbsp;&approx;&nbsp;Corrective
-                is a 3-way tie; the Exp 1 &ldquo;4B beats 9B&rdquo; claim
-                does not survive, but the Exp 2 version does). Still
-                missing: ANOVA / regression for formal significance
-                testing across the full factorial &mdash; see the next
-                bullet but one.</li>
             <li><strong>More than one dataset.</strong> Everything
-                here is HotpotQA. The conclusions need to be
+                here is <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>. The conclusions need to be
                 replicated on at least one factoid dataset (SQuAD 2.0
                 is wired up but unused) and one long-form / domain-
                 specific corpus before they generalise.</li>
@@ -5344,17 +5395,6 @@ def _generate_writeup() -> str:
                 so a clean apples-to-apples comparison exists between
                 &ldquo;reconstructed-minimal&rdquo; and
                 &ldquo;recorded&rdquo; regimes.</li>
-            <li><span style="color: var(--c-teal); font-weight: 600;">[done]</span>
-                Add bootstrap confidence intervals to the headline
-                charts. Shipped: 95% percentile bootstrap (2,000
-                resamples, fixed seed) on Per-Strategy, Per-Model,
-                Per-Chunker, Quality-vs-Model-Size, and Per-Metric
-                Breakdown charts. Two of the earlier claims got
-                corrected by it &mdash; the Exp 1 &ldquo;4B beats
-                9B&rdquo; doesn&rsquo;t survive a CI test, and the
-                Naive/Multi-Query/Corrective ranking turned out to
-                be a 3-way tie. The Headline Findings cards now use
-                CI-aware language.</li>
             <li>Decide whether to publish at all, or to leave RAGBench
                 as a personal infrastructure project and use the
                 lessons (logging-first instrumentation, BSOD-resilient
@@ -5466,11 +5506,11 @@ def main(
         if has_v1 or has_v2 or has_v3:
             desc_parts = []
             if has_v1:
-                desc_parts.append("v1: 50 HotpotQA × NaiveRAG × Qwen3 4B")
+                desc_parts.append('v1: 50 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> × NaiveRAG × Qwen3 4B')
             if has_v2:
                 desc_parts.append("v2: 150 medium+hard × BGE reranker × diagnostics")
             if has_v3:
-                desc_parts.append("v3: 500 HotpotQA × BGE reranker × 6 judges (3 Gemini + 3 Claude)")
+                desc_parts.append('v3: 500 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> × BGE reranker × 6 judges (3 Gemini + 3 Claude)')
             experiments_info.append({
                 "num": 0,
                 "title": "Scorer Validation",
@@ -5541,7 +5581,7 @@ def main(
                 "num": 0,
                 "title": "Scorer Validation",
                 "status": "placeholder",
-                "description": "50 HotpotQA × NaiveRAG × Qwen3 4B, scored by 6 LLM judges.",
+                "description": '50 <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> × NaiveRAG × Qwen3 4B, scored by 6 LLM judges.',
             })
             placeholder = _generate_placeholder(0, "Scorer validation — comparing LLM judges on gold-standard data.")
             (output_dir / "experiment_0.html").write_text(placeholder, encoding="utf-8")

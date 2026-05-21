@@ -1048,7 +1048,7 @@ li.muted-note {
                     <td>50 questions &times; 6 judges = 300 scores</td>
                     <td>~25&nbsp;KB</td>
                     <td>First scorer-validation pass. Proportionally
-                        sampled HotpotQA; ceiling effect, no
+                        sampled <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>; ceiling effect, no
                         reranker. Superseded by v3 but preserved for
                         the methodological-evolution narrative.</td>
                     <td><a href="raw_scores.csv">raw_scores.csv</a></td>
@@ -1077,7 +1077,7 @@ li.muted-note {
                     <td>5 strategies &times; 6 models &times; 200 = 6,000 rows</td>
                     <td>~20&nbsp;MB</td>
                     <td>Strategy &times; Model Size factorial.
-                        HotpotQA, RecursiveChunker(500/100),
+                        <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>, RecursiveChunker(500/100),
                         embeddinggemma:300m, hybrid retrieval.</td>
                     <td><a href="experiment_1_raw_scores.csv">experiment_1_raw_scores.csv</a></td>
                 </tr>
@@ -1086,7 +1086,7 @@ li.muted-note {
                     <td>4 chunkers &times; 4 models &times; 200 = 3,200 rows</td>
                     <td>~30&nbsp;MB</td>
                     <td>Chunking &times; Model Size factorial.
-                        HotpotQA, NaiveRAG, mxbai-embed-large, hybrid
+                        <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>, NaiveRAG, mxbai-embed-large, hybrid
                         retrieval.</td>
                     <td><a href="experiment_2_raw_scores.csv">experiment_2_raw_scores.csv</a></td>
                 </tr>
@@ -1162,7 +1162,7 @@ li.muted-note {
                 <tr><td><code>model</code></td><td>string</td>
                     <td>Ollama model tag used for generation.</td></tr>
                 <tr><td><code>question</code></td><td>string</td>
-                    <td>HotpotQA question text. Joins back to the
+                    <td><a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a> question text. Joins back to the
                         original dataset via exact match.</td></tr>
                 <tr><td><code>dataset_name</code></td><td>string</td>
                     <td>Source dataset (always <code>hotpotqa</code>
@@ -1180,7 +1180,7 @@ li.muted-note {
             </thead>
             <tbody>
                 <tr><td><code>gold_answer</code></td><td>string</td>
-                    <td>Reference answer from HotpotQA.</td></tr>
+                    <td>Reference answer from <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>.</td></tr>
                 <tr><td><code>rag_answer</code></td><td>string</td>
                     <td>The model&rsquo;s generated answer.</td></tr>
                 <tr><td><code>gold_f1</code></td><td>float [0,1]</td>
@@ -1476,8 +1476,10 @@ print(by_model)</code></pre>
 
         <h2 id="licensing">Licensing &amp; attribution</h2>
         <p>
-            The CSVs are derivatives of HotpotQA, which is
-            <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">CC-BY-SA 4.0</a>;
+            The CSVs are derivatives of
+            <a href="https://hotpotqa.github.io/" target="_blank" rel="noopener">HotpotQA</a>,
+            which is
+            <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC-BY-SA 4.0</a>;
             the derived data is shared under the same license.
             Generated answers are model outputs &mdash; treat them as
             you would any LLM output. The pipeline code that produced
